@@ -10,23 +10,26 @@ HTML
 <body>
     <div id="map"></div>
     <script>
+        // Inicializar mapa en Santa Cruz
         var map = L.map('map').setView([-17.7833, -63.1821], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        // Pedir ubicación al navegador del celular
+        // 1. Pedir ubicación al navegador al cargar
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
                 var lat = position.coords.latitude;
                 var lng = position.coords.longitude;
                 map.setView([lat, lng], 15);
-                // Enviar la ubicación real a FlutterFlow
+                
+                // Enviar la ubicación inicial a FlutterFlow
                 if (window.parent) {
                     window.parent.postMessage(lat + "," + lng, "*");
                 }
             });
         }
 
-        map.on('move', function() {
+        // 2. Enviar coordenadas solo cuando el usuario termina de mover el mapa
+        map.on('moveend', function() {
             var center = map.getCenter();
             if (window.parent) {
                 window.parent.postMessage(center.lat + "," + center.lng, "*");
