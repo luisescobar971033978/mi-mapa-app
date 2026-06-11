@@ -5,36 +5,33 @@ HTML
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <style>body, #map { height: 100vh; width: 100vw; margin: 0; }</style>
+    <style>
+        body, #map { height: 100vh; width: 100vw; margin: 0; }
+        /* Marcador fijo en el centro */
+        .center-marker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -100%);
+            z-index: 1000;
+            pointer-events: none;
+            font-size: 30px;
+        }
+    </style>
 </head>
 <body>
+    <div class="center-marker">📍</div>
     <div id="map"></div>
     <script>
-        // Inicializar mapa en Santa Cruz
         var map = L.map('map').setView([-17.7833, -63.1821], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        // 1. Pedir ubicación al navegador al cargar
+        // Ubicación inicial automática
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
-                var lat = position.coords.latitude;
-                var lng = position.coords.longitude;
-                map.setView([lat, lng], 15);
-                
-                // Enviar la ubicación inicial a FlutterFlow
-                if (window.parent) {
-                    window.parent.postMessage(lat + "," + lng, "*");
-                }
+                map.setView([position.coords.latitude, position.coords.longitude], 15);
             });
         }
-
-        // 2. Enviar coordenadas solo cuando el usuario termina de mover el mapa
-        map.on('moveend', function() {
-            var center = map.getCenter();
-            if (window.parent) {
-                window.parent.postMessage(center.lat + "," + center.lng, "*");
-            }
-        });
     </script>
 </body>
 </html>
