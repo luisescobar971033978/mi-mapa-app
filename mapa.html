@@ -32,6 +32,18 @@ HTML
                 map.setView([position.coords.latitude, position.coords.longitude], 15);
             });
         }
+
+        // Función para enviar la posición a FlutterFlow cada vez que el mapa se detiene
+        map.on('moveend', function() {
+            var center = map.getCenter();
+            // Verifica si existe la conexión con FlutterFlow
+            if (window.FlutterFlow) {
+                window.FlutterFlow.postMessage(JSON.stringify({
+                    "lat": center.lat,
+                    "lng": center.lng
+                }));
+            }
+        });
     </script>
 </body>
 </html>
