@@ -7,8 +7,6 @@ HTML
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body, #map { height: 100vh; width: 100vw; margin: 0; }
-        
-        /* Marcador fijo en el centro */
         .center-marker {
             position: absolute;
             top: 50%;
@@ -18,8 +16,6 @@ HTML
             pointer-events: none;
             font-size: 30px;
         }
-
-        /* Botón de confirmar dentro del HTML */
         #btnConfirmar {
             position: absolute;
             bottom: 50px;
@@ -27,7 +23,7 @@ HTML
             transform: translateX(-50%);
             z-index: 1000;
             padding: 15px 30px;
-            background-color: #0f766e; /* Color elegante, adáptalo a tu diseño */
+            background-color: #0f766e;
             color: white;
             font-size: 16px;
             font-weight: bold;
@@ -41,29 +37,25 @@ HTML
 <body>
     <div class="center-marker">📍</div>
     <div id="map"></div>
-    
     <button id="btnConfirmar" onclick="guardarUbicacion()">CONFIRMAR UBICACIÓN</button>
 
     <script>
         var map = L.map('map').setView([-17.7833, -63.1821], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        // Ubicación inicial automática
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
                 map.setView([position.coords.latitude, position.coords.longitude], 15);
             });
         }
 
-        // Función asíncrona para guardar en Supabase
         async function guardarUbicacion() {
             var center = map.getCenter();
-            var lat = center.lat;
-            var lng = center.lng;
-
-            // ⚠️ REEMPLAZA ESTOS DATOS CON LOS TUYOS DE SUPABASE
-            const supabaseUrl = 'https://xxxxxx.supabase.co/rest/v1/tu_tabla'; 
-            const supabaseKey = 'tu_anon_key'; 
+            
+            // --- PEGA AQUÍ TUS CREDENCIALES ---
+            const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co/rest/v1/solicitudes';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
+            // ----------------------------------
 
             try {
                 let response = await fetch(supabaseUrl, {
@@ -75,20 +67,19 @@ HTML
                         'Prefer': 'return=representation'
                     },
                     body: JSON.stringify({
-                        latitud: lat,  // Asegúrate que el nombre de la columna coincida en Supabase
-                        longitud: lng  // Asegúrate que el nombre de la columna coincida en Supabase
+                        latitud: center.lat, // Asegúrate que el nombre coincida con tu tabla
+                        longitud: center.lng // Asegúrate que el nombre coincida con tu tabla
                     })
                 });
 
                 if (response.ok) {
                     alert("¡Ubicación guardada con éxito!");
-                    // Aquí puedes redirigir a otra pantalla o avisar al usuario
                 } else {
                     let error = await response.json();
-                    alert("Error al guardar en Supabase: " + JSON.stringify(error));
+                    alert("Error: " + JSON.stringify(error));
                 }
             } catch (e) {
-                alert("Error de red: " + e.message);
+                alert("Error de conexión: " + e.message);
             }
         }
     </script>
