@@ -52,10 +52,11 @@ HTML
         async function guardarUbicacion() {
             var center = map.getCenter();
             
-            // --- PEGA AQUÍ TUS CREDENCIALES ---
+            // --- CONFIGURACIÓN ---
+            // Asegúrate de reemplazar 'solicitudes' por el nombre de tu tabla real en Supabase
             const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co/rest/v1/solicitudes';
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
-            // ----------------------------------
+            const supabaseKey = 'TU_ANON_PUBLIC_KEY_AQUI'; 
+            // ---------------------
 
             try {
                 let response = await fetch(supabaseUrl, {
@@ -67,8 +68,8 @@ HTML
                         'Prefer': 'return=representation'
                     },
                     body: JSON.stringify({
-                        latitud: center.lat, // Asegúrate que el nombre coincida con tu tabla
-                        longitud: center.lng // Asegúrate que el nombre coincida con tu tabla
+                        latitud: center.lat, 
+                        longitud: center.lng 
                     })
                 });
 
