@@ -36,10 +36,13 @@
         </form>
     </div>
 <script>
-    // Configuración de Supabase
-    const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    // Usamos 'let' para permitir reasignación si fuera necesario, 
+    // y verificamos si ya existe antes de crearla.
+    if (typeof supabase === 'undefined') {
+        const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co'; // [cite: 1]
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg'; // [cite: 2]
+        window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    }
 
     function verificarOtro() {
         const servicio = document.getElementById('servicio').value;
@@ -50,14 +53,14 @@
     document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Obtener valores
         const nombre = document.getElementById('nombre').value;
         const celular = document.getElementById('celular').value;
         const servicio = document.getElementById('servicio').value;
         const descripcion = document.getElementById('descripcion')?.value || "";
 
         try {
-            const { data, error } = await supabase
+            // Usamos window.supabase para asegurar que accedemos a la variable global
+            const { data, error } = await window.supabase
                 .from('solicitudes')
                 .insert([{ 
                     nombre_usuario: nombre, 
@@ -69,9 +72,10 @@
 
             if (error) throw error;
 
-            // Redirigir si fue exitoso
+            alert("¡Solicitud enviada con éxito!");
             window.location.href = `mapa.html?id=${data[0].solicitud_id}`;
         } catch (err) {
+            console.error("Error detallado:", err);
             alert("Error al guardar: " + err.message);
         }
     });
