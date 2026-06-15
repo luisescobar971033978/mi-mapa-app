@@ -9,56 +9,68 @@
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
     <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl">
         <h2 class="text-2xl font-bold text-teal-900 mb-6 text-center">SOLICITAR SERVICIO</h2>
+        
         <form id="solicitudForm" class="space-y-4">
             <input type="text" id="nombre" placeholder="Nombre del Usuario" class="w-full p-3 border rounded-lg" required>
             <input type="tel" id="celular" placeholder="No. Celular Contacto" class="w-full p-3 border rounded-lg" required>
-            <select id="servicio" onchange="verificarOtro()" class="w-full p-3 border rounded-lg" required>
+            
+            <select id="servicio" class="w-full p-3 border rounded-lg" required>
                 <option value="">SELECCIONE EL PROBLEMA</option>
                 <option value="Electricidad">Electricidad</option>
                 <option value="Plomería">Plomería</option>
                 <option value="Carpintería">Carpintería</option>
                 <option value="Otro">Otro, describa su problema</option>
             </select>
+
             <div id="otroCampo" class="hidden">
                 <textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg"></textarea>
             </div>
+
             <button type="submit" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold">SOLICITAR SERVICIO</button>
         </form>
     </div>
 
     <script>
-        // Inicialización única
+        // 1. Configuración de Supabase
         const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        function verificarOtro() {
-            const val = document.getElementById('servicio').value;
-            document.getElementById('otroCampo').classList.toggle('hidden', val !== 'Otro');
-        }
+        // 2. Función para mostrar/ocultar campo "Otro"
+        const selectServicio = document.getElementById('servicio');
+        const divOtro = document.getElementById('otroCampo');
 
+        selectServicio.addEventListener('change', () => {
+            divOtro.classList.toggle('hidden', selectServicio.value !== 'Otro');
+        });
+
+        // 3. Manejo del formulario
         document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
             const nombre = document.getElementById('nombre').value;
             const celular = document.getElementById('celular').value;
-            const sel = document.getElementById('servicio').value;
+            const sel = selectServicio.value;
             const desc = document.getElementById('descripcion').value;
             const textoFinal = (sel === 'Otro') ? desc : sel;
 
-            const { data, error } = await supabaseClient
-                .from('solicitudes')
-                .insert([{ 
-                    nombre_usuario: nombre, 
-                    celular_contacto: celular, 
-                    comentario_solicitud: textoFinal,
-                    respuesta_solicitud: 'pendiente'
-                }])
-                .select();
+            try {
+                const { data, error } = await supabaseClient
+                    .from('solicitudes')
+                    .insert([{ 
+                        nombre_usuario: nombre, 
+                        celular_contacto: celular, 
+                        comentario_solicitud: textoFinal,
+                        respuesta_solicitud: 'pendiente'
+                    }])
+                    .select();
 
-            if (error) {
-                alert("Error al guardar: " + error.message);
-            } else {
+                if (error) throw error;
+
+                alert("¡Solicitud enviada con éxito!");
                 window.location.href = `mapa.html?id=${data[0].solicitud_id}`;
+            } catch (err) {
+                alert("Error al guardar: " + err.message);
             }
         });
     </script>
