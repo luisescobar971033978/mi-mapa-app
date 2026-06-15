@@ -30,10 +30,11 @@
     </div>
 
     <script>
-        // Configuración de Supabase
-        const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        // Inicialización única (usando 'window' para evitar redeclaraciones)
+        window.supabaseInstance = window.supabaseInstance || supabase.createClient(
+            'https://kcxkadqhdojrnfepkgfk.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg'
+        );
 
         function verificarOtro() {
             const select = document.getElementById('opcion_servicio');
@@ -47,21 +48,20 @@
             const celular = document.getElementById('celular').value;
             const opcion = document.getElementById('opcion_servicio').value;
             const desc = document.getElementById('descripcion').value;
-            
-            // Lógica limpia: consolidamos toda la info en comentario_solicitud
             const textoFinal = (opcion === 'Otro') ? desc : opcion;
 
-            const { data, error } = await supabase
+            // Guardado en la base de datos
+            const { data, error } = await window.supabaseInstance
                 .from('solicitudes')
                 .insert([{ 
                     nombre_usuario: nombre, 
                     celular_contacto: celular, 
                     comentario_solicitud: textoFinal,
-                    respuesta_solicitud: 'pendiente' // Valor inicial fijo
+                    respuesta_solicitud: 'pendiente'
                 }]);
 
             if (error) {
-                alert("Error al guardar: " + error.message);
+                alert("Error: " + error.message);
             } else {
                 alert("¡Solicitud enviada con éxito!");
                 window.location.reload();
