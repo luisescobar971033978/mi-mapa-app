@@ -36,12 +36,12 @@
         </form>
     </div>
 <script>
-    // Verificamos si ya existe antes de inicializar para evitar el error de redeclaración
-    if (typeof window.supabase === 'undefined') {
-        const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co'; // [cite: 1]
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg'; // [cite: 2]
-        window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
-    }
+    // Inicialización directa y local
+    const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
+    
+    // Usamos supabase directamente desde la librería cargada
+    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
     function verificarOtro() {
         const servicio = document.getElementById('servicio').value;
@@ -58,8 +58,8 @@
         const descripcion = document.getElementById('descripcion')?.value || "";
 
         try {
-            // Usamos window.supabase para acceder a la instancia global
-            const { data, error } = await window.supabase
+            // Usamos supabaseClient para realizar la operación
+            const { data, error } = await supabaseClient
                 .from('solicitudes')
                 .insert([{ 
                     nombre_usuario: nombre, 
@@ -74,10 +74,11 @@
             alert("¡Solicitud enviada con éxito!");
             window.location.href = `mapa.html?id=${data[0].solicitud_id}`;
         } catch (err) {
-            console.error("Error al guardar:", err);
+            console.error("Error completo:", err);
             alert("Error al guardar: " + err.message);
         }
     });
+</script>
 </script>
 </body>
 </html>
