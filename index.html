@@ -1,0 +1,81 @@
+HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud de Servicio - Soluciones y Mantenimiento</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            opacity: 0.1;
+            z-index: -1;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <img src="logo_1.jpeg" class="watermark" alt="Logo">
+
+    <div class="max-w-md w-full bg-white/90 p-8 rounded-2xl shadow-xl z-10">
+        <h2 class="text-2xl font-bold text-teal-900 mb-6 text-center">SOLUCIONES Y MANTENIMIENTO</h2>
+        
+        <form id="solicitudForm" class="space-y-4">
+            <input type="text" id="nombre" placeholder="Nombre del Usuario" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" required>
+            
+            <input type="tel" id="celular" placeholder="No. Celular Contacto" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" required>
+            
+            <select id="servicio" onchange="verificarOtro()" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none text-gray-600" required>
+                <option value="">SELECCIONE EL PROBLEMA QUE UD TIENE</option>
+                <option value="Electricidad">Electricidad</option>
+                <option value="Plomería">Plomería</option>
+                <option value="Carpintería">Carpintería</option>
+                <option value="Otro">Otro, Describa su Problema</option>
+            </select>
+
+            <div id="otroCampo" class="hidden">
+                <textarea id="descripcion" placeholder="Describa su requerimiento manualmente..." class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" rows="3"></textarea>
+            </div>
+
+            <button type="submit" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold hover:bg-teal-900 transition-colors shadow-lg">
+                SOLICITAR SERVICIO
+            </button>
+        </form>
+    </div>
+
+    <script>
+        function verificarOtro() {
+            const servicio = document.getElementById('servicio').value;
+            const campoOtro = document.getElementById('otroCampo');
+            if (servicio === 'Otro') {
+                campoOtro.classList.remove('hidden');
+            } else {
+                campoOtro.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const nombre = document.getElementById('nombre').value;
+            const celular = document.getElementById('celular').value;
+            const servicio = document.getElementById('servicio').value;
+            const descripcion = document.getElementById('descripcion').value;
+
+            // Aquí es donde próximamente conectaremos con Supabase
+            console.log("Datos a enviar:", { nombre, celular, servicio, descripcion });
+            
+            alert("¡Datos registrados! Redirigiendo al mapa...");
+            
+            // Simulación de navegación a mapa.html
+            window.location.href = 'mapa.html';
+        });
+    </script>
+</body>
+</html>
