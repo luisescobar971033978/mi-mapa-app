@@ -36,9 +36,8 @@
         </form>
     </div>
 <script>
-    // Usamos 'let' para permitir reasignación si fuera necesario, 
-    // y verificamos si ya existe antes de crearla.
-    if (typeof supabase === 'undefined') {
+    // Verificamos si ya existe antes de inicializar para evitar el error de redeclaración
+    if (typeof window.supabase === 'undefined') {
         const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co'; // [cite: 1]
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg'; // [cite: 2]
         window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
@@ -59,7 +58,7 @@
         const descripcion = document.getElementById('descripcion')?.value || "";
 
         try {
-            // Usamos window.supabase para asegurar que accedemos a la variable global
+            // Usamos window.supabase para acceder a la instancia global
             const { data, error } = await window.supabase
                 .from('solicitudes')
                 .insert([{ 
@@ -75,7 +74,7 @@
             alert("¡Solicitud enviada con éxito!");
             window.location.href = `mapa.html?id=${data[0].solicitud_id}`;
         } catch (err) {
-            console.error("Error detallado:", err);
+            console.error("Error al guardar:", err);
             alert("Error al guardar: " + err.message);
         }
     });
