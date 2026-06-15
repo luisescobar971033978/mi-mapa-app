@@ -36,48 +36,37 @@
         </form>
     </div>
 <script>
- // 1. Inicialización clara y separada
-    const _supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
-    const _supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
+document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
     
-    // Usamos 'supabaseClient' en lugar de intentar sobrescribir 'window.supabase'
-    const supabaseClient = supabase.createClient(_supabaseUrl, _supabaseKey);
+    const nombre = document.getElementById('nombre').value;
+    const celular = document.getElementById('celular').value;
+    const opcionSeleccionada = document.getElementById('servicio').value;
+    const descripcionManual = document.getElementById('descripcion')?.value || "";
 
-    function verificarOtro() {
-        const servicio = document.getElementById('servicio').value;
-        const campoOtro = document.getElementById('otroCampo');
-        if(campoOtro) campoOtro.classList.toggle('hidden', servicio !== 'Otro');
+    // Lógica: Si es "Otro", usamos la descripción; si no, usamos la opción seleccionada
+    const textoFinal = (opcionSeleccionada === 'Otro') ? descripcionManual : opcionSeleccionada;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('solicitudes')
+            .insert([{ 
+                nombre_usuario: nombre, 
+                celular_contacto: celular, 
+                comentario_solicitud: textoFinal, // Aquí se guarda todo
+                respuesta_solicitud: 'pendiente'  // Definimos el estado inicial
+            }])
+            .select();
+
+        if (error) throw error;
+
+        alert("¡Solicitud enviada con éxito!");
+        window.location.href = `mapa.html?id=${data[0].solicitud_id}`;
+    } catch (err) {
+        console.error("Error al guardar:", err);
+        alert("Error al guardar: " + err.message);
     }
-
-    document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const nombre = document.getElementById('nombre').value;
-        const celular = document.getElementById('celular').value;
-        const servicio = document.getElementById('servicio').value;
-        const descripcion = document.getElementById('descripcion')?.value || "";
-
-        try {
-            // Usamos la constante local 'supabaseClient'
-            const { data, error } = await supabaseClient
-                .from('solicitudes')
-                .insert([{ 
-                    nombre_usuario: nombre, 
-                    celular_contacto: celular, 
-                    servicio: servicio, 
-                    comentario_solicitud: (servicio === 'Otro' ? descripcion : servicio) 
-                }])
-                .select();
-
-            if (error) throw error;
-
-            alert("¡Solicitud enviada con éxito!");
-            window.location.href = `mapa.html?id=${data[0].solicitud_id}`;
-        } catch (err) {
-            console.error("Error técnico:", err);
-            alert("Error al guardar: " + err.message);
-        }
-    });  
+}) 
 </script>
 </body>
 </html>
