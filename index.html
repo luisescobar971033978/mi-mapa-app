@@ -35,24 +35,28 @@
             <button type="submit" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold hover:bg-teal-900">SOLICITAR SERVICIO</button>
         </form>
     </div>
+<script>
+    // Configuración de Supabase
+    const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-    <script>
-        const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    function verificarOtro() {
+        const servicio = document.getElementById('servicio').value;
+        const campoOtro = document.getElementById('otroCampo');
+        if(campoOtro) campoOtro.classList.toggle('hidden', servicio !== 'Otro');
+    }
 
-        function verificarOtro() {
-            const servicio = document.getElementById('servicio').value;
-            document.getElementById('otroCampo').classList.toggle('hidden', servicio !== 'Otro');
-        }
+    document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Obtener valores
+        const nombre = document.getElementById('nombre').value;
+        const celular = document.getElementById('celular').value;
+        const servicio = document.getElementById('servicio').value;
+        const descripcion = document.getElementById('descripcion')?.value || "";
 
-        document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const nombre = document.getElementById('nombre').value;
-            const celular = document.getElementById('celular').value;
-            const servicio = document.getElementById('servicio').value;
-            const descripcion = document.getElementById('descripcion').value;
-
+        try {
             const { data, error } = await supabase
                 .from('solicitudes')
                 .insert([{ 
@@ -63,12 +67,14 @@
                 }])
                 .select();
 
-            if (error) {
-                alert("Error al guardar: " + error.message);
-            } else {
-                window.location.href = `mapa.html?id=${data[0].solicitud_id}`;
-            }
-        });
-    </script>
+            if (error) throw error;
+
+            // Redirigir si fue exitoso
+            window.location.href = `mapa.html?id=${data[0].solicitud_id}`;
+        } catch (err) {
+            alert("Error al guardar: " + err.message);
+        }
+    });
+</script>
 </body>
 </html>
