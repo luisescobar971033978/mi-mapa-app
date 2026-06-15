@@ -8,29 +8,17 @@ HTML
     <style>
         body, #map { height: 100vh; width: 100vw; margin: 0; }
         .center-marker {
-            position: absolute;
-            top: 50%;
-            left: 50%;
+            position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -100%);
-            z-index: 1000;
-            pointer-events: none;
-            font-size: 30px;
+            z-index: 1000; pointer-events: none; font-size: 30px;
         }
         #btnConfirmar {
-            position: absolute;
-            bottom: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            padding: 15px 30px;
-            background-color: #0f766e;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            border: none;
-            border-radius: 30px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            cursor: pointer;
+            position: absolute; bottom: 50px; left: 50%;
+            transform: translateX(-50%); z-index: 1000;
+            padding: 15px 30px; background-color: #0f766e;
+            color: white; font-size: 16px; font-weight: bold;
+            border: none; border-radius: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2); cursor: pointer;
         }
     </style>
 </head>
@@ -43,6 +31,12 @@ HTML
         var map = L.map('map').setView([-17.7833, -63.1821], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+        // Función para leer parámetros de la URL (?id=...)
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
                 map.setView([position.coords.latitude, position.coords.longitude], 15);
@@ -51,16 +45,22 @@ HTML
 
         async function guardarUbicacion() {
             var center = map.getCenter();
-            
+            const idSolicitud = getQueryParam('id'); // Capturamos el ID enviado por FlutterFlow
+
+            if (!idSolicitud) {
+                alert("Error: No se recibió un ID de solicitud.");
+                return;
+            }
+
             // --- CONFIGURACIÓN ---
-            // Asegúrate de reemplazar 'solicitudes' por el nombre de tu tabla real en Supabase
-            const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co/rest/v1/solicitudes';
+            // Usamos el filtro ?solicitud_id=eq.ID para actualizar una fila específica
+            const supabaseUrl = `https://kcxkadqhdojrnfepkgfk.supabase.co/rest/v1/solicitudes?solicitud_id=eq.${idSolicitud}`;
             const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg'; 
-            // ---------------------
 
             try {
+                // Cambiamos a método PATCH para actualizar
                 let response = await fetch(supabaseUrl, {
-                    method: 'POST',
+                    method: 'PATCH', 
                     headers: {
                         'apikey': supabaseKey,
                         'Authorization': 'Bearer ' + supabaseKey,
@@ -74,10 +74,10 @@ HTML
                 });
 
                 if (response.ok) {
-                    alert("¡Ubicación guardada con éxito!");
+                    alert("¡Ubicación actualizada con éxito!");
                 } else {
                     let error = await response.json();
-                    alert("Error: " + JSON.stringify(error));
+                    alert("Error al actualizar: " + JSON.stringify(error));
                 }
             } catch (e) {
                 alert("Error de conexión: " + e.message);
