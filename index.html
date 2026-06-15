@@ -1,4 +1,3 @@
-HTML
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -13,11 +12,14 @@ HTML
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
     <img src="logo_1.jpeg" class="watermark" alt="Logo">
+    
     <div class="max-w-md w-full bg-white/90 p-8 rounded-2xl shadow-xl z-10">
         <h2 class="text-2xl font-bold text-teal-900 mb-6 text-center">SOLICITAR SERVICIO</h2>
+        
         <form id="solicitudForm" class="space-y-4">
             <input type="text" id="nombre" placeholder="Nombre del Usuario" class="w-full p-3 border rounded-lg" required>
             <input type="tel" id="celular" placeholder="No. Celular Contacto" class="w-full p-3 border rounded-lg" required>
+            
             <select id="servicio" onchange="verificarOtro()" class="w-full p-3 border rounded-lg" required>
                 <option value="">SELECCIONE EL PROBLEMA QUE UD TIENE</option>
                 <option value="Electricidad">Electricidad</option>
@@ -25,10 +27,12 @@ HTML
                 <option value="Carpintería">Carpintería</option>
                 <option value="Otro">Otro, Describa su Problema</option>
             </select>
+
             <div id="otroCampo" class="hidden">
                 <textarea id="descripcion" placeholder="Describa su requerimiento..." class="w-full p-3 border rounded-lg"></textarea>
             </div>
-            <button type="submit" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold">SOLICITAR SERVICIO</button>
+
+            <button type="submit" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold hover:bg-teal-900">SOLICITAR SERVICIO</button>
         </form>
     </div>
 
@@ -60,7 +64,7 @@ HTML
                 .select();
 
             if (error) {
-                alert("Error: " + error.message);
+                alert("Error al guardar: " + error.message);
             } else {
                 window.location.href = `mapa.html?id=${data[0].solicitud_id}`;
             }
