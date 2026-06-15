@@ -2,71 +2,65 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solicitud de Servicio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; opacity: 0.1; z-index: -1; pointer-events: none; }
-    </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <img src="logo_1.jpeg" class="watermark" alt="Logo">
-    
-    <div class="max-w-md w-full bg-white/90 p-8 rounded-2xl shadow-xl z-10">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl">
         <h2 class="text-2xl font-bold text-teal-900 mb-6 text-center">SOLICITAR SERVICIO</h2>
-        
         <form id="solicitudForm" class="space-y-4">
             <input type="text" id="nombre" placeholder="Nombre del Usuario" class="w-full p-3 border rounded-lg" required>
             <input type="tel" id="celular" placeholder="No. Celular Contacto" class="w-full p-3 border rounded-lg" required>
-            
             <select id="servicio" onchange="verificarOtro()" class="w-full p-3 border rounded-lg" required>
-                <option value="">SELECCIONE EL PROBLEMA QUE UD TIENE</option>
+                <option value="">SELECCIONE EL PROBLEMA</option>
                 <option value="Electricidad">Electricidad</option>
                 <option value="Plomería">Plomería</option>
                 <option value="Carpintería">Carpintería</option>
-                <option value="Otro">Otro, Describa su Problema</option>
+                <option value="Otro">Otro, describa su problema</option>
             </select>
-
             <div id="otroCampo" class="hidden">
-                <textarea id="descripcion" placeholder="Describa su requerimiento..." class="w-full p-3 border rounded-lg"></textarea>
+                <textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg"></textarea>
             </div>
-
-            <button type="submit" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold hover:bg-teal-900">SOLICITAR SERVICIO</button>
+            <button type="submit" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold">SOLICITAR SERVICIO</button>
         </form>
     </div>
-<script>
-document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const nombre = document.getElementById('nombre').value;
-    const celular = document.getElementById('celular').value;
-    const opcionSeleccionada = document.getElementById('servicio').value;
-    const descripcionManual = document.getElementById('descripcion')?.value || "";
 
-    // Lógica: Si es "Otro", usamos la descripción; si no, usamos la opción seleccionada
-    const textoFinal = (opcionSeleccionada === 'Otro') ? descripcionManual : opcionSeleccionada;
+    <script>
+        // Inicialización única
+        const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-    try {
-        const { data, error } = await supabaseClient
-            .from('solicitudes')
-            .insert([{ 
-                nombre_usuario: nombre, 
-                celular_contacto: celular, 
-                comentario_solicitud: textoFinal, // Aquí se guarda todo
-                respuesta_solicitud: 'pendiente'  // Definimos el estado inicial
-            }])
-            .select();
+        function verificarOtro() {
+            const val = document.getElementById('servicio').value;
+            document.getElementById('otroCampo').classList.toggle('hidden', val !== 'Otro');
+        }
 
-        if (error) throw error;
+        document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('nombre').value;
+            const celular = document.getElementById('celular').value;
+            const sel = document.getElementById('servicio').value;
+            const desc = document.getElementById('descripcion').value;
+            const textoFinal = (sel === 'Otro') ? desc : sel;
 
-        alert("¡Solicitud enviada con éxito!");
-        window.location.href = `mapa.html?id=${data[0].solicitud_id}`;
-    } catch (err) {
-        console.error("Error al guardar:", err);
-        alert("Error al guardar: " + err.message);
-    }
-}) 
-</script>
+            const { data, error } = await supabaseClient
+                .from('solicitudes')
+                .insert([{ 
+                    nombre_usuario: nombre, 
+                    celular_contacto: celular, 
+                    comentario_solicitud: textoFinal,
+                    respuesta_solicitud: 'pendiente'
+                }])
+                .select();
+
+            if (error) {
+                alert("Error al guardar: " + error.message);
+            } else {
+                window.location.href = `mapa.html?id=${data[0].solicitud_id}`;
+            }
+        });
+    </script>
 </body>
 </html>
