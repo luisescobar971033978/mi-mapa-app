@@ -8,7 +8,7 @@
     <style>
         .form-container { position: relative; background-color: rgba(255, 255, 255, 0.95); overflow: hidden; }
         .watermark { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('logo_1.jpeg'); background-repeat: no-repeat; background-position: center; background-size: contain; opacity: 0.1; z-index: 0; pointer-events: none; }
-        #solicitudForm, h2, button { position: relative; z-index: 1; }
+        #solicitudForm, h2, button, .whatsapp-btn { position: relative; z-index: 1; }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
@@ -39,7 +39,14 @@
                 <option value="Ampliación de Vivienda y Oficinas">Ampliación de Vivienda y Oficinas</option>
             </select>
             <div id="otroCampo" class="hidden"><textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg"></textarea></div>
+            
             <button type="submit" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold">SOLICITAR SERVICIO</button>
+            
+            <a href="https://wa.me/59173694080?text=Hola,%20deseo%20solicitar%20una%20cotización%20o%20inspección%20para%20un%20servicio%20en%20mi%20hogar." 
+               target="_blank" 
+               class="whatsapp-btn w-full flex items-center justify-center bg-[#25D366] text-white p-4 rounded-xl font-bold shadow-lg hover:bg-[#128C7E] transition-colors">
+               <span class="mr-2">💬</span> Contactar por WhatsApp
+            </a>
         </form>
     </div>
 
@@ -85,7 +92,6 @@
             }
         });
 
-        // Receptor del mensaje de éxito desde mapa.html
         window.onload = function() {
             const mensaje = localStorage.getItem('mensaje_exito');
             if (mensaje) {
