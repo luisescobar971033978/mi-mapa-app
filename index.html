@@ -49,20 +49,17 @@
             
             const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-            // Función para mostrar/ocultar el modal de ayuda
             window.toggleAyuda = function() {
                 const mensaje = document.getElementById('ayudaMensaje');
                 mensaje.classList.toggle('hidden');
             };
 
-            // Función de visibilidad del campo "Otro"
             window.verificarOtro = function() {
                 const select = document.getElementById('opcion_servicio');
                 const otro = document.getElementById('otroCampo');
                 otro.classList.toggle('hidden', select.value !== 'Otro');
             };
 
-            // Envío de datos
             document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const nombre = document.getElementById('nombre').value;
@@ -78,13 +75,19 @@
                         celular_contacto: celular, 
                         comentario_solicitud: textoFinal,
                         respuesta_solicitud: 'pendiente'
-                    }]);
+                    }])
+                    .select(); // IMPORTANTE: .select() nos permite obtener el registro creado
 
                 if (error) {
                     alert("Error: " + error.message);
                 } else {
-                    alert("¡Solicitud enviada con éxito!");
-                    window.location.reload();
+                    // Guardamos el ID de la solicitud para usarlo luego en mapa.html
+                    if(data && data.length > 0) {
+                        localStorage.setItem('id_solicitud', data[0].id);
+                    }
+                    
+                    alert("¡Solicitud enviada con éxito! Por favor Marcar y CONFIRMAR UBICACION");
+                    window.location.href = 'mapa.html'; // Redirección al mapa
                 }
             });
         });
