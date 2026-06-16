@@ -50,41 +50,30 @@
     const idSolicitud = localStorage.getItem('id_solicitud');
     var center = map.getCenter();
 
-    // Diagnóstico 1: ¿Qué estamos tratando de guardar?
-    console.log("ID recuperado:", idSolicitud);
-    console.log("Coordenadas:", center.lat, center.lng);
-
-    if (!idSolicitud || idSolicitud === 'null') { 
-        mostrarModal("Error", "ID de solicitud no encontrado. Regrese al inicio."); 
+    if (!idSolicitud) { 
+        mostrarModal("Error", "No se encontró el ID."); 
         return; 
     }
-    
-    // Diagnóstico 2: Intentar la actualización
-    try {
-        const { data, error } = await client
-            .from('solicitudes')
-            .update({ 
-                latitud: center.lat, 
-                longitud: center.lng 
-            })
-            .eq('solicitud_id', parseInt(idSolicitud))
-            .select(); // Agregamos select para verificar qué se actualizó
+
+    const { data, error } = await client
+        .from('solicitudes')
+        .update({ latitud: center.lat, longitud: center.lng })
+        .eq('solicitud_id', parseInt(idSolicitud))
+        .select();
+
+    if (error) {
+        mostrarModal("Error", "Error al guardar: " + error.message);
+    } else {
+        // En lugar de usar una función de callback, llamamos directamente al modal de éxito
+        document.getElementById('modalTitulo').innerText = "¡Éxito!";
+        document.getElementById('modalTexto').innerText = "Ubicación guardada. Estamos programando su servicio.";
+        document.getElementById('modalApp').classList.remove('hidden');
         
-        if (error) { 
-            mostrarModal("Error de BD", error.message); 
-            console.error("Error Supabase:", error);
-        } else {
-            console.log("Respuesta de Supabase:", data);
-            
-            // Limpiamos y confirmamos
+        // El botón Aceptar ahora forzará la redirección directamente
+        document.getElementById('modalBtn').onclick = function() {
             localStorage.removeItem('id_solicitud');
-            
-            mostrarModal("¡Éxito!", "Ubicación guardada correctamente.", () => { 
-                window.location.href = 'index.html'; 
-            });
-        }
-    } catch (err) {
-        mostrarModal("Error crítico", "Hubo un fallo inesperado: " + err.message);
+            window.location.href = 'index.html';
+        };
     }
 }
     </script>
