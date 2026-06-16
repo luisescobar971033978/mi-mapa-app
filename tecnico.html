@@ -19,7 +19,7 @@
         </div>
     </div>
 
-    <script>
+   <script>
         const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
         const supabaseKey = 'TeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
         const client = supabase.createClient(supabaseUrl, supabaseKey);
@@ -55,7 +55,6 @@
             `).join('');
         }
 
-        // Función para cambiar estado y avanzar
         async function confirmar(id) {
             const btn = event.target;
             btn.innerText = "Procesando...";
@@ -67,7 +66,6 @@
                 .eq('solicitud_id', id);
 
             if (!error) {
-                // Redirige al mapa de servicio con el ID para el chat y rastreo
                 window.location.href = `mapa_tecnico.html?id=${id}`;
             } else {
                 alert("Error al confirmar. Intente de nuevo.");
@@ -76,8 +74,8 @@
             }
         }
 
-        // TIEMPO REAL: Si entra un nuevo pedido, se refresca automáticamente
-        client.channel('solicitudes')
+        // TIEMPO REAL: Una sola suscripción eficiente
+        client.channel('solicitudes_channel')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, 
                 () => { cargarSolicitudes(); })
             .subscribe();
