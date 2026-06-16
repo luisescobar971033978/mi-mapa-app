@@ -30,17 +30,17 @@
     </div>
 
     <script>
-        // Inicialización única (usando 'window' para evitar redeclaraciones)
-        window.supabaseInstance = window.supabaseInstance || supabase.createClient(
-            'https://kcxkadqhdojrnfepkgfk.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg'
-        );
+        // 1. Inicialización única y segura
+        const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
+        const client = supabase.createClient(supabaseUrl, supabaseKey);
 
         function verificarOtro() {
             const select = document.getElementById('opcion_servicio');
             document.getElementById('otroCampo').classList.toggle('hidden', select.value !== 'Otro');
         }
 
+        // 2. Envío de datos
         document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -48,10 +48,11 @@
             const celular = document.getElementById('celular').value;
             const opcion = document.getElementById('opcion_servicio').value;
             const desc = document.getElementById('descripcion').value;
+            
             const textoFinal = (opcion === 'Otro') ? desc : opcion;
 
-            // Guardado en la base de datos
-            const { data, error } = await window.supabaseInstance
+            // Usamos 'client' en lugar de 'window.supabase'
+            const { data, error } = await client
                 .from('solicitudes')
                 .insert([{ 
                     nombre_usuario: nombre, 
@@ -61,7 +62,7 @@
                 }]);
 
             if (error) {
-                alert("Error: " + error.message);
+                alert("Error al guardar: " + error.message);
             } else {
                 alert("¡Solicitud enviada con éxito!");
                 window.location.reload();
