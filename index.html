@@ -84,6 +84,15 @@
                 mostrarModal("¡Éxito!", "Solicitud enviada. Presione aceptar para marcar su ubicación.", () => { window.location.href = 'mapa.html'; });
             }
         });
+
+        // Receptor del mensaje de éxito desde mapa.html
+        window.onload = function() {
+            const mensaje = localStorage.getItem('mensaje_exito');
+            if (mensaje) {
+                mostrarModal("¡Éxito!", mensaje);
+                localStorage.removeItem('mensaje_exito');
+            }
+        };
     </script>
 </body>
 </html>
