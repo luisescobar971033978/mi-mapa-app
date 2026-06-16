@@ -30,17 +30,21 @@
     </div>
 
     <script>
-        // 1. Inicialización única y segura
+        // Inicialización única y segura del cliente
         const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
         const client = supabase.createClient(supabaseUrl, supabaseKey);
 
         function verificarOtro() {
             const select = document.getElementById('opcion_servicio');
-            document.getElementById('otroCampo').classList.toggle('hidden', select.value !== 'Otro');
+            const otroCampo = document.getElementById('otroCampo');
+            if (select.value === 'Otro') {
+                otroCampo.classList.remove('hidden');
+            } else {
+                otroCampo.classList.add('hidden');
+            }
         }
 
-        // 2. Envío de datos
         document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -49,9 +53,9 @@
             const opcion = document.getElementById('opcion_servicio').value;
             const desc = document.getElementById('descripcion').value;
             
+            // Lógica: Se guarda en 'comentario_solicitud' y el estado inicial es 'pendiente'
             const textoFinal = (opcion === 'Otro') ? desc : opcion;
 
-            // Usamos 'client' en lugar de 'window.supabase'
             const { data, error } = await client
                 .from('solicitudes')
                 .insert([{ 
