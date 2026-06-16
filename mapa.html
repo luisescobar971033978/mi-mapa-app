@@ -47,35 +47,36 @@
         }
 
         async function guardarUbicacion() {
-            const idSolicitud = localStorage.getItem('id_solicitud');
-            
-            if (!idSolicitud || idSolicitud === 'null') { 
-                mostrarModal("Error", "No se encontró la solicitud activa. Inicie de nuevo."); 
-                return; 
-            }
-            
-            var center = map.getCenter();
-            
-            // Usamos un bloque try-catch para capturar fallos de red imprevistos
-            try {
-                const { error } = await client
-                    .from('solicitudes')
-                    .update({ latitud: center.lat, longitud: center.lng })
-                    .eq('solicitud_id', parseInt(idSolicitud));
-                
-                if (error) { 
-                    mostrarModal("Error", "No pudimos guardar: " + error.message); 
-                } else {
-                    localStorage.removeItem('id_solicitud');
-                    // El flujo se mantiene dentro del Modal para asegurar que el usuario vea el mensaje
-                    mostrarModal("¡Éxito!", "Ubicación guardada. Estamos programando su servicio.", () => { 
-                        window.location.href = 'index.html'; 
-                    });
-                }
-            } catch (err) {
-                mostrarModal("Error", "Fallo de conexión, intente de nuevo.");
-            }
-        }
+    const idSolicitud = localStorage.getItem('id_solicitud');
+    
+    // 1. Verificación crítica: ¿Existe el ID?
+    if (!idSolicitud || idSolicitud === 'null') { 
+        mostrarModal("Error", "No se encontró una solicitud activa."); 
+        return; 
+    }
+    
+    var center = map.getCenter();
+    
+    // 2. Ejecutar la actualización a Supabase
+    const { error } = await client
+        .from('solicitudes')
+        .update({ latitud: center.lat, longitud: center.lng })
+        .eq('solicitud_id', parseInt(idSolicitud));
+    
+    // 3. Manejo de la respuesta
+    if (error) { 
+        mostrarModal("Error", "No pudimos guardar: " + error.message); 
+    } else {
+        // Limpiamos la memoria local al finalizar con éxito
+        localStorage.removeItem('id_solicitud');
+        
+        // 4. Mostramos el mensaje de éxito profesional
+        // Este modal NO bloqueará el navegador como lo hacía el alert()
+        mostrarModal("¡Éxito!", "Ubicación guardada. Estamos programando su servicio.", () => { 
+            window.location.href = 'index.html'; 
+        });
+    }
+}
     </script>
 </body>
 </html>
