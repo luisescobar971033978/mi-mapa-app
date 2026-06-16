@@ -7,19 +7,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body, #map { height: 100vh; width: 100vw; margin: 0; }
-        .center-marker {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -100%);
-            z-index: 1000; pointer-events: none; font-size: 30px;
-        }
-        #btnConfirmar {
-            position: absolute; bottom: 50px; left: 50%;
-            transform: translateX(-50%); z-index: 1000;
-            padding: 15px 30px; background-color: #0f766e;
-            color: white; font-size: 16px; font-weight: bold;
-            border: none; border-radius: 30px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2); cursor: pointer;
-        }
+        .center-marker { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; pointer-events: none; font-size: 30px; }
+        #btnConfirmar { position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 30px; background-color: #0f766e; color: white; font-weight: bold; border: none; border-radius: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
@@ -27,49 +16,44 @@
     <div id="map"></div>
     <button id="btnConfirmar" onclick="guardarUbicacion()">CONFIRMAR UBICACIÓN</button>
 
+    <div id="modalApp" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[2000]">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm text-center">
+            <h3 id="modalTitulo" class="font-bold text-xl mb-2 text-teal-900">Mensaje</h3>
+            <p id="modalTexto" class="text-gray-700 mb-6"></p>
+            <button id="modalBtn" onclick="cerrarModal()" class="w-full bg-teal-800 text-white p-3 rounded-xl font-bold">Aceptar</button>
+        </div>
+    </div>
+
     <script>
         const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
         const client = supabase.createClient(supabaseUrl, supabaseKey);
-
         var map = L.map('map').setView([-17.7833, -63.1821], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function(position) {
-                map.setView([position.coords.latitude, position.coords.longitude], 15);
-            });
+        function mostrarModal(titulo, texto, accion = null) {
+            document.getElementById('modalTitulo').innerText = titulo;
+            document.getElementById('modalTexto').innerText = texto;
+            window.accionPostModal = accion;
+            document.getElementById('modalApp').classList.remove('hidden');
+        }
+        function cerrarModal() {
+            document.getElementById('modalApp').classList.add('hidden');
+            if (window.accionPostModal) window.accionPostModal();
         }
 
         async function guardarUbicacion() {
-            var center = map.getCenter();
             const idSolicitud = localStorage.getItem('id_solicitud');
-
-            // Validación robusta: Si no hay ID, informamos y regresamos al inicio
-            if (!idSolicitud || idSolicitud === 'undefined' || idSolicitud === 'null') {
-                alert("Error: No se encontró una solicitud activa. Por favor, rellene el formulario primero.");
-                window.location.href = 'index.html';
-                return;
-            }
-
-            // Actualizamos en la tabla 'solicitudes' usando la columna correcta
-            const { error } = await client
-                .from('solicitudes')
-                .update({ 
-                    latitud: center.lat, 
-                    longitud: center.lng 
-                })
-                .eq('solicitud_id', parseInt(idSolicitud)); // Aseguramos que sea un número (Integer)
-
+            if (!idSolicitud) { mostrarModal("Error", "Solicitud no encontrada."); return; }
+            
+            var center = map.getCenter();
+            const { error } = await client.from('solicitudes').update({ latitud: center.lat, longitud: center.lng }).eq('solicitud_id', parseInt(idSolicitud));
+            
             if (error) {
-                alert("Error al guardar ubicación: " + error.message);
-                console.error("Detalle del error:", error);
+                mostrarModal("Error", error.message);
             } else {
-                alert("¡SU UBICACION FUE GUARDADA CON EXITO, POR FAVOR AGUARDE UNOS INSTANTES ESTAMOS PROGRAMANDO SU SOLICITUD!");
-                
-                // Limpiamos y reiniciamos
                 localStorage.removeItem('id_solicitud');
-                window.location.href = 'index.html';
+                mostrarModal("¡Éxito!", "Ubicación guardada. Estamos programando su servicio.", () => { window.location.href = 'index.html'; });
             }
         }
     </script>
