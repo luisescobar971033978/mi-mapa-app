@@ -1,10 +1,10 @@
-HTML
 <!DOCTYPE html>
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body, #map { height: 100vh; width: 100vw; margin: 0; }
         .center-marker {
@@ -28,14 +28,13 @@ HTML
     <button id="btnConfirmar" onclick="guardarUbicacion()">CONFIRMAR UBICACIÓN</button>
 
     <script>
+        // Configuración de Supabase
+        const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
+        const client = supabase.createClient(supabaseUrl, supabaseKey);
+
         var map = L.map('map').setView([-17.7833, -63.1821], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-        // Función para leer parámetros de la URL (?id=...)
-        function getQueryParam(param) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(param);
-        }
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
@@ -45,42 +44,32 @@ HTML
 
         async function guardarUbicacion() {
             var center = map.getCenter();
-            const idSolicitud = getQueryParam('id'); // Capturamos el ID enviado por FlutterFlow
+            // Recuperamos el ID guardado desde index.html
+            const idSolicitud = localStorage.getItem('id_solicitud');
 
             if (!idSolicitud) {
-                alert("Error: No se recibió un ID de solicitud.");
+                alert("Error: No se encontró una solicitud activa.");
                 return;
             }
 
-            // --- CONFIGURACIÓN ---
-            // Usamos el filtro ?solicitud_id=eq.ID para actualizar una fila específica
-            const supabaseUrl = `https://kcxkadqhdojrnfepkgfk.supabase.co/rest/v1/solicitudes?solicitud_id=eq.${idSolicitud}`;
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg'; 
+            // Actualizamos en la tabla 'solicitudes'
+            const { error } = await client
+                .from('solicitudes')
+                .update({ 
+                    latitud: center.lat, 
+                    longitud: center.lng 
+                })
+                .eq('id', idSolicitud); // Usamos 'id' que es la columna estándar de Supabase
 
-            try {
-                // Cambiamos a método PATCH para actualizar
-                let response = await fetch(supabaseUrl, {
-                    method: 'PATCH', 
-                    headers: {
-                        'apikey': supabaseKey,
-                        'Authorization': 'Bearer ' + supabaseKey,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify({
-                        latitud: center.lat, 
-                        longitud: center.lng 
-                    })
-                });
-
-                if (response.ok) {
-                    alert("¡Ubicación actualizada con éxito!");
-                } else {
-                    let error = await response.json();
-                    alert("Error al actualizar: " + JSON.stringify(error));
-                }
-            } catch (e) {
-                alert("Error de conexión: " + e.message);
+            if (error) {
+                alert("Error al guardar ubicación: " + error.message);
+            } else {
+                // Mensaje final y reinicio
+                alert("¡SU UBICACION FUE GUARDADA CON EXITO, POR FAVOR AGUARDE UNOS INSTANTES ESTAMOS PROGRAMANDO SU SOLICITUD!");
+                
+                // Limpiamos el ID y volvemos al inicio
+                localStorage.removeItem('id_solicitud');
+                window.location.href = 'index.html';
             }
         }
     </script>
