@@ -58,17 +58,10 @@
                 guardando = false;
                 document.getElementById('btnConfirmar').innerText = "CONFIRMAR UBICACIÓN";
             } else {
+                // Éxito: Guardamos la bandera y redirigimos
+                localStorage.setItem('mensaje_exito', 'Ubicación guardada. Estamos programando su servicio.');
                 localStorage.removeItem('id_solicitud');
-                
-                // Mostrar modal de éxito
-                document.getElementById('modalTitulo').innerText = "¡Éxito!";
-                document.getElementById('modalTexto').innerText = "Ubicación guardada. Estamos programando su servicio.";
-                document.getElementById('modalApp').classList.remove('hidden');
-                
-                // Redirigir al hacer clic en el botón del modal
-                document.getElementById('modalBtn').onclick = function() {
-                    window.location.href = 'index.html';
-                };
+                window.location.href = 'index.html';
             }
         }
 
