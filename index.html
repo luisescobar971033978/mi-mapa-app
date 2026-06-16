@@ -5,9 +5,39 @@
     <title>PROGRAME SU SERVICIO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Contenedor con posición relativa para la marca de agua */
+        .form-container {
+            position: relative;
+            background-color: rgba(255, 255, 255, 0.95);
+            overflow: hidden;
+        }
+        /* Estilo de la marca de agua */
+        .watermark {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('logo_1.jpeg');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            opacity: 0.1; /* Transparencia sutil */
+            z-index: 0;
+            pointer-events: none;
+        }
+        /* Aseguramos que el contenido esté por encima */
+        #solicitudForm, h2, button {
+            position: relative;
+            z-index: 1;
+        }
+    </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-    <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl">
+    <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl form-container">
+        <div class="watermark"></div>
+        
         <h2 class="text-2xl font-bold text-teal-900 mb-6 text-center">PROGRAME SU SERVICIO</h2>
         
         <form id="solicitudForm" class="space-y-4">
@@ -15,25 +45,25 @@
             <input type="number" id="celular" placeholder="No. Celular Contacto" class="w-full p-3 border rounded-lg" required>
             
             <select id="opcion_servicio" class="w-full p-3 border rounded-lg" required onchange="verificarOtro()">
-    <option value="">SELECCIONE SU PROBLEMA</option>
-    <option value="Otro">Otro, describa su problema</option>
-    <option value="Fumigación contra El dengue y chikungunya">Fumigación contra El dengue y chikungunya</option>
-    <option value="Desbrozado de entrada, patios y Jardines">Desbrozado de entrada, patios y Jardines</option>
-    <option value="Problemas de Plomería">Problemas de Plomería</option>
-    <option value="Fuga de Agua">Fuga de Agua</option>
-    <option value="Tuberías trancadas del drenaje sanitario y de lluvias">Tuberías trancadas del drenaje sanitario y de lluvias</option>
-    <option value="Mi Ducha Eléctrica NO funciona">Mi Ducha Eléctrica NO funciona</option>
-    <option value="Interruptor / Tomacorriente NO funciona">Interruptor / Tomacorriente NO funciona</option>
-    <option value="Requiero Solución definitiva para GOTERAS">Requiero Solución definitiva para GOTERAS</option>
-    <option value="Mantenimiento de AIRE ACONDICIONADO">Mantenimiento de AIRE ACONDICIONADO</option>
-    <option value="Instalación de AIRE ACONDICIONADO">Instalación de AIRE ACONDICIONADO</option>
-    <option value="Servicio control de Humedad en Paredes">Servicio control de Humedad en Paredes</option>
-    <option value="Retoques de pintura en Fachada, Puertas de Acceso, Etc.">Retoques de pintura en Fachada, Puertas de Acceso, Etc.</option>
-    <option value="Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)">Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)</option>
-    <option value="Necesito aplicar veneno para los Sepes">Necesito aplicar veneno para los Sepes</option>
-    <option value="Remodelación de Vivienda y Oficinas">Remodelación de Vivienda y Oficinas</option>
-    <option value="Ampliación de Vivienda y Oficinas">Ampliación de Vivienda y Oficinas</option>
-</select>
+                <option value="">SELECCIONE SU PROBLEMA</option>
+                <option value="Otro">Otro, describa su problema</option>
+                <option value="Fumigación contra El dengue y chikungunya">Fumigación contra El dengue y chikungunya</option>
+                <option value="Desbrozado de entrada, patios y Jardines">Desbrozado de entrada, patios y Jardines</option>
+                <option value="Problemas de Plomería">Problemas de Plomería</option>
+                <option value="Fuga de Agua">Fuga de Agua</option>
+                <option value="Tuberías trancadas del drenaje sanitario y de lluvias">Tuberías trancadas del drenaje sanitario y de lluvias</option>
+                <option value="Mi Ducha Eléctrica NO funciona">Mi Ducha Eléctrica NO funciona</option>
+                <option value="Interruptor / Tomacorriente NO funciona">Interruptor / Tomacorriente NO funciona</option>
+                <option value="Requiero Solución definitiva para GOTERAS">Requiero Solución definitiva para GOTERAS</option>
+                <option value="Mantenimiento de AIRE ACONDICIONADO">Mantenimiento de AIRE ACONDICIONADO</option>
+                <option value="Instalación de AIRE ACONDICIONADO">Instalación de AIRE ACONDICIONADO</option>
+                <option value="Servicio control de Humedad en Paredes">Servicio control de Humedad en Paredes</option>
+                <option value="Retoques de pintura en Fachada, Puertas de Acceso, Etc.">Retoques de pintura en Fachada, Puertas de Acceso, Etc.</option>
+                <option value="Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)">Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)</option>
+                <option value="Necesito aplicar veneno para los Sepes">Necesito aplicar veneno para los Sepes</option>
+                <option value="Remodelación de Vivienda y Oficinas">Remodelación de Vivienda y Oficinas</option>
+                <option value="Ampliación de Vivienda y Oficinas">Ampliación de Vivienda y Oficinas</option>
+            </select>
 
             <div id="otroCampo" class="hidden">
                 <textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg"></textarea>
@@ -86,12 +116,9 @@
             if (error) {
                 alert("Error: " + error.message);
             } else {
-                // CORRECCIÓN: Capturamos 'solicitud_id' de la respuesta
                 if(data && data.length > 0) {
                     localStorage.setItem('id_solicitud', data[0].solicitud_id);
-                    console.log("ID capturado correctamente:", data[0].solicitud_id);
                 }
-                
                 alert("¡Solicitud enviada con éxito! Por favor Marcar y CONFIRMAR UBICACION");
                 window.location.href = 'mapa.html'; 
             }
