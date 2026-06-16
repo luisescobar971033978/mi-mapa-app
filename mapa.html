@@ -37,45 +37,45 @@
             window.accionPostModal = accion;
             document.getElementById('modalApp').classList.remove('hidden');
         }
+
         function cerrarModal() {
             document.getElementById('modalApp').classList.add('hidden');
-            if (window.accionPostModal) window.accionPostModal();
+            if (window.accionPostModal) {
+                window.accionPostModal();
+                window.accionPostModal = null; // Limpiar acción tras ejecutar
+            }
         }
 
         async function guardarUbicacion() {
-    const idSolicitud = localStorage.getItem('id_solicitud');
-    
-    // 1. Validar ID antes de hacer nada
-    if (!idSolicitud || idSolicitud === 'null') { 
-        mostrarModal("Error", "No se encontró la solicitud. Por favor, inicie desde el formulario."); 
-        return; 
-    }
-    
-    var center = map.getCenter();
-    
-    // 2. Ejecutar la actualización
-    const { error } = await client
-        .from('solicitudes')
-        .update({ 
-            latitud: center.lat, 
-            longitud: center.lng 
-        })
-        .eq('solicitud_id', parseInt(idSolicitud));
-    
-    // 3. Manejo de resultados
-    if (error) { 
-        mostrarModal("Error", "No pudimos guardar la ubicación: " + error.message); 
-    } else {
-        // Limpiamos el ID solo después de confirmar que el update fue exitoso
-        localStorage.removeItem('id_solicitud');
-        
-        // 4. Mostrar el modal de éxito final
-        // Al usar la función mostrarModal definida arriba, el flujo no se detendrá
-        mostrarModal("¡Éxito!", "Ubicación guardada. Estamos programando su servicio.", () => { 
-            window.location.href = 'index.html'; 
-        });
-    }
-}
+            const idSolicitud = localStorage.getItem('id_solicitud');
+            
+            if (!idSolicitud || idSolicitud === 'null') { 
+                mostrarModal("Error", "No se encontró la solicitud activa. Inicie de nuevo."); 
+                return; 
+            }
+            
+            var center = map.getCenter();
+            
+            // Usamos un bloque try-catch para capturar fallos de red imprevistos
+            try {
+                const { error } = await client
+                    .from('solicitudes')
+                    .update({ latitud: center.lat, longitud: center.lng })
+                    .eq('solicitud_id', parseInt(idSolicitud));
+                
+                if (error) { 
+                    mostrarModal("Error", "No pudimos guardar: " + error.message); 
+                } else {
+                    localStorage.removeItem('id_solicitud');
+                    // El flujo se mantiene dentro del Modal para asegurar que el usuario vea el mensaje
+                    mostrarModal("¡Éxito!", "Ubicación guardada. Estamos programando su servicio.", () => { 
+                        window.location.href = 'index.html'; 
+                    });
+                }
+            } catch (err) {
+                mostrarModal("Error", "Fallo de conexión, intente de nuevo.");
+            }
+        }
     </script>
 </body>
 </html>
