@@ -28,7 +28,6 @@
     <button id="btnConfirmar" onclick="guardarUbicacion()">CONFIRMAR UBICACIÓN</button>
 
     <script>
-        // Configuración de Supabase
         const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
         const client = supabase.createClient(supabaseUrl, supabaseKey);
@@ -44,30 +43,31 @@
 
         async function guardarUbicacion() {
             var center = map.getCenter();
-            // Recuperamos el ID guardado desde index.html
             const idSolicitud = localStorage.getItem('id_solicitud');
 
-            if (!idSolicitud) {
-                alert("Error: No se encontró una solicitud activa.");
+            // Validación robusta: Si no hay ID, informamos y regresamos al inicio
+            if (!idSolicitud || idSolicitud === 'undefined' || idSolicitud === 'null') {
+                alert("Error: No se encontró una solicitud activa. Por favor, rellene el formulario primero.");
+                window.location.href = 'index.html';
                 return;
             }
 
-            // Actualizamos en la tabla 'solicitudes' usando la columna correcta 'solicitud_id'
+            // Actualizamos en la tabla 'solicitudes' usando la columna correcta
             const { error } = await client
                 .from('solicitudes')
                 .update({ 
                     latitud: center.lat, 
                     longitud: center.lng 
                 })
-                .eq('solicitud_id', idSolicitud); // Corrección aplicada aquí
+                .eq('solicitud_id', parseInt(idSolicitud)); // Aseguramos que sea un número (Integer)
 
             if (error) {
                 alert("Error al guardar ubicación: " + error.message);
+                console.error("Detalle del error:", error);
             } else {
-                // Mensaje final y reinicio
                 alert("¡SU UBICACION FUE GUARDADA CON EXITO, POR FAVOR AGUARDE UNOS INSTANTES ESTAMOS PROGRAMANDO SU SOLICITUD!");
                 
-                // Limpiamos el ID y volvemos al inicio
+                // Limpiamos y reiniciamos
                 localStorage.removeItem('id_solicitud');
                 window.location.href = 'index.html';
             }
