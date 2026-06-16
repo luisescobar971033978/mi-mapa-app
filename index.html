@@ -8,13 +8,21 @@
     <style>
         .form-container { position: relative; background-color: rgba(255, 255, 255, 0.95); overflow: hidden; }
         .watermark { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('logo_1.jpeg'); background-repeat: no-repeat; background-position: center; background-size: contain; opacity: 0.1; z-index: 0; pointer-events: none; }
-        #solicitudForm, h2, button, .whatsapp-btn { position: relative; z-index: 1; }
+        /* Aseguramos que los elementos interactivos estén siempre encima */
+        #solicitudForm, h2, .whatsapp-btn, .help-icon { position: relative; z-index: 10; }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
     <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl form-container">
         <div class="watermark"></div>
+        
+        <!-- Icono de Ayuda reinsertado -->
+        <div class="help-icon absolute top-4 right-4 cursor-pointer" onclick="alert('1. Llene sus datos\n2. Seleccione el servicio\n3. Presione Solicitar\n4. Marque su ubicación en el mapa')">
+            <span class="text-2xl">ℹ️</span>
+        </div>
+
         <h2 class="text-2xl font-bold text-teal-900 mb-6 text-center">PROGRAME SU SERVICIO</h2>
+        
         <form id="solicitudForm" class="space-y-4">
             <input type="text" id="nombre" placeholder="Nombre del Usuario" class="w-full p-3 border rounded-lg" required>
             <input type="number" id="celular" placeholder="No. Celular Contacto" class="w-full p-3 border rounded-lg" required>
@@ -41,15 +49,17 @@
             <div id="otroCampo" class="hidden"><textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg"></textarea></div>
             
             <button type="submit" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold">SOLICITAR SERVICIO</button>
-            
-            <a href="https://wa.me/59173694080?text=Hola,%20deseo%20solicitar%20una%20cotización%20o%20inspección%20para%20un%20servicio%20en%20mi%20hogar." 
-               target="_blank" 
-               class="whatsapp-btn w-full flex items-center justify-center bg-[#25D366] text-white p-4 rounded-xl font-bold shadow-lg hover:bg-[#128C7E] transition-colors">
-               <span class="mr-2">💬</span> Contactar por WhatsApp
-            </a>
         </form>
+
+        <!-- Botón de WhatsApp fuera del form para que aparezca siempre -->
+        <a href="https://wa.me/59173694080?text=Hola,%20deseo%20solicitar%20una%20cotización%20o%20inspección%20para%20un%20servicio%20en%20mi%20hogar." 
+           target="_blank" 
+           class="whatsapp-btn w-full flex items-center justify-center bg-[#25D366] text-white p-4 rounded-xl font-bold shadow-lg mt-4 hover:bg-[#128C7E] transition-colors">
+           <span class="mr-2">💬</span> Contactar por WhatsApp
+        </a>
     </div>
 
+    <!-- Modal y Scripts permanecen igual -->
     <div id="modalApp" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[2000]">
         <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm text-center">
             <h3 id="modalTitulo" class="font-bold text-xl mb-2 text-teal-900">Mensaje</h3>
