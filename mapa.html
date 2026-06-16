@@ -25,57 +25,50 @@
     </div>
 
     <script>
-        const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
-        const client = supabase.createClient(supabaseUrl, supabaseKey);
-        var map = L.map('map').setView([-17.7833, -63.1821], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+    var map = L.map('map').setView([-17.7833, -63.1821], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        function mostrarModal(titulo, texto, accion = null) {
-            document.getElementById('modalTitulo').innerText = titulo;
-            document.getElementById('modalTexto').innerText = texto;
-            window.accionPostModal = accion;
-            document.getElementById('modalApp').classList.remove('hidden');
-        }
+    // Variable de bloqueo para evitar múltiples clics
+    let guardando = false;
 
-        function cerrarModal() {
-            document.getElementById('modalApp').classList.add('hidden');
-            if (window.accionPostModal) {
-                window.accionPostModal();
-                window.accionPostModal = null; // Limpiar acción tras ejecutar
-            }
-        }
-
-        async function guardarUbicacion() {
-    const idSolicitud = localStorage.getItem('id_solicitud');
-    var center = map.getCenter();
-
-    if (!idSolicitud) { 
-        mostrarModal("Error", "No se encontró el ID."); 
-        return; 
-    }
-
-    const { data, error } = await client
-        .from('solicitudes')
-        .update({ latitud: center.lat, longitud: center.lng })
-        .eq('solicitud_id', parseInt(idSolicitud))
-        .select();
-
-    if (error) {
-        mostrarModal("Error", "Error al guardar: " + error.message);
-    } else {
-        // En lugar de usar una función de callback, llamamos directamente al modal de éxito
-        document.getElementById('modalTitulo').innerText = "¡Éxito!";
-        document.getElementById('modalTexto').innerText = "Ubicación guardada. Estamos programando su servicio.";
-        document.getElementById('modalApp').classList.remove('hidden');
+    async function guardarUbicacion() {
+        if (guardando) return; // Si ya se presionó, no hacer nada más
         
-        // El botón Aceptar ahora forzará la redirección directamente
-        document.getElementById('modalBtn').onclick = function() {
+        const idSolicitud = localStorage.getItem('id_solicitud');
+        var center = map.getCenter();
+
+        if (!idSolicitud) { 
+            alert("No se encontró el ID de solicitud. Por favor, vuelva a empezar."); 
+            return; 
+        }
+
+        guardando = true; // Bloqueamos clics adicionales
+        document.getElementById('btnConfirmar').innerText = "GUARDANDO...";
+
+        const { error } = await client
+            .from('solicitudes')
+            .update({ latitud: center.lat, longitud: center.lng })
+            .eq('solicitud_id', parseInt(idSolicitud));
+
+        if (error) {
+            alert("Error al guardar: " + error.message);
+            guardando = false;
+            document.getElementById('btnConfirmar').innerText = "CONFIRMAR UBICACIÓN";
+        } else {
+            // Éxito: Limpiamos y redirigimos
             localStorage.removeItem('id_solicitud');
+            alert("¡Éxito! Ubicación guardada. Estamos programando su servicio.");
             window.location.href = 'index.html';
-        };
+        }
     }
-}
-    </script>
+
+    // Esta función se queda solo por si el botón Aceptar del modal se presiona manualmente
+    function cerrarModal() {
+        document.getElementById('modalApp').classList.add('hidden');
+    }
+</script>
 </body>
 </html>
