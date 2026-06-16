@@ -6,44 +6,18 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* Contenedor con posición relativa para la marca de agua */
-        .form-container {
-            position: relative;
-            background-color: rgba(255, 255, 255, 0.95);
-            overflow: hidden;
-        }
-        /* Estilo de la marca de agua */
-        .watermark {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url('logo_1.jpeg');
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: contain;
-            opacity: 0.1; /* Transparencia sutil */
-            z-index: 0;
-            pointer-events: none;
-        }
-        /* Aseguramos que el contenido esté por encima */
-        #solicitudForm, h2, button {
-            position: relative;
-            z-index: 1;
-        }
+        .form-container { position: relative; background-color: rgba(255, 255, 255, 0.95); overflow: hidden; }
+        .watermark { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('logo_1.jpeg'); background-repeat: no-repeat; background-position: center; background-size: contain; opacity: 0.1; z-index: 0; pointer-events: none; }
+        #solicitudForm, h2, button { position: relative; z-index: 1; }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
     <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl form-container">
         <div class="watermark"></div>
-        
         <h2 class="text-2xl font-bold text-teal-900 mb-6 text-center">PROGRAME SU SERVICIO</h2>
-        
         <form id="solicitudForm" class="space-y-4">
             <input type="text" id="nombre" placeholder="Nombre del Usuario" class="w-full p-3 border rounded-lg" required>
             <input type="number" id="celular" placeholder="No. Celular Contacto" class="w-full p-3 border rounded-lg" required>
-            
             <select id="opcion_servicio" class="w-full p-3 border rounded-lg" required onchange="verificarOtro()">
                 <option value="">SELECCIONE SU PROBLEMA</option>
                 <option value="Otro">Otro, describa su problema</option>
@@ -64,23 +38,16 @@
                 <option value="Remodelación de Vivienda y Oficinas">Remodelación de Vivienda y Oficinas</option>
                 <option value="Ampliación de Vivienda y Oficinas">Ampliación de Vivienda y Oficinas</option>
             </select>
-
-            <div id="otroCampo" class="hidden">
-                <textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg"></textarea>
-            </div>
-
+            <div id="otroCampo" class="hidden"><textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg"></textarea></div>
             <button type="submit" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold">SOLICITAR SERVICIO</button>
         </form>
-
-        <button type="button" onclick="toggleAyuda()" class="mt-6 w-full text-teal-800 underline font-semibold text-sm">
-            ¿Necesitas ayuda?
-        </button>
     </div>
 
-    <div id="ayudaMensaje" onclick="toggleAyuda()" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div id="modalApp" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[2000]">
         <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm text-center">
-            <h3 class="font-bold text-xl mb-2 text-teal-900">Ayuda</h3>
-            <p class="text-gray-700">Por favor, rellena tus datos y selecciona el tipo de problema. Si no ves tu caso, elige "Otro" y descríbelo brevemente.</p>
+            <h3 id="modalTitulo" class="font-bold text-xl mb-2 text-teal-900">Mensaje</h3>
+            <p id="modalTexto" class="text-gray-700 mb-6"></p>
+            <button id="modalBtn" onclick="cerrarModal()" class="w-full bg-teal-800 text-white p-3 rounded-xl font-bold">Aceptar</button>
         </div>
     </div>
 
@@ -88,39 +55,34 @@
         const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
         const client = supabase.createClient(supabaseUrl, supabaseKey);
+        
+        function mostrarModal(titulo, texto, accion = null) {
+            document.getElementById('modalTitulo').innerText = titulo;
+            document.getElementById('modalTexto').innerText = texto;
+            window.accionPostModal = accion;
+            document.getElementById('modalApp').classList.remove('hidden');
+        }
+        function cerrarModal() {
+            document.getElementById('modalApp').classList.add('hidden');
+            if (window.accionPostModal) window.accionPostModal();
+        }
 
-        window.toggleAyuda = () => document.getElementById('ayudaMensaje').classList.toggle('hidden');
-        window.verificarOtro = () => {
-            const select = document.getElementById('opcion_servicio');
-            document.getElementById('otroCampo').classList.toggle('hidden', select.value !== 'Otro');
-        };
+        window.verificarOtro = () => document.getElementById('otroCampo').classList.toggle('hidden', document.getElementById('opcion_servicio').value !== 'Otro');
 
         document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const nombre = document.getElementById('nombre').value;
-            const celular = document.getElementById('celular').value;
-            const opcion = document.getElementById('opcion_servicio').value;
-            const desc = document.getElementById('descripcion').value;
-            const textoFinal = (opcion === 'Otro') ? desc : opcion;
-
-            const { data, error } = await client
-                .from('solicitudes')
-                .insert([{ 
-                    nombre_usuario: nombre, 
-                    celular_contacto: celular, 
-                    comentario_solicitud: textoFinal,
-                    respuesta_solicitud: 'pendiente'
-                }])
-                .select(); 
+            const { data, error } = await client.from('solicitudes').insert([{ 
+                nombre_usuario: document.getElementById('nombre').value, 
+                celular_contacto: document.getElementById('celular').value, 
+                comentario_solicitud: (document.getElementById('opcion_servicio').value === 'Otro') ? document.getElementById('descripcion').value : document.getElementById('opcion_servicio').value,
+                respuesta_solicitud: 'pendiente'
+            }]).select();
 
             if (error) {
-                alert("Error: " + error.message);
+                mostrarModal("Error", error.message);
             } else {
-                if(data && data.length > 0) {
-                    localStorage.setItem('id_solicitud', data[0].solicitud_id);
-                }
-                alert("¡Solicitud enviada con éxito! Por favor Marcar y CONFIRMAR UBICACION");
-                window.location.href = 'mapa.html'; 
+                localStorage.setItem('id_solicitud', data[0].solicitud_id);
+                mostrarModal("¡Éxito!", "Solicitud enviada. Presione aceptar para marcar su ubicación.", () => { window.location.href = 'mapa.html'; });
             }
         });
     </script>
