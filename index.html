@@ -37,59 +37,51 @@
     <div id="ayudaMensaje" onclick="toggleAyuda()" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm text-center">
             <h3 class="font-bold text-xl mb-2 text-teal-900">Ayuda</h3>
-            <p class="text-gray-700">Por favor, rellena tus datos y selecciona el tipo de problema. Si no ves tu caso, elige "Otro" y descríbelo brevemente. Responderemos lo antes posible.</p>
-            <p class="text-xs text-gray-400 mt-4 italic">(Toca cualquier parte de la pantalla para cerrar)</p>
+            <p class="text-gray-700">Por favor, rellena tus datos y selecciona el tipo de problema. Si no ves tu caso, elige "Otro" y descríbelo brevemente.</p>
         </div>
     </div>
 
     <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
-            
-            const client = supabase.createClient(supabaseUrl, supabaseKey);
+        const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
+        const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-            window.toggleAyuda = function() {
-                const mensaje = document.getElementById('ayudaMensaje');
-                mensaje.classList.toggle('hidden');
-            };
+        window.toggleAyuda = () => document.getElementById('ayudaMensaje').classList.toggle('hidden');
+        window.verificarOtro = () => {
+            const select = document.getElementById('opcion_servicio');
+            document.getElementById('otroCampo').classList.toggle('hidden', select.value !== 'Otro');
+        };
 
-            window.verificarOtro = function() {
-                const select = document.getElementById('opcion_servicio');
-                const otro = document.getElementById('otroCampo');
-                otro.classList.toggle('hidden', select.value !== 'Otro');
-            };
+        document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('nombre').value;
+            const celular = document.getElementById('celular').value;
+            const opcion = document.getElementById('opcion_servicio').value;
+            const desc = document.getElementById('descripcion').value;
+            const textoFinal = (opcion === 'Otro') ? desc : opcion;
 
-            document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const nombre = document.getElementById('nombre').value;
-                const celular = document.getElementById('celular').value;
-                const opcion = document.getElementById('opcion_servicio').value;
-                const desc = document.getElementById('descripcion').value;
-                const textoFinal = (opcion === 'Otro') ? desc : opcion;
+            const { data, error } = await client
+                .from('solicitudes')
+                .insert([{ 
+                    nombre_usuario: nombre, 
+                    celular_contacto: celular, 
+                    comentario_solicitud: textoFinal,
+                    respuesta_solicitud: 'pendiente'
+                }])
+                .select(); 
 
-                const { data, error } = await client
-                    .from('solicitudes')
-                    .insert([{ 
-                        nombre_usuario: nombre, 
-                        celular_contacto: celular, 
-                        comentario_solicitud: textoFinal,
-                        respuesta_solicitud: 'pendiente'
-                    }])
-                    .select(); // IMPORTANTE: .select() nos permite obtener el registro creado
-
-                if (error) {
-                    alert("Error: " + error.message);
-                } else {
-                    // Guardamos el ID de la solicitud para usarlo luego en mapa.html
-                    if(data && data.length > 0) {
-                        localStorage.setItem('id_solicitud', data[0].id);
-                    }
-                    
-                    alert("¡Solicitud enviada con éxito! Por favor Marcar y CONFIRMAR UBICACION");
-                    window.location.href = 'mapa.html'; // Redirección al mapa
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                // CORRECCIÓN: Capturamos 'solicitud_id' de la respuesta
+                if(data && data.length > 0) {
+                    localStorage.setItem('id_solicitud', data[0].solicitud_id);
+                    console.log("ID capturado correctamente:", data[0].solicitud_id);
                 }
-            });
+                
+                alert("¡Solicitud enviada con éxito! Por favor Marcar y CONFIRMAR UBICACION");
+                window.location.href = 'mapa.html'; 
+            }
         });
     </script>
 </body>
