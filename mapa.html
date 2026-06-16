@@ -52,14 +52,14 @@
                 return;
             }
 
-            // Actualizamos en la tabla 'solicitudes'
+            // Actualizamos en la tabla 'solicitudes' usando la columna correcta 'solicitud_id'
             const { error } = await client
                 .from('solicitudes')
                 .update({ 
                     latitud: center.lat, 
                     longitud: center.lng 
                 })
-                .eq('id', idSolicitud); // Usamos 'id' que es la columna estándar de Supabase
+                .eq('solicitud_id', idSolicitud); // Corrección aplicada aquí
 
             if (error) {
                 alert("Error al guardar ubicación: " + error.message);
