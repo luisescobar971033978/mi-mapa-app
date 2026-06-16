@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Técnico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+    <div class="max-w-md mx-auto">
+        <header class="mb-6">
+            <h2 class="text-2xl font-bold text-teal-900 text-center">SOLICITUDES PENDIENTES</h2>
+            <p class="text-center text-gray-500 text-sm">El sistema se actualizará solo al entrar nuevos pedidos.</p>
+        </header>
+
+        <div id="listaSolicitudes" class="space-y-4">
+            <div class="text-center py-10">Cargando datos...</div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'TU_URL_SUPABASE';
+        const supabaseKey = 'TU_KEY_SUPABASE';
+        const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+        async function cargarSolicitudes() {
+            const { data, error } = await client
+                .from('solicitudes')
+                .select('*')
+                .eq('respuesta_solicitud', 'pendiente')
+                .order('created_at', { ascending: false });
+
+            const lista = document.getElementById('listaSolicitudes');
+            
+            if (error) {
+                lista.innerHTML = `<p class="text-red-500 text-center">Error al cargar datos.</p>`;
+                return;
+            }
+
+            if (data.length === 0) {
+                lista.innerHTML = `<p class="text-gray-500 text-center">No hay solicitudes pendientes.</p>`;
+                return;
+            }
+
+            lista.innerHTML = data.map(s => `
+                <div class="bg-white p-5 rounded-2xl shadow-md border-l-8 border-teal-800 transition-all hover:shadow-lg" id="card_${s.solicitud_id}">
+                    <h3 class="font-bold text-lg text-teal-900">${s.comentario_solicitud}</h3>
+                    <p class="text-sm text-gray-600 mb-4">Cliente: ${s.nombre_usuario || 'Sin nombre'}</p>
+                    <button onclick="confirmar('${s.solicitud_id}')" 
+                            class="w-full bg-teal-800 text-white py-3 rounded-xl font-bold hover:bg-teal-700 transition-colors">
+                            CONFIRMAR SERVICIO
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Función para cambiar estado y avanzar
+        async function confirmar(id) {
+            const btn = event.target;
+            btn.innerText = "Procesando...";
+            btn.disabled = true;
+
+            const { error } = await client
+                .from('solicitudes')
+                .update({ respuesta_solicitud: 'aceptado' })
+                .eq('solicitud_id', id);
+
+            if (!error) {
+                // Redirige al mapa de servicio con el ID para el chat y rastreo
+                window.location.href = `mapa_tecnico.html?id=${id}`;
+            } else {
+                alert("Error al confirmar. Intente de nuevo.");
+                btn.innerText = "CONFIRMAR SERVICIO";
+                btn.disabled = false;
+            }
+        }
+
+        // TIEMPO REAL: Si entra un nuevo pedido, se refresca automáticamente
+        client.channel('solicitudes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, 
+                () => { cargarSolicitudes(); })
+            .subscribe();
+
+        // Carga inicial
+        cargarSolicitudes();
+    </script>
+</body>
+</html>
