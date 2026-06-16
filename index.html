@@ -9,6 +9,7 @@
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
     <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl">
         <h2 class="text-2xl font-bold text-teal-900 mb-6 text-center">SOLICITAR SERVICIO</h2>
+        
         <form id="solicitudForm" class="space-y-4">
             <input type="text" id="nombre" placeholder="Nombre del Usuario" class="w-full p-3 border rounded-lg" required>
             <input type="number" id="celular" placeholder="No. Celular Contacto" class="w-full p-3 border rounded-lg" required>
@@ -27,18 +28,34 @@
 
             <button type="submit" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold">SOLICITAR SERVICIO</button>
         </form>
+
+        <button type="button" onclick="toggleAyuda()" class="mt-6 w-full text-teal-800 underline font-semibold text-sm">
+            ¿Necesitas ayuda?
+        </button>
+    </div>
+
+    <div id="ayudaMensaje" onclick="toggleAyuda()" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm text-center">
+            <h3 class="font-bold text-xl mb-2 text-teal-900">Ayuda</h3>
+            <p class="text-gray-700">Por favor, rellena tus datos y selecciona el tipo de problema. Si no ves tu caso, elige "Otro" y descríbelo brevemente. Responderemos lo antes posible.</p>
+            <p class="text-xs text-gray-400 mt-4 italic">(Toca cualquier parte de la pantalla para cerrar)</p>
+        </div>
     </div>
 
     <script>
-        // Esperamos a que la librería cargue correctamente
         window.addEventListener('DOMContentLoaded', () => {
             const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
             const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
             
-            // Usamos 'supabase' que viene de la librería cargada por CDN
             const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-            // Función de visibilidad
+            // Función para mostrar/ocultar el modal de ayuda
+            window.toggleAyuda = function() {
+                const mensaje = document.getElementById('ayudaMensaje');
+                mensaje.classList.toggle('hidden');
+            };
+
+            // Función de visibilidad del campo "Otro"
             window.verificarOtro = function() {
                 const select = document.getElementById('opcion_servicio');
                 const otro = document.getElementById('otroCampo');
@@ -66,7 +83,7 @@
                 if (error) {
                     alert("Error: " + error.message);
                 } else {
-                    alert("¡Solicitud enviada!");
+                    alert("¡Solicitud enviada con éxito!");
                     window.location.reload();
                 }
             });
