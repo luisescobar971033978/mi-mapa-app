@@ -44,14 +44,13 @@
 
         async function guardarUbicacion() {
             const idSolicitud = localStorage.getItem('id_solicitud');
-            if (!idSolicitud) { mostrarModal("Error", "Solicitud no encontrada."); return; }
+            if (!idSolicitud || idSolicitud === 'null') { mostrarModal("Error", "Solicitud no encontrada."); return; }
             
             var center = map.getCenter();
             const { error } = await client.from('solicitudes').update({ latitud: center.lat, longitud: center.lng }).eq('solicitud_id', parseInt(idSolicitud));
             
-            if (error) {
-                mostrarModal("Error", error.message);
-            } else {
+            if (error) { mostrarModal("Error", error.message); }
+            else {
                 localStorage.removeItem('id_solicitud');
                 mostrarModal("¡Éxito!", "Ubicación guardada. Estamos programando su servicio.", () => { window.location.href = 'index.html'; });
             }
