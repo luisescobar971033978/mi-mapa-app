@@ -12,8 +12,19 @@
         <div id="loginForm" class="bg-white p-6 rounded-lg shadow-md mb-6 hidden">
             <h3 class="font-bold text-teal-900 mb-4">IDENTIFICACIÓN DE TÉCNICO</h3>
             <input type="text" id="id_tecnico" placeholder="ID Técnico" class="w-full p-2 border rounded mb-2">
-            <input type="text" id="movil_id" placeholder="Ej: movil_1" class="w-full p-2 border rounded mb-4">
-            <button onclick="guardarSesion()" class="w-full bg-teal-900 text-white p-2 rounded font-bold">INICIAR TURNO</button>
+            <select id="select_movil" class="w-full p-2 border rounded mb-4">
+                <option value="">Seleccione su Móvil</option>
+                <option value="Movil_1">Móvil 1</option>
+                <option value="Movil_2">Móvil 2</option>
+                <option value="Movil_3">Móvil 3</option>
+                <option value="Movil_4">Móvil 4</option>
+                <option value="Movil_5">Móvil 5</option>
+                
+               </select>
+            <button onclick="guardarSesion()" class="w-full bg-teal-900 text-white p-2 rounded font-bold">
+        INICIAR TURNO
+    </button>
+            
         </div>
 
         <header class="mb-6" id="headerPrincipal">
@@ -44,10 +55,18 @@
         };
 
         function guardarSesion() {
-            localStorage.setItem('tecnico', document.getElementById('id_tecnico').value);
-            localStorage.setItem('movil', document.getElementById('movil_id').value);
-            location.reload();
-        }
+    const idTecnico = document.getElementById('id_tecnico').value;
+    const movil = document.getElementById('select_movil').value; // Toma el valor del select
+
+    if (!idTecnico || !movil) {
+        alert("Por favor, complete ambos campos.");
+        return;
+    }
+
+    localStorage.setItem('tecnico', idTecnico);
+    localStorage.setItem('movil', movil);
+    location.reload(); // Recarga la página y oculta el formulario automáticamente
+}
 
         async function cargarSolicitudes() {
             const { data, error } = await client.from('solicitudes').select('*')
