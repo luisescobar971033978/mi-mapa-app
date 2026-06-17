@@ -29,7 +29,8 @@
                 .from('solicitudes')
                 .select('*')
                 .eq('respuesta_solicitud', 'pendiente')
-                .order('created_at', { ascending: false });
+                .order('fecha_solicitud', { ascending: false })
+                .order('hora_solicitud', { ascending: false });
 
             const lista = document.getElementById('listaSolicitudes');
             
