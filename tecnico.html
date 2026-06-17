@@ -27,9 +27,7 @@
         async function cargarSolicitudes() {
             const { data, error } = await client
                 .from('solicitudes')
-                .select('*')
-                .eq('respuesta_solicitud', 'pendiente')
-                .order('created_at', { ascending: false });
+                .select('*');
 
             const lista = document.getElementById('listaSolicitudes');
             
