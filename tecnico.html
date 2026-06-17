@@ -19,25 +19,23 @@
                 <option value="Movil_3">Móvil 3</option>
                 <option value="Movil_4">Móvil 4</option>
                 <option value="Movil_5">Móvil 5</option>
-                
-               </select>
-            <button onclick="guardarSesion()" class="w-full bg-teal-900 text-white p-2 rounded font-bold">
-        INICIAR TURNO
-    </button>
-            
+            </select>
+            <button id="btnIniciar" onclick="guardarSesion()" class="w-full bg-teal-900 text-white p-2 rounded font-bold">
+                INICIAR TURNO
+            </button>
         </div>
 
         <header class="mb-6 text-center" id="headerPrincipal">
-    <h2 class="text-2xl font-bold text-teal-900">SOLICITUDES PENDIENTES</h2>
-    <div class="flex justify-center items-center gap-2 mt-2">
-        <p class="text-gray-500 text-sm">Técnico: <span id="displayTecnico" class="font-bold"></span></p>
-        <button onclick="cargarSolicitudes()" class="text-teal-800 hover:text-teal-600 transition-transform hover:rotate-180">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-        </button>
-    </div>
-</header>
+            <h2 class="text-2xl font-bold text-teal-900">SOLICITUDES PENDIENTES</h2>
+            <div class="flex justify-center items-center gap-2 mt-2">
+                <p class="text-gray-500 text-sm">Técnico: <span id="displayTecnico" class="font-bold"></span></p>
+                <button onclick="cargarSolicitudes()" class="text-teal-800 hover:text-teal-600 transition-transform hover:rotate-180">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
+            </div>
+        </header>
 
         <div id="listaSolicitudes" class="space-y-4">
             <div class="text-center py-10">Cargando datos...</div>
@@ -49,7 +47,6 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
         const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Inicialización al cargar la página
         window.onload = () => {
             const t = localStorage.getItem('tecnico');
             if (!t) {
@@ -61,31 +58,58 @@
             }
         };
 
-        function guardarSesion() {
-    const idTecnico = document.getElementById('id_tecnico').value;
-    const movil = document.getElementById('select_movil').value; // Toma el valor del select
+        async function guardarSesion() {
+            const idTecnico = document.getElementById('id_tecnico').value.trim();
+            const movil = document.getElementById('select_movil').value;
+            const btn = document.getElementById('btnIniciar');
 
-    if (!idTecnico || !movil) {
-        alert("Por favor, complete ambos campos.");
-        return;
-    }
+            if (!idTecnico || !movil) {
+                alert("Por favor, complete ambos campos.");
+                return;
+            }
 
-    localStorage.setItem('tecnico', idTecnico);
-    localStorage.setItem('movil', movil);
-    location.reload(); // Recarga la página y oculta el formulario automáticamente
-}
+            btn.innerText = "Verificando...";
+            btn.disabled = true;
+
+            try {
+                // Consulta de validación en Supabase
+                const { data, error } = await client
+                    .from('moviles')
+                    .select('*')
+                    .eq('id_tecnico', idTecnico)
+                    .eq('estado', 'activo')
+                    .single();
+
+                if (error || !data) {
+                    alert("❌ Acceso denegado: ID inexistente o técnico no activo.");
+                    btn.innerText = "INICIAR TURNO";
+                    btn.disabled = false;
+                    return;
+                }
+
+                localStorage.setItem('tecnico', idTecnico);
+                localStorage.setItem('movil', movil);
+                location.reload();
+
+            } catch (err) {
+                alert("Error de conexión. Intente nuevamente.");
+                btn.innerText = "INICIAR TURNO";
+                btn.disabled = false;
+            }
+        }
 
         async function cargarSolicitudes() {
+            const lista = document.getElementById('listaSolicitudes');
+            lista.style.opacity = "0.5";
+            
             const { data, error } = await client.from('solicitudes').select('*')
                 .eq('respuesta_solicitud', 'pendiente')
                 .order('fecha_solicitud', { ascending: false });
 
-            const lista = document.getElementById('listaSolicitudes');
-            lista.style.opacity = "0.5";
-            if (error) { lista.innerHTML = `<p class="text-red-500 text-center">Error al cargar.</p>`; return; }
-            if (data.length === 0) { lista.innerHTML = `<p class="text-gray-500 text-center">No hay pendientes.</p>`; return; }
+            if (error) { lista.innerHTML = `<p class="text-red-500 text-center">Error al cargar.</p>`; lista.style.opacity = "1"; return; }
+            if (data.length === 0) { lista.innerHTML = `<p class="text-gray-500 text-center">No hay pendientes.</p>`; lista.style.opacity = "1"; return; }
+            
             lista.style.opacity = "1";
-
             lista.innerHTML = "";
             data.forEach(s => {
                 lista.innerHTML += `
@@ -102,7 +126,6 @@
         }
 
         async function confirmar(id) {
-            // Seguridad: Doble verificación
             const { data: check } = await client.from('solicitudes').select('respuesta_solicitud').eq('solicitud_id', id).single();
             if (check?.respuesta_solicitud !== 'pendiente') { alert("Esta solicitud ya fue tomada."); location.reload(); return; }
 
