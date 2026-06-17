@@ -72,9 +72,11 @@ data.forEach(s => {
             btn.innerText = "Procesando...";
             btn.disabled = true;
 
+            const horaActual = new Date().toLocaleTimeString('es-BO', { hour12: false });
             const { error } = await client
                 .from('solicitudes')
-                .update({ respuesta_solicitud: 'aceptado' })
+                .update({ respuesta_solicitud: 'aceptado',
+                        hora_contacto: horaActual})
                 .eq('solicitud_id', id);
 
             if (!error) {
