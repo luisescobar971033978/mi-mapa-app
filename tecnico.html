@@ -27,10 +27,17 @@
             
         </div>
 
-        <header class="mb-6" id="headerPrincipal">
-            <h2 class="text-2xl font-bold text-teal-900 text-center">SOLICITUDES PENDIENTES</h2>
-            <p class="text-center text-gray-500 text-sm">Técnico: <span id="displayTecnico" class="font-bold"></span></p>
-        </header>
+        <header class="mb-6 text-center" id="headerPrincipal">
+    <h2 class="text-2xl font-bold text-teal-900">SOLICITUDES PENDIENTES</h2>
+    <div class="flex justify-center items-center gap-2 mt-2">
+        <p class="text-gray-500 text-sm">Técnico: <span id="displayTecnico" class="font-bold"></span></p>
+        <button onclick="cargarSolicitudes()" class="text-teal-800 hover:text-teal-600 transition-transform hover:rotate-180">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+        </button>
+    </div>
+</header>
 
         <div id="listaSolicitudes" class="space-y-4">
             <div class="text-center py-10">Cargando datos...</div>
@@ -74,8 +81,10 @@
                 .order('fecha_solicitud', { ascending: false });
 
             const lista = document.getElementById('listaSolicitudes');
+            lista.style.opacity = "0.5";
             if (error) { lista.innerHTML = `<p class="text-red-500 text-center">Error al cargar.</p>`; return; }
             if (data.length === 0) { lista.innerHTML = `<p class="text-gray-500 text-center">No hay pendientes.</p>`; return; }
+            lista.style.opacity = "1";
 
             lista.innerHTML = "";
             data.forEach(s => {
