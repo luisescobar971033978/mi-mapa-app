@@ -23,6 +23,8 @@
             <button id="btnIniciar" onclick="guardarSesion()" class="w-full bg-teal-900 text-white p-2 rounded font-bold">
                 INICIAR TURNO
             </button>
+            <div id="loginMessage" class="mt-4 p-3 rounded-lg border border-red-400 bg-red-100 text-red-800 text-sm font-bold hidden text-center">
+            </div>
         </div>
 
         <header class="mb-6 text-center" id="headerPrincipal">
@@ -62,17 +64,19 @@
             const idTecnico = document.getElementById('id_tecnico').value.trim();
             const movil = document.getElementById('select_movil').value;
             const btn = document.getElementById('btnIniciar');
+            const msgDiv = document.getElementById('loginMessage');
 
             if (!idTecnico || !movil) {
-                alert("Por favor, complete ambos campos.");
+                msgDiv.innerText = "⚠️ Por favor, complete todos los campos.";
+                msgDiv.classList.remove('hidden');
                 return;
             }
 
             btn.innerText = "Verificando...";
             btn.disabled = true;
+            msgDiv.classList.add('hidden');
 
             try {
-                // Consulta de validación en Supabase
                 const { data, error } = await client
                     .from('moviles')
                     .select('*')
@@ -81,7 +85,8 @@
                     .single();
 
                 if (error || !data) {
-                    alert("❌ Acceso denegado: ID inexistente o técnico no activo.");
+                    msgDiv.innerText = "❌ Acceso denegado: ID no válido o técnico inactivo.";
+                    msgDiv.classList.remove('hidden');
                     btn.innerText = "INICIAR TURNO";
                     btn.disabled = false;
                     return;
@@ -92,7 +97,8 @@
                 location.reload();
 
             } catch (err) {
-                alert("Error de conexión. Intente nuevamente.");
+                msgDiv.innerText = "⚠️ Error de conexión. Intente nuevamente.";
+                msgDiv.classList.remove('hidden');
                 btn.innerText = "INICIAR TURNO";
                 btn.disabled = false;
             }
