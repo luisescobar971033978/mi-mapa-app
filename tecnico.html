@@ -50,7 +50,7 @@
                     <p class="text-sm text-gray-600 mb-4">Cliente: ${s.nombre_usuario || 'Sin nombre'}</p>
                 <div class="flex justify-between mt-2 text-xs text-gray-500">
                 <span>📅 ${item.fecha_solicitud}</span>
-                <span>🕒 ${item.hora_solicitud.substring(0, 5)}</span> <!-- Muestra solo HH:MM -->
+                <span>🕒 ${s.hora_solicitud ? s.hora_solicitud.substring(0, 5) : 'N/A'}</span>
                 </div>
         
                     <button onclick="confirmar('${s.solicitud_id}')" 
