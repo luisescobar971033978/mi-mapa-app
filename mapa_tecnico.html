@@ -97,10 +97,35 @@
 
     async function finalizarServicio() {
         if(!confirm("¿Seguro que deseas finalizar el servicio?")) return;
-        await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
-        await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
-        await client.from('solicitudes').update({ respuesta_solicitud: 'finalizado' }).eq('solicitud_id', solicitudId);
-        window.location.href = "tecnico.html";
+
+        // Mostrar un mensaje de "Cargando..." o similar para que el usuario sepa que está trabajando
+        console.log("Iniciando limpieza para solicitud: ", solicitudId);
+
+        try {
+            // 1. Borrado de Mensajes
+            const { error: err1 } = await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
+            if (err1) console.error("Error al borrar mensajes:", err1);
+
+            // 2. Borrado de Ubicación (Crucial: borrar por solicitud_id)
+            const { error: err2 } = await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
+            if (err2) console.error("Error al borrar ubicación:", err2);
+
+            // 3. Actualizar estado final
+            const { error: err3 } = await client.from('solicitudes')
+                .update({ respuesta_solicitud: 'finalizado' })
+                .eq('solicitud_id', solicitudId);
+            
+            if (err3) {
+                console.error("Error al actualizar estado:", err3);
+                alert("Hubo un error al actualizar el estado del servicio.");
+            } else {
+                console.log("Limpieza exitosa.");
+                // Redirigir después de un pequeño delay para asegurar la persistencia
+                window.location.href = "tecnico.html";
+            }
+        } catch (e) {
+            console.error("Error crítico:", e);
+        }
     }
     </script>
 </body>
