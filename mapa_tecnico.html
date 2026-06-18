@@ -25,54 +25,70 @@
     </div>
 
     <script>
-        const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
-        const client = supabase.createClient(supabaseUrl, supabaseKey);
+    const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const solicitudId = urlParams.get('id');
+    const urlParams = new URLSearchParams(window.location.search);
+    const solicitudId = urlParams.get('id');
 
-        // Inicializar Mapa
-        const map = L.map('map').setView([-17.7833, -63.1821], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+    const map = L.map('map').setView([-17.7833, -63.1821], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
-        // Tracking GPS (cada 180 segundos)
-        async function actualizarUbicacion() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(async (position) => {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    const movilId = localStorage.getItem('movil');
+    // Variables de marcadores
+    let marcadorMovil = null;
+    let marcadorCliente = null;
 
-                    const { error } = await client
-                        .from('ubicacion_moviles')
-                        .upsert({
-                            movil_id: movilId,
-                            latitud: lat,
-                            longitud: lng,
-                            solicitud_id: solicitudId,
-                            ultima_actualizacion: new Date().toISOString()
-                        });
-
-                    if (error) console.error("Error al actualizar ubicación:", error.message);
-                }, (err) => console.error("Error de Geolocalización:", err));
-            }
+    // 1. Cargar ubicación del cliente una sola vez
+    async function cargarUbicacionCliente() {
+        const { data } = await client.from('solicitudes').select('latitud, longitud').eq('solicitud_id', solicitudId).single();
+        if (data) {
+            // Icono de casa o punto de servicio
+            marcadorCliente = L.marker([data.latitud, data.longitud], {
+                icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) 
+            }).addTo(map).bindPopup("Ubicación del Servicio");
         }
+    }
+    cargarUbicacionCliente();
 
-        actualizarUbicacion();
-        setInterval(actualizarUbicacion, 180000);
+    // 2. Actualizar ubicación del móvil (Camioneta)
+    async function actualizarUbicacion() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const movilId = localStorage.getItem('movil');
 
-        // Lógica de Finalizar (Limpieza completa)
-        async function finalizarServicio() {
-            if(!confirm("¿Seguro que deseas finalizar el servicio? Esto borrará el historial de chat y ubicación.")) return;
+                // Mover marcador o crearlo
+                if (marcadorMovil) {
+                    marcadorMovil.setLatLng([lat, lng]);
+                } else {
+                    marcadorMovil = L.marker([lat, lng], {
+                        icon: L.divIcon({ html: '🚐', className: 'text-2xl' })
+                    }).addTo(map).bindPopup("Mi ubicación");
+                }
 
-            // Borrado limpio usando las tablas correctas
-            await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
-            await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
-            await client.from('solicitudes').update({ respuesta_solicitud: 'finalizado' }).eq('solicitud_id', solicitudId);
-            
-            window.location.href = "tecnico.html";
+                await client.from('ubicacion_moviles').upsert({
+                    movil_id: movilId,
+                    latitud: lat,
+                    longitud: lng,
+                    solicitud_id: solicitudId,
+                    ultima_actualizacion: new Date().toISOString()
+                });
+            });
         }
-    </script>
+    }
+
+    actualizarUbicacion();
+    setInterval(actualizarUbicacion, 180000);
+
+    async function finalizarServicio() {
+        if(!confirm("¿Seguro que deseas finalizar el servicio?")) return;
+        await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
+        await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
+        await client.from('solicitudes').update({ respuesta_solicitud: 'finalizado' }).eq('solicitud_id', solicitudId);
+        window.location.href = "tecnico.html";
+    }
+</script>
 </body>
 </html>
