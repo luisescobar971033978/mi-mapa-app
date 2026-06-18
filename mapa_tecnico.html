@@ -41,7 +41,6 @@
     let coordsCliente = null;
     let coordsMovil = null;
 
-    // Función para centrar mapa entre ambos puntos
     function centrarMapa() {
         if (coordsCliente && coordsMovil) {
             const bounds = L.latLngBounds([coordsCliente, coordsMovil]);
@@ -51,7 +50,6 @@
         }
     }
 
-    // 1. Cargar ubicación del cliente
     async function cargarUbicacionCliente() {
         const { data } = await client.from('solicitudes').select('latitud, longitud').eq('solicitud_id', solicitudId).single();
         if (data) {
@@ -64,10 +62,10 @@
     }
     cargarUbicacionCliente();
 
-    // 2. Actualizar ubicación del móvil
-    async function actualizarUbicacion() {
+    // 2. Actualizar ubicación del móvil usando watchPosition (Tracking continuo)
+    function iniciarTracking() {
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(async (position) => {
+            navigator.geolocation.watchPosition(async (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
                 coordsMovil = [lat, lng];
@@ -90,12 +88,12 @@
                     solicitud_id: solicitudId,
                     ultima_actualizacion: new Date().toISOString()
                 });
-            });
+            }, (err) => console.error("Error GPS:", err), 
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
         }
     }
 
-    actualizarUbicacion();
-    setInterval(actualizarUbicacion, 180000);
+    iniciarTracking();
 
     async function finalizarServicio() {
         if(!confirm("¿Seguro que deseas finalizar el servicio?")) return;
