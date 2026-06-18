@@ -31,11 +31,16 @@
     const urlParams = new URLSearchParams(window.location.search);
     const solicitudId = urlParams.get('id');
 
-    // Inicialización del Mapa
+    // MEJORA: Guardian de sesión activa
+    const servicioActivo = localStorage.getItem('solicitudId_activo');
+    if (servicioActivo && solicitudId && servicioActivo !== solicitudId) {
+        alert("Tienes un servicio pendiente. Volviendo al mapa...");
+        window.location.href = `mapa_tecnico.html?id=${servicioActivo}`;
+    }
+
     const map = L.map('map').setView([-17.7833, -63.1821], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
-    // MEJORA: Navegación Autónoma
     let usuarioHaInteractuado = false;
     map.on('mousedown', () => usuarioHaInteractuado = true);
     map.on('touchstart', () => usuarioHaInteractuado = true);
@@ -46,7 +51,6 @@
     let coordsMovil = null;
 
     function centrarMapa() {
-        // Solo centra si el usuario NO ha tomado el control manual del mapa
         if (!usuarioHaInteractuado) {
             if (coordsCliente && coordsMovil) {
                 map.fitBounds(L.latLngBounds([coordsCliente, coordsMovil]), { padding: [50, 50] });
@@ -66,7 +70,6 @@
     }
     cargarUbicacionCliente();
 
-    // Tracking con watchPosition
     function iniciarTracking() {
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(async (position) => {
@@ -80,7 +83,6 @@
                 } else {
                     marcadorMovil = L.marker(coordsMovil, { icon: L.divIcon({ html: '🚐', className: 'text-2xl' }) }).addTo(map).bindPopup("Mi ubicación");
                 }
-                
                 centrarMapa();
 
                 await client.from('ubicacion_moviles').upsert({
@@ -101,7 +103,9 @@
         const movilId = localStorage.getItem('movil');
         
         try {
-            // Borramos solo los datos asociados a este servicio y a este móvil específico
+            // Limpiamos el guardián antes de borrar datos
+            localStorage.removeItem('solicitudId_activo');
+            
             await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
             await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId).eq('movil_id', movilId);
             await client.from('solicitudes').update({ respuesta_solicitud: 'finalizado' }).eq('solicitud_id', solicitudId);
