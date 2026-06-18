@@ -15,8 +15,7 @@
 
     <div class="h-1/2 bg-white p-4 shadow-lg flex flex-col">
         <h3 class="font-bold text-teal-900 mb-2">CHAT DEL SERVICIO</h3>
-        <div id="chatBox" class="flex-grow overflow-y-auto border p-2 mb-2 bg-gray-50 rounded">
-        </div>
+        <div id="chatBox" class="flex-grow overflow-y-auto border p-2 mb-2 bg-gray-50 rounded"></div>
         <div class="flex gap-2">
             <input type="text" id="inputMensaje" class="flex-grow p-2 border rounded" placeholder="Escribe un mensaje...">
             <button onclick="enviarMensaje()" class="bg-teal-800 text-white px-4 py-2 rounded font-bold">Enviar</button>
@@ -32,21 +31,28 @@
     const urlParams = new URLSearchParams(window.location.search);
     const solicitudId = urlParams.get('id');
 
+    // Inicialización del Mapa
     const map = L.map('map').setView([-17.7833, -63.1821], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
-    // Variables de estado
+    // MEJORA: Navegación Autónoma
+    let usuarioHaInteractuado = false;
+    map.on('mousedown', () => usuarioHaInteractuado = true);
+    map.on('touchstart', () => usuarioHaInteractuado = true);
+
     let marcadorMovil = null;
     let marcadorCliente = null;
     let coordsCliente = null;
     let coordsMovil = null;
 
     function centrarMapa() {
-        if (coordsCliente && coordsMovil) {
-            const bounds = L.latLngBounds([coordsCliente, coordsMovil]);
-            map.fitBounds(bounds, { padding: [50, 50] });
-        } else if (coordsCliente) {
-            map.setView(coordsCliente, 15);
+        // Solo centra si el usuario NO ha tomado el control manual del mapa
+        if (!usuarioHaInteractuado) {
+            if (coordsCliente && coordsMovil) {
+                map.fitBounds(L.latLngBounds([coordsCliente, coordsMovil]), { padding: [50, 50] });
+            } else if (coordsCliente) {
+                map.setView(coordsCliente, 15);
+            }
         }
     }
 
@@ -54,15 +60,13 @@
         const { data } = await client.from('solicitudes').select('latitud, longitud').eq('solicitud_id', solicitudId).single();
         if (data) {
             coordsCliente = [data.latitud, data.longitud];
-            marcadorCliente = L.marker(coordsCliente, {
-                icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) 
-            }).addTo(map).bindPopup("Ubicación del Servicio");
+            marcadorCliente = L.marker(coordsCliente, { icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) }).addTo(map).bindPopup("Ubicación del Servicio");
             centrarMapa();
         }
     }
     cargarUbicacionCliente();
 
-    // 2. Actualizar ubicación del móvil usando watchPosition (Tracking continuo)
+    // Tracking con watchPosition
     function iniciarTracking() {
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(async (position) => {
@@ -74,11 +78,9 @@
                 if (marcadorMovil) {
                     marcadorMovil.setLatLng(coordsMovil);
                 } else {
-                    marcadorMovil = L.marker(coordsMovil, {
-                        icon: L.divIcon({ html: '🚐', className: 'text-2xl' })
-                    }).addTo(map).bindPopup("Mi ubicación");
+                    marcadorMovil = L.marker(coordsMovil, { icon: L.divIcon({ html: '🚐', className: 'text-2xl' }) }).addTo(map).bindPopup("Mi ubicación");
                 }
-
+                
                 centrarMapa();
 
                 await client.from('ubicacion_moviles').upsert({
@@ -88,43 +90,26 @@
                     solicitud_id: solicitudId,
                     ultima_actualizacion: new Date().toISOString()
                 });
-            }, (err) => console.error("Error GPS:", err), 
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+            }, (err) => console.error("Error GPS:", err), { enableHighAccuracy: true });
         }
     }
-
     iniciarTracking();
 
     async function finalizarServicio() {
         if(!confirm("¿Seguro que deseas finalizar el servicio?")) return;
-
-        // Mostrar un mensaje de "Cargando..." o similar para que el usuario sepa que está trabajando
-        console.log("Iniciando limpieza para solicitud: ", solicitudId);
-
+        
+        const movilId = localStorage.getItem('movil');
+        
         try {
-            // 1. Borrado de Mensajes
-            const { error: err1 } = await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
-            if (err1) console.error("Error al borrar mensajes:", err1);
-
-            // 2. Borrado de Ubicación (Crucial: borrar por solicitud_id)
-            const { error: err2 } = await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
-            if (err2) console.error("Error al borrar ubicación:", err2);
-
-            // 3. Actualizar estado final
-            const { error: err3 } = await client.from('solicitudes')
-                .update({ respuesta_solicitud: 'finalizado' })
-                .eq('solicitud_id', solicitudId);
+            // Borramos solo los datos asociados a este servicio y a este móvil específico
+            await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
+            await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId).eq('movil_id', movilId);
+            await client.from('solicitudes').update({ respuesta_solicitud: 'finalizado' }).eq('solicitud_id', solicitudId);
             
-            if (err3) {
-                console.error("Error al actualizar estado:", err3);
-                alert("Hubo un error al actualizar el estado del servicio.");
-            } else {
-                console.log("Limpieza exitosa.");
-                // Redirigir después de un pequeño delay para asegurar la persistencia
-                window.location.href = "tecnico.html";
-            }
+            window.location.href = "tecnico.html";
         } catch (e) {
-            console.error("Error crítico:", e);
+            console.error("Error al finalizar:", e);
+            alert("Ocurrió un error al finalizar. Revisa la consola.");
         }
     }
     </script>
