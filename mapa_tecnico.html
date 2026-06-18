@@ -35,38 +35,53 @@
     const map = L.map('map').setView([-17.7833, -63.1821], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
-    // Variables de marcadores
+    // Variables de estado
     let marcadorMovil = null;
     let marcadorCliente = null;
+    let coordsCliente = null;
+    let coordsMovil = null;
 
-    // 1. Cargar ubicación del cliente una sola vez
+    // Función para centrar mapa entre ambos puntos
+    function centrarMapa() {
+        if (coordsCliente && coordsMovil) {
+            const bounds = L.latLngBounds([coordsCliente, coordsMovil]);
+            map.fitBounds(bounds, { padding: [50, 50] });
+        } else if (coordsCliente) {
+            map.setView(coordsCliente, 15);
+        }
+    }
+
+    // 1. Cargar ubicación del cliente
     async function cargarUbicacionCliente() {
         const { data } = await client.from('solicitudes').select('latitud, longitud').eq('solicitud_id', solicitudId).single();
         if (data) {
-            // Icono de casa o punto de servicio
-            marcadorCliente = L.marker([data.latitud, data.longitud], {
+            coordsCliente = [data.latitud, data.longitud];
+            marcadorCliente = L.marker(coordsCliente, {
                 icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) 
             }).addTo(map).bindPopup("Ubicación del Servicio");
+            centrarMapa();
         }
     }
     cargarUbicacionCliente();
 
-    // 2. Actualizar ubicación del móvil (Camioneta)
+    // 2. Actualizar ubicación del móvil
     async function actualizarUbicacion() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(async (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
+                coordsMovil = [lat, lng];
                 const movilId = localStorage.getItem('movil');
 
-                // Mover marcador o crearlo
                 if (marcadorMovil) {
-                    marcadorMovil.setLatLng([lat, lng]);
+                    marcadorMovil.setLatLng(coordsMovil);
                 } else {
-                    marcadorMovil = L.marker([lat, lng], {
+                    marcadorMovil = L.marker(coordsMovil, {
                         icon: L.divIcon({ html: '🚐', className: 'text-2xl' })
                     }).addTo(map).bindPopup("Mi ubicación");
                 }
+
+                centrarMapa();
 
                 await client.from('ubicacion_moviles').upsert({
                     movil_id: movilId,
@@ -89,6 +104,6 @@
         await client.from('solicitudes').update({ respuesta_solicitud: 'finalizado' }).eq('solicitud_id', solicitudId);
         window.location.href = "tecnico.html";
     }
-</script>
+    </script>
 </body>
 </html>
