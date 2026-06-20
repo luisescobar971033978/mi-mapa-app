@@ -129,18 +129,30 @@
     }
 
     async function confirmar(id) {
-        // Marcamos el servicio como activo en el navegador para el guardián
-        localStorage.setItem('solicitudId_activo', id);
+    // 1. Guardamos el ID del servicio
+    localStorage.setItem('solicitudId_activo', id);
 
-        const { error } = await client.from('solicitudes').update({ 
-            respuesta_solicitud: 'aceptado',
-            id_tecnico: localStorage.getItem('tecnico'),
-            movil_id: localStorage.getItem('movil')
-        }).eq('solicitud_id', id);
+    // 2. Actualizamos el estado del servicio
+    const { error } = await client.from('solicitudes').update({ 
+        respuesta_solicitud: 'aceptado',
+        id_tecnico: localStorage.getItem('tecnico'),
+        movil_id: localStorage.getItem('movil')
+    }).eq('solicitud_id', id);
 
-        if (!error) { window.location.href = `mapa_tecnico.html?id=${id}`; }
-        else { alert("Error al confirmar."); localStorage.removeItem('solicitudId_activo'); }
+    if (!error) {
+        // 3. ENVIAMOS EL MENSAJE ROMPEHIELO AUTOMÁTICO
+        await client.from('mensajes').insert({
+            solicitud_id: id,
+            emisor: 'tecnico',
+            mensaje: 'Hola estimado, soy su técnico. Por favor, confirme el servicio para comenzar.'
+        });
+
+        // 4. Redireccionamos
+        window.location.href = `mapa_tecnico.html?id=${id}`;
+    } else {
+        alert("Error al confirmar.");
     }
+}
 
     client.channel('solicitudes_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, () => { cargarSolicitudes(); }).subscribe();
     </script>
