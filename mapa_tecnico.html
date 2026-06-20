@@ -49,9 +49,24 @@
     const urlParams = new URLSearchParams(window.location.search);
     const solicitudId = urlParams.get('id');
 
-    // Inicialización y datos
+    // Control de Mapa
     const map = L.map('map').setView([-17.7833, -63.1821], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+
+    let usuarioHaInteractuado = false;
+    map.on('mousedown', () => usuarioHaInteractuado = true);
+    map.on('touchstart', () => usuarioHaInteractuado = true);
+    map.on('zoom', () => usuarioHaInteractuado = true);
+    map.on('drag', () => usuarioHaInteractuado = true);
+
+    let coordsCliente = null;
+    let marcadorMovil = null;
+
+    function centrarMapa(destino) {
+        if (!usuarioHaInteractuado) {
+            map.setView(destino, 15);
+        }
+    }
 
     async function cargarInfo() {
         const { data } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
@@ -60,6 +75,7 @@
             document.getElementById('infoTecnico').innerText = `ID: ${localStorage.getItem('tecnico')}`;
             coordsCliente = [data.latitud, data.longitud];
             L.marker(coordsCliente, { icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) }).addTo(map);
+            centrarMapa(coordsCliente);
         }
     }
     cargarInfo();
@@ -68,7 +84,6 @@
         if(coordsCliente) window.open(`https://www.google.com/maps/dir/?api=1&destination=${coordsCliente[0]},${coordsCliente[1]}`, '_blank');
     }
 
-    let marcadorMovil = null;
     function iniciarTracking() {
         navigator.geolocation.watchPosition((pos) => {
             const coords = [pos.coords.latitude, pos.coords.longitude];
@@ -79,13 +94,13 @@
             } else {
                 marcadorMovil.setLatLng(coords);
             }
+            if (!usuarioHaInteractuado) centrarMapa(coords);
         }, null, { enableHighAccuracy: true });
     }
     iniciarTracking();
 
-    // Modales y Finalización
     function mostrarConfirmacion() { document.getElementById('customModal').classList.remove('hidden'); }
-    function cerrarModal() { document.getElementById('customModal').classList.add('hidden'); }
+    function cerrarModal() { document.getElementById('customModal').classList.add8('hidden'); }
     async function finalizarServicio() {
         localStorage.removeItem('solicitudId_activo');
         await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
