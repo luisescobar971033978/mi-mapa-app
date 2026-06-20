@@ -11,7 +11,16 @@
 </head>
 <body class="bg-gray-100 h-screen flex flex-col">
 
-    <div id="map" class="flex-grow w-full h-1/2"></div>
+    <div id="infoBar" class="bg-teal-900 text-white p-2 text-xs flex justify-between px-4 z-[1000]">
+        <span id="infoCliente">Cargando...</span>
+        <span id="infoTecnico" class="font-bold"></span>
+    </div>
+
+    <div id="map" class="flex-grow w-full h-1/2 relative">
+        <button onclick="abrirGoogleMaps()" class="absolute bottom-4 left-4 z-[1000] bg-blue-600 text-white p-2 rounded-full shadow-lg">
+            📍 GPS
+        </button>
+    </div>
 
     <div class="h-1/2 bg-white p-4 shadow-lg flex flex-col">
         <h3 class="font-bold text-teal-900 mb-2">CHAT DEL SERVICIO</h3>
@@ -20,101 +29,69 @@
             <input type="text" id="inputMensaje" class="flex-grow p-2 border rounded" placeholder="Escribe un mensaje...">
             <button onclick="enviarMensaje()" class="bg-teal-800 text-white px-4 py-2 rounded font-bold">Enviar</button>
         </div>
-        <button onclick="finalizarServicio()" class="mt-4 w-full bg-red-600 text-white p-2 rounded font-bold">FINALIZAR SERVICIO</button>
+        <button onclick="mostrarConfirmacion()" class="mt-4 w-full bg-red-600 text-white p-2 rounded font-bold">FINALIZAR SERVICIO</button>
+    </div>
+
+    <div id="customModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[2000] flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg w-80 text-center">
+            <h3 class="font-bold text-lg mb-4">¿Finalizar Servicio?</h3>
+            <div class="flex gap-4">
+                <button onclick="finalizarServicio()" class="flex-1 bg-red-600 text-white py-2 rounded">Sí</button>
+                <button onclick="cerrarModal()" class="flex-1 bg-gray-300 py-2 rounded">No</button>
+            </div>
+        </div>
     </div>
 
     <script>
     const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
-
     const urlParams = new URLSearchParams(window.location.search);
     const solicitudId = urlParams.get('id');
 
-    // MEJORA: Guardian de sesión activa
-    const servicioActivo = localStorage.getItem('solicitudId_activo');
-    if (servicioActivo && solicitudId && servicioActivo !== solicitudId) {
-        alert("Tienes un servicio pendiente. Volviendo al mapa...");
-        window.location.href = `mapa_tecnico.html?id=${servicioActivo}`;
-    }
-
+    // Inicialización y datos
     const map = L.map('map').setView([-17.7833, -63.1821], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
-    let usuarioHaInteractuado = false;
-    map.on('mousedown', () => usuarioHaInteractuado = true);
-    map.on('touchstart', () => usuarioHaInteractuado = true);
+    async function cargarInfo() {
+        const { data } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
+        if (data) {
+            document.getElementById('infoCliente').innerText = `${data.nombre_usuario || 'Cliente'}: ${data.comentario_solicitud || ''}`;
+            document.getElementById('infoTecnico').innerText = `ID: ${localStorage.getItem('tecnico')}`;
+            coordsCliente = [data.latitud, data.longitud];
+            L.marker(coordsCliente, { icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) }).addTo(map);
+        }
+    }
+    cargarInfo();
+
+    function abrirGoogleMaps() {
+        if(coordsCliente) window.open(`https://www.google.com/maps/dir/?api=1&destination=${coordsCliente[0]},${coordsCliente[1]}`, '_blank');
+    }
 
     let marcadorMovil = null;
-    let marcadorCliente = null;
-    let coordsCliente = null;
-    let coordsMovil = null;
-
-    function centrarMapa() {
-        if (!usuarioHaInteractuado) {
-            if (coordsCliente && coordsMovil) {
-                map.fitBounds(L.latLngBounds([coordsCliente, coordsMovil]), { padding: [50, 50] });
-            } else if (coordsCliente) {
-                map.setView(coordsCliente, 15);
-            }
-        }
-    }
-
-    async function cargarUbicacionCliente() {
-        const { data } = await client.from('solicitudes').select('latitud, longitud').eq('solicitud_id', solicitudId).single();
-        if (data) {
-            coordsCliente = [data.latitud, data.longitud];
-            marcadorCliente = L.marker(coordsCliente, { icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) }).addTo(map).bindPopup("Ubicación del Servicio");
-            centrarMapa();
-        }
-    }
-    cargarUbicacionCliente();
-
     function iniciarTracking() {
-        if (navigator.geolocation) {
-            navigator.geolocation.watchPosition(async (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                coordsMovil = [lat, lng];
-                const movilId = localStorage.getItem('movil');
-
-                if (marcadorMovil) {
-                    marcadorMovil.setLatLng(coordsMovil);
-                } else {
-                    marcadorMovil = L.marker(coordsMovil, { icon: L.divIcon({ html: '🚐', className: 'text-2xl' }) }).addTo(map).bindPopup("Mi ubicación");
-                }
-                centrarMapa();
-
-                await client.from('ubicacion_moviles').upsert({
-                    movil_id: movilId,
-                    latitud: lat,
-                    longitud: lng,
-                    solicitud_id: solicitudId,
-                    ultima_actualizacion: new Date().toISOString()
-                });
-            }, (err) => console.error("Error GPS:", err), { enableHighAccuracy: true });
-        }
+        navigator.geolocation.watchPosition((pos) => {
+            const coords = [pos.coords.latitude, pos.coords.longitude];
+            if (!marcadorMovil) {
+                marcadorMovil = L.marker(coords, { 
+                    icon: L.icon({ iconUrl: 'https://raw.githubusercontent.com/luisescobar971033978/mi-mapa-app/main/logo_1.jpeg', iconSize: [30, 30] }) 
+                }).addTo(map);
+            } else {
+                marcadorMovil.setLatLng(coords);
+            }
+        }, null, { enableHighAccuracy: true });
     }
     iniciarTracking();
 
+    // Modales y Finalización
+    function mostrarConfirmacion() { document.getElementById('customModal').classList.remove('hidden'); }
+    function cerrarModal() { document.getElementById('customModal').classList.add('hidden'); }
     async function finalizarServicio() {
-        if(!confirm("¿Seguro que deseas finalizar el servicio?")) return;
-        
-        const movilId = localStorage.getItem('movil');
-        
-        try {
-            // Limpiamos el guardián antes de borrar datos
-            localStorage.removeItem('solicitudId_activo');
-            
-            await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
-            await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId).eq('movil_id', movilId);
-            await client.from('solicitudes').update({ respuesta_solicitud: 'finalizado' }).eq('solicitud_id', solicitudId);
-            
-            window.location.href = "tecnico.html";
-        } catch (e) {
-            console.error("Error al finalizar:", e);
-            alert("Ocurrió un error al finalizar. Revisa la consola.");
-        }
+        localStorage.removeItem('solicitudId_activo');
+        await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
+        await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
+        await client.from('solicitudes').update({ respuesta_solicitud: 'finalizado' }).eq('solicitud_id', solicitudId);
+        window.location.href = "tecnico.html";
     }
     </script>
 </body>
