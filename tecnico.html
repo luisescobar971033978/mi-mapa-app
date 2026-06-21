@@ -52,7 +52,6 @@
             document.getElementById('displayTecnico').innerText = t;
             document.getElementById('headerPrincipal').classList.remove('hidden');
             
-            // Redirección de seguridad: Si tiene un servicio activo, volver al mapa
             const servicioPendiente = localStorage.getItem('solicitudId_activo');
             if (servicioPendiente) {
                 window.location.href = `mapa_tecnico.html?id=${servicioPendiente}`;
@@ -63,7 +62,7 @@
     };
 
     function cerrarSesion() {
-        if(confirm("¿Deseas cerrar sesión?")) {
+        if(confirm("¿Deseas cerrar sesión y salir del sistema?")) {
             localStorage.clear();
             location.reload();
         }
@@ -97,7 +96,7 @@
             localStorage.setItem('movil', movil);
             location.reload();
         } catch (err) {
-            alert("Error de conexión.");
+            alert("Error de conexión con el servidor.");
             btn.innerText = "INICIAR TURNO";
             btn.disabled = false;
         }
@@ -110,7 +109,7 @@
             .order('fecha_solicitud', { ascending: false });
 
         if (error) { lista.innerHTML = `<p class="text-red-500 text-center">Error al cargar.</p>`; return; }
-        if (data.length === 0) { lista.innerHTML = `<p class="text-gray-500 text-center">No hay pendientes.</p>`; return; }
+        if (data.length === 0) { lista.innerHTML = `<p class="text-gray-500 text-center">No hay solicitudes pendientes actualmente.</p>`; return; }
         
         lista.innerHTML = "";
         data.forEach(s => {
@@ -129,30 +128,27 @@
     }
 
     async function confirmar(id) {
-    // 1. Guardamos el ID del servicio
-    localStorage.setItem('solicitudId_activo', id);
+        localStorage.setItem('solicitudId_activo', id);
+        try {
+            const { error } = await client.from('solicitudes').update({ 
+                respuesta_solicitud: 'aceptado',
+                id_tecnico: localStorage.getItem('tecnico'),
+                movil_id: localStorage.getItem('movil')
+            }).eq('solicitud_id', id);
 
-    // 2. Actualizamos el estado del servicio
-    const { error } = await client.from('solicitudes').update({ 
-        respuesta_solicitud: 'aceptado',
-        id_tecnico: localStorage.getItem('tecnico'),
-        movil_id: localStorage.getItem('movil')
-    }).eq('solicitud_id', id);
+            if (error) throw error;
 
-    if (!error) {
-        // 3. ENVIAMOS EL MENSAJE ROMPEHIELO AUTOMÁTICO
-        await client.from('mensajes').insert({
-            solicitud_id: id,
-            emisor: 'tecnico',
-            mensaje: 'Hola estimado, soy su técnico. Por favor, confirme el servicio para comenzar.'
-        });
+            await client.from('mensajes').insert({
+                solicitud_id: id,
+                emisor: 'tecnico',
+                mensaje: 'Hola estimado, soy su técnico. Por favor, confirme el servicio para comenzar.'
+            });
 
-        // 4. Redireccionamos
-        window.location.href = `mapa_tecnico.html?id=${id}`;
-    } else {
-        alert("Error al confirmar.");
+            window.location.href = `mapa_tecnico.html?id=${id}`;
+        } catch (err) {
+            alert("Error al confirmar el servicio. Reintenta.");
+        }
     }
-}
 
     client.channel('solicitudes_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, () => { cargarSolicitudes(); }).subscribe();
     </script>
