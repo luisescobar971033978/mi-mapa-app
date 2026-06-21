@@ -17,14 +17,20 @@
     </div>
 
     <div id="map" class="flex-grow w-full h-1/2 relative">
-        <button onclick="abrirGoogleMaps()" class="absolute bottom-4 left-4 z-[1000] bg-blue-600 text-white p-2 rounded-full shadow-lg font-bold">
-            📍 GPS
-        </button>
+        <div class="absolute bottom-4 left-4 z-[1000] flex flex-col gap-2">
+            <button onclick="abrirGoogleMaps()" class="bg-blue-600 text-white p-2 rounded-full shadow-lg font-bold">📍 GPS</button>
+            <button onclick="exportarCoordenadas()" class="bg-green-600 text-white p-2 rounded-full shadow-lg font-bold">📤</button>
+        </div>
+        <button onclick="mostrarAyuda()" class="absolute top-16 right-4 z-[1000] bg-yellow-500 text-white p-3 rounded-full shadow-lg font-bold">❓</button>
     </div>
 
     <div class="h-1/2 bg-white p-4 shadow-lg flex flex-col">
         <h3 class="font-bold text-teal-900 mb-2">CHAT DEL SERVICIO</h3>
-        <div id="chatBox" class="flex-grow overflow-y-auto border p-2 mb-2 bg-gray-50 rounded"></div>
+        <div id="chatBox" class="flex-grow overflow-y-auto border p-2 mb-2 bg-gray-50 rounded text-sm"></div>
+        <div class="flex gap-2 mb-2">
+            <button onclick="enviarRespuestaRapida('SÍ')" class="flex-1 bg-teal-100 p-1 rounded border border-teal-800 font-bold text-teal-900">SÍ</button>
+            <button onclick="enviarRespuestaRapida('NO')" class="flex-1 bg-red-100 p-1 rounded border border-red-800 font-bold text-red-900">NO</button>
+        </div>
         <div class="flex gap-2">
             <input type="text" id="inputMensaje" class="flex-grow p-2 border rounded" placeholder="Escribe un mensaje...">
             <button onclick="enviarMensaje()" class="bg-teal-800 text-white px-4 py-2 rounded font-bold">Enviar</button>
@@ -34,8 +40,9 @@
 
     <div id="customModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[2000] flex items-center justify-center">
         <div class="bg-white p-6 rounded-lg w-80 text-center">
-            <h3 class="font-bold text-lg mb-4">¿Finalizar Servicio?</h3>
-            <div class="flex gap-4">
+            <h3 class="font-bold text-lg mb-4" id="modalTitle">¿Finalizar Servicio?</h3>
+            <div id="modalContent" class="mb-4 text-left text-sm"></div>
+            <div class="flex gap-4" id="modalButtons">
                 <button onclick="finalizarServicio()" class="flex-1 bg-red-600 text-white py-2 rounded">Sí</button>
                 <button onclick="cerrarModal()" class="flex-1 bg-gray-300 py-2 rounded">No</button>
             </div>
@@ -74,13 +81,34 @@
             document.getElementById('infoTecnico').innerText = `ID: ${localStorage.getItem('tecnico')}`;
             coordsCliente = [data.latitud, data.longitud];
             marcadorCliente = L.marker(coordsCliente, { icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) }).addTo(map);
+            cargarMensajesPrevios();
             ajustarVista();
         }
     }
     cargarInfo();
 
+    async function cargarMensajesPrevios() {
+        const { data } = await client.from('mensajes').select('*').eq('solicitud_id', solicitudId).order('created_at', { ascending: true });
+        if (data) data.forEach(msg => renderizarMensaje(msg));
+    }
+
     function abrirGoogleMaps() {
         if(coordsCliente) window.open(`https://www.google.com/maps/dir/?api=1&destination=${coordsCliente[0]},${coordsCliente[1]}`, '_blank');
+    }
+
+    function exportarCoordenadas() {
+        if(coordsCliente) {
+            const txt = `${coordsCliente[0]},${coordsCliente[1]}`;
+            navigator.clipboard.writeText(txt);
+            alert("Coordenadas copiadas: " + txt);
+        }
+    }
+
+    function mostrarAyuda() {
+        document.getElementById('modalTitle').innerText = "Guía de Ayuda";
+        document.getElementById('modalContent').innerHTML = "<ol class='list-decimal ml-4'><li>Confirma el servicio.</li><li>Saluda al cliente.</li><li>Usa el GPS para llegar.</li><li>Finaliza al concluir.</li></ol>";
+        document.getElementById('modalButtons').innerHTML = '<button onclick="cerrarModal()" class="w-full bg-teal-800 text-white py-2 rounded">Entendido</button>';
+        document.getElementById('customModal').classList.remove('hidden');
     }
 
     function iniciarTracking() {
@@ -96,10 +124,9 @@
     }
     iniciarTracking();
 
-    // Lógica del Chat y Alerta
     client.channel('mensajes_channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
-          sonidoAlerta.play().catch(e => console.log("Esperando interacción de usuario"));
+          sonidoAlerta.play().catch(e => console.log("Sonido bloqueado"));
           renderizarMensaje(payload.new);
       }).subscribe();
 
@@ -116,8 +143,17 @@
         await client.from('mensajes').insert({ solicitud_id: solicitudId, emisor: 'tecnico', mensaje: input.value });
         input.value = "";
     }
+    
+    async function enviarRespuestaRapida(val) {
+        await client.from('mensajes').insert({ solicitud_id: solicitudId, emisor: 'tecnico', mensaje: val });
+    }
 
-    function mostrarConfirmacion() { document.getElementById('customModal').classList.remove('hidden'); }
+    function mostrarConfirmacion() { 
+        document.getElementById('modalTitle').innerText = "¿Finalizar Servicio?";
+        document.getElementById('modalContent').innerHTML = "Se cerrará el servicio y se borrarán los datos temporales.";
+        document.getElementById('modalButtons').innerHTML = '<button onclick="finalizarServicio()" class="flex-1 bg-red-600 text-white py-2 rounded">Sí</button><button onclick="cerrarModal()" class="flex-1 bg-gray-300 py-2 rounded">No</button>';
+        document.getElementById('customModal').classList.remove('hidden'); 
+    }
     function cerrarModal() { document.getElementById('customModal').classList.add('hidden'); }
     async function finalizarServicio() {
         localStorage.removeItem('solicitudId_activo');
