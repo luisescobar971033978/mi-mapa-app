@@ -47,38 +47,56 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
     let marcadorMovil = null;
+    let marcadorCliente = null;
+    let coordsCliente = null;
+    let coordsMovil = null;
+    let usuarioHaInteractuado = false;
+
+    // Recuperar autonomía al interactuar
+    map.on('mousedown touchstart zoom drag', () => usuarioHaInteractuado = true);
+
+    function ajustarVista() {
+        if (!usuarioHaInteractuado && coordsCliente && coordsMovil) {
+            map.fitBounds(L.latLngBounds([coordsCliente, coordsMovil]), { padding: [50, 50] });
+        }
+    }
 
     async function cargarInfo() {
         const { data } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
         if (data) {
             document.getElementById('infoCliente').innerText = `${data.nombre_usuario || 'Cliente'}: ${data.comentario_solicitud || ''}`;
             document.getElementById('infoTecnico').innerText = `ID: ${localStorage.getItem('tecnico') || 'N/A'}`;
-            L.marker([data.latitud, data.longitud]).addTo(map).bindPopup("Cliente").openPopup();
+            
+            coordsCliente = [data.latitud, data.longitud];
+            marcadorCliente = L.marker(coordsCliente, { icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) }).addTo(map);
+            
             cargarMensajesPrevios();
         }
     }
 
     async function cargarMensajesPrevios() {
         const { data } = await client.from('mensajes').select('*').eq('solicitud_id', solicitudId).order('created_at', { ascending: true });
-        document.getElementById('chatBox').innerHTML = ""; // Limpieza para evitar duplicados
+        document.getElementById('chatBox').innerHTML = ""; 
         if (data) data.forEach(msg => renderizarMensaje(msg));
     }
 
     function iniciarTracking() {
         navigator.geolocation.watchPosition(async (pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
+            coordsMovil = [pos.coords.latitude, pos.coords.longitude];
             
-            // Actualizar mapa
-            if (!marcadorMovil) marcadorMovil = L.marker([lat, lng], { icon: L.divIcon({ html: '🚐', className: 'text-2xl' }) }).addTo(map);
-            else marcadorMovil.setLatLng([lat, lng]);
+            if (!marcadorMovil) {
+                marcadorMovil = L.marker(coordsMovil, { icon: L.divIcon({ html: '🚐', className: 'text-2xl' }) }).addTo(map);
+            } else {
+                marcadorMovil.setLatLng(coordsMovil);
+            }
+            
+            ajustarVista(); // Intenta centrar si no hubo interacción
 
-            // ENVIAR A SUPABASE (Corrección)
             await client.from('ubicacion_moviles').upsert({
                 solicitud_id: solicitudId,
                 movil_id: localStorage.getItem('tecnico') || 'tecnico_1',
-                latitud: lat,
-                longitud: lng,
+                latitud: coordsMovil[0],
+                longitud: coordsMovil[1],
                 ultima_actualizacion: new Date().toISOString()
             });
         }, null, { enableHighAccuracy: true });
@@ -92,6 +110,7 @@
         const chatBox = document.getElementById('chatBox');
         const esTecnico = msg.emisor === 'tecnico';
         chatBox.innerHTML += `<div class="mb-2 ${esTecnico ? 'text-right' : 'text-left'}"><span class="inline-block p-2 rounded ${esTecnico ? 'bg-teal-100' : 'bg-gray-200'} text-sm">${msg.mensaje}</span></div>`;
+        // Fuerza el scroll al final
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
@@ -106,6 +125,8 @@
         await client.from('mensajes').insert({ solicitud_id: solicitudId, emisor: 'tecnico', mensaje: val });
     }
 
+    function mostrarConfirmacion() { /* lógica previa que ya tenías */ }
+    
     async function finalizarServicio() {
         await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
         await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
