@@ -38,9 +38,8 @@
 
     <div id="customModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[2000] flex items-center justify-center">
         <div class="bg-white p-6 rounded-lg w-80 text-center">
-            <h3 class="font-bold text-lg mb-4" id="modalTitle">¿Finalizar Servicio?</h3>
-            <div id="modalContent" class="mb-4 text-left text-sm"></div>
-            <div class="flex gap-4" id="modalButtons">
+            <h3 class="font-bold text-lg mb-4">¿Finalizar Servicio?</h3>
+            <div class="flex gap-4">
                 <button onclick="finalizarServicio()" class="flex-1 bg-red-600 text-white py-2 rounded">Sí</button>
                 <button onclick="cerrarModal()" class="flex-1 bg-gray-300 py-2 rounded">No</button>
             </div>
@@ -57,15 +56,7 @@
     const map = L.map('map').setView([-17.7833, -63.1821], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
-    let marcadorMovil = null, marcadorCliente = null, coordsCliente = null, coordsMovil = null, usuarioHaInteractuado = false;
-
-    map.on('mousedown touchstart zoom drag', () => usuarioHaInteractuado = true);
-
-    function ajustarVista() {
-        if (!usuarioHaInteractuado && coordsCliente && coordsMovil) {
-            map.fitBounds(L.latLngBounds([coordsCliente, coordsMovil]), { padding: [50, 50] });
-        }
-    }
+    let marcadorMovil = null, coordsCliente = null, usuarioHaInteractuado = false;
 
     async function cargarInfo() {
         const { data } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
@@ -73,29 +64,21 @@
             document.getElementById('infoCliente').innerText = `${data.nombre_usuario || 'Cliente'}: ${data.comentario_solicitud || ''}`;
             document.getElementById('infoTecnico').innerText = `ID: ${localStorage.getItem('tecnico') || 'N/A'}`;
             coordsCliente = [data.latitud, data.longitud];
-            marcadorCliente = L.marker(coordsCliente, { icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) }).addTo(map);
+            L.marker(coordsCliente, { icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) }).addTo(map);
             cargarMensajesPrevios();
         }
     }
 
     async function cargarMensajesPrevios() {
         const { data } = await client.from('mensajes').select('*').eq('solicitud_id', solicitudId).order('created_at', { ascending: true });
-        document.getElementById('chatBox').innerHTML = ""; 
+        const chatBox = document.getElementById('chatBox');
+        chatBox.innerHTML = ""; 
         if (data) data.forEach(msg => renderizarMensaje(msg));
+        chatBox.scrollTop = chatBox.scrollHeight;
     }
 
     function abrirGoogleMaps() {
         if(coordsCliente) window.open(`https://www.google.com/maps/search/?api=1&query=${coordsCliente[0]},${coordsCliente[1]}`, '_blank');
-    }
-
-    function iniciarTracking() {
-        navigator.geolocation.watchPosition(async (pos) => {
-            coordsMovil = [pos.coords.latitude, pos.coords.longitude];
-            if (!marcadorMovil) marcadorMovil = L.marker(coordsMovil, { icon: L.divIcon({ html: '🚐', className: 'text-2xl' }) }).addTo(map);
-            else marcadorMovil.setLatLng(coordsMovil);
-            ajustarVista();
-            await client.from('ubicacion_moviles').upsert({ solicitud_id: solicitudId, movil_id: localStorage.getItem('tecnico') || 'tecnico_1', latitud: coordsMovil[0], longitud: coordsMovil[1], ultima_actualizacion: new Date().toISOString() });
-        }, null, { enableHighAccuracy: true });
     }
 
     function renderizarMensaje(msg) {
@@ -105,7 +88,10 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    client.channel('chat_realtime').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => renderizarMensaje(payload.new)).subscribe();
+    client.channel('chat_realtime')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, 
+        (payload) => renderizarMensaje(payload.new))
+        .subscribe();
 
     async function enviarMensaje() {
         const input = document.getElementById('inputMensaje');
@@ -122,13 +108,16 @@
     function cerrarModal() { document.getElementById('customModal').classList.add('hidden'); }
 
     async function finalizarServicio() {
+        // Ejecuta todas las acciones necesarias
         await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
         await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
         await client.from('solicitudes').update({ respuesta_solicitud: 'finalizado' }).eq('solicitud_id', solicitudId);
+        
+        // Redirección inmediata
         window.location.href = "tecnico.html";
     }
 
-    window.onload = () => { cargarInfo(); iniciarTracking(); };
+    window.onload = () => { cargarInfo(); };
     </script>
 </body>
 </html>
