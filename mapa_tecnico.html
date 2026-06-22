@@ -101,19 +101,57 @@
         }, null, { enableHighAccuracy: true });
     }
 
-    // Chat mejorado con scroll persistente
+    // 1. Mejora la suscripción Realtime para asegurar que escucha bien
     client.channel('mensajes_channel')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
-          sonidoAlerta.play().catch(e => console.log("User interaction needed for audio"));
+      .on('postgres_changes', { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'mensajes', 
+          filter: `solicitud_id=eq.${solicitudId}` 
+      }, (payload) => {
           renderizarMensaje(payload.new);
       }).subscribe();
 
+    // 2. Función de envío que asegura que el mensaje se procese
+    async function enviarMensaje() {
+        const input = document.getElementById('inputMensaje');
+        if (!input.value.trim()) return;
+
+        const texto = input.value;
+        input.value = ""; // Limpiamos el input inmediatamente
+
+        const { error } = await client.from('mensajes').insert({ 
+            solicitud_id: solicitudId, 
+            emisor: 'tecnico', 
+            mensaje: texto 
+        });
+
+        if (error) {
+            console.error("Error al enviar a Supabase:", error);
+            alert("No se pudo enviar el mensaje");
+        }
+        // Nota: No necesitamos recargar aquí porque el canal Realtime 
+        // detectará el INSERT y llamará a renderizarMensaje() automáticamente.
+    }
+
+    // 3. Función de renderizado ultra-robusta
     function renderizarMensaje(msg) {
         const chatBox = document.getElementById('chatBox');
         const esTecnico = msg.emisor === 'tecnico';
-        chatBox.innerHTML += `<div class="mb-2 ${esTecnico ? 'text-right' : 'text-left'}"><span class="inline-block p-2 rounded ${esTecnico ? 'bg-teal-100' : 'bg-gray-200'} text-sm">${msg.mensaje}</span></div>`;
-        chatBox.scrollTop = chatBox.scrollHeight; // Mantiene el scroll al final
+        
+        // Creamos el elemento para evitar problemas con innerHTML y refrescos
+        const div = document.createElement('div');
+        div.className = `mb-2 ${esTecnico ? 'text-right' : 'text-left'}`;
+        div.innerHTML = `<span class="inline-block p-2 rounded ${esTecnico ? 'bg-teal-100' : 'bg-gray-200'} text-sm">${msg.mensaje}</span>`;
+        
+        chatBox.appendChild(div);
+        
+        // Forzamos el scroll al final con un pequeño delay para asegurar que el DOM cargó
+        setTimeout(() => {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }, 100);
     }
+    
 
     async function enviarMensaje() {
         const input = document.getElementById('inputMensaje');
