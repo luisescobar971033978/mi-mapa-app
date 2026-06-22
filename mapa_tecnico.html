@@ -106,12 +106,26 @@
       }).subscribe();
 
     async function enviarMensaje() {
-        const input = document.getElementById('inputMensaje');
-        const texto = input.value.trim();
-        if (!texto) return;
-        input.value = "";
-        await client.from('mensajes').insert({ solicitud_id: solicitudId, emisor: 'tecnico', mensaje: texto });
+    const input = document.getElementById('inputMensaje');
+    const texto = input.value.trim();
+    if (!texto) return;
+
+    input.value = ""; // Limpiar input
+
+    // 1. Enviamos el mensaje
+    const { error } = await client.from('mensajes').insert({ 
+        solicitud_id: solicitudId, 
+        emisor: 'tecnico', 
+        mensaje: texto 
+    });
+
+    if (!error) {
+        // 2. RECUPERAR TODO EL CHAT DE NUEVO (Esta es la "actualización de pantalla" suave)
+        // Esto garantiza que el chat esté sincronizado con la BD.
+        document.getElementById('chatBox').innerHTML = ""; 
+        await cargarMensajesPrevios();
     }
+}
 
     function renderizarMensaje(msg) {
         const chatBox = document.getElementById('chatBox');
