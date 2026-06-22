@@ -17,18 +17,14 @@
     </div>
 
     <div id="map" class="flex-grow w-full h-1/2 relative">
-        <div class="absolute bottom-4 left-4 z-[1000] flex flex-col gap-2">
-            <button onclick="abrirGoogleMaps()" class="bg-blue-600 text-white p-2 rounded-full shadow-lg font-bold">📍 GPS</button>
-        </div>
+        <button onclick="abrirGoogleMaps()" class="absolute bottom-4 left-4 z-[1000] bg-blue-600 text-white p-2 rounded-full shadow-lg font-bold">
+            📍 GPS
+        </button>
     </div>
 
     <div class="h-1/2 bg-white p-4 shadow-lg flex flex-col">
         <h3 class="font-bold text-teal-900 mb-2">CHAT DEL SERVICIO</h3>
-        <div id="chatBox" class="flex-grow overflow-y-auto border p-2 mb-2 bg-gray-50 rounded text-sm"></div>
-        <div class="flex gap-2 mb-2">
-            <button onclick="enviarRespuestaRapida('SÍ')" class="flex-1 bg-teal-100 p-1 rounded border border-teal-800 font-bold text-teal-900">SÍ</button>
-            <button onclick="enviarRespuestaRapida('NO')" class="flex-1 bg-red-100 p-1 rounded border border-red-800 font-bold text-red-900">NO</button>
-        </div>
+        <div id="chatBox" class="flex-grow overflow-y-auto border p-2 mb-2 bg-gray-50 rounded"></div>
         <div class="flex gap-2">
             <input type="text" id="inputMensaje" class="flex-grow p-2 border rounded" placeholder="Escribe un mensaje...">
             <button onclick="enviarMensaje()" class="bg-teal-800 text-white px-4 py-2 rounded font-bold">Enviar</button>
@@ -52,46 +48,72 @@
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const urlParams = new URLSearchParams(window.location.search);
     const solicitudId = urlParams.get('id');
+    const sonidoAlerta = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
 
     const map = L.map('map').setView([-17.7833, -63.1821], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
-    let marcadorMovil = null, coordsCliente = null, usuarioHaInteractuado = false;
+    let usuarioHaInteractuado = false;
+    map.on('mousedown touchstart zoom drag', () => usuarioHaInteractuado = true);
+
+    let coordsCliente = null, coordsMovil = null, marcadorCliente = null, marcadorMovil = null;
+
+    function ajustarVista() {
+        if (!usuarioHaInteractuado && coordsCliente && coordsMovil) {
+            map.fitBounds(L.latLngBounds([coordsCliente, coordsMovil]), { padding: [50, 50] });
+        }
+    }
 
     async function cargarInfo() {
         const { data } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
         if (data) {
             document.getElementById('infoCliente').innerText = `${data.nombre_usuario || 'Cliente'}: ${data.comentario_solicitud || ''}`;
-            document.getElementById('infoTecnico').innerText = `ID: ${localStorage.getItem('tecnico') || 'N/A'}`;
+            document.getElementById('infoTecnico').innerText = `ID: ${localStorage.getItem('tecnico')}`;
             coordsCliente = [data.latitud, data.longitud];
-            L.marker(coordsCliente, { icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) }).addTo(map);
+            marcadorCliente = L.marker(coordsCliente, { icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) }).addTo(map);
             cargarMensajesPrevios();
         }
     }
 
     async function cargarMensajesPrevios() {
         const { data } = await client.from('mensajes').select('*').eq('solicitud_id', solicitudId).order('created_at', { ascending: true });
-        const chatBox = document.getElementById('chatBox');
-        chatBox.innerHTML = ""; 
         if (data) data.forEach(msg => renderizarMensaje(msg));
-        chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function abrirGoogleMaps() {
-        if(coordsCliente) window.open(`https://www.google.com/maps/search/?api=1&query=${coordsCliente[0]},${coordsCliente[1]}`, '_blank');
+    function iniciarTracking() {
+        navigator.geolocation.watchPosition(async (pos) => {
+            coordsMovil = [pos.coords.latitude, pos.coords.longitude];
+            if (!marcadorMovil) {
+                marcadorMovil = L.marker(coordsMovil, { icon: L.divIcon({ html: '🚐', className: 'text-2xl' }) }).addTo(map);
+            } else {
+                marcadorMovil.setLatLng(coordsMovil);
+            }
+            ajustarVista();
+            
+            // Persistencia de ubicación
+            await client.from('ubicacion_moviles').upsert({ 
+                solicitud_id: solicitudId, 
+                movil_id: localStorage.getItem('tecnico'),
+                latitud: coordsMovil[0], 
+                longitud: coordsMovil[1], 
+                ultima_actualizacion: new Date().toISOString() 
+            });
+        }, null, { enableHighAccuracy: true });
     }
+
+    // Chat mejorado con scroll persistente
+    client.channel('mensajes_channel')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
+          sonidoAlerta.play().catch(e => console.log("User interaction needed for audio"));
+          renderizarMensaje(payload.new);
+      }).subscribe();
 
     function renderizarMensaje(msg) {
         const chatBox = document.getElementById('chatBox');
         const esTecnico = msg.emisor === 'tecnico';
         chatBox.innerHTML += `<div class="mb-2 ${esTecnico ? 'text-right' : 'text-left'}"><span class="inline-block p-2 rounded ${esTecnico ? 'bg-teal-100' : 'bg-gray-200'} text-sm">${msg.mensaje}</span></div>`;
-        chatBox.scrollTop = chatBox.scrollHeight;
+        chatBox.scrollTop = chatBox.scrollHeight; // Mantiene el scroll al final
     }
-
-    client.channel('chat_realtime')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, 
-        (payload) => renderizarMensaje(payload.new))
-        .subscribe();
 
     async function enviarMensaje() {
         const input = document.getElementById('inputMensaje');
@@ -100,24 +122,25 @@
         input.value = "";
     }
 
-    async function enviarRespuestaRapida(val) {
-        await client.from('mensajes').insert({ solicitud_id: solicitudId, emisor: 'tecnico', mensaje: val });
+    function abrirGoogleMaps() {
+        if(coordsCliente) window.open(`https://www.google.com/maps/dir/?api=1&destination=${coordsCliente[0]},${coordsCliente[1]}`, '_blank');
     }
 
     function mostrarConfirmacion() { document.getElementById('customModal').classList.remove('hidden'); }
     function cerrarModal() { document.getElementById('customModal').classList.add('hidden'); }
 
     async function finalizarServicio() {
-        // Ejecuta todas las acciones necesarias
+        // Ejecución secuencial para asegurar la limpieza total
         await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
         await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
         await client.from('solicitudes').update({ respuesta_solicitud: 'finalizado' }).eq('solicitud_id', solicitudId);
         
-        // Redirección inmediata
+        localStorage.removeItem('solicitudId_activo');
         window.location.href = "tecnico.html";
     }
 
-    window.onload = () => { cargarInfo(); };
+    // Inicialización segura
+    window.onload = () => { cargarInfo(); iniciarTracking(); };
     </script>
 </body>
 </html>
