@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esperando Técnico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-teal-900 h-screen flex flex-col items-center justify-center text-white p-6 text-center">
+    
+    <div class="animate-pulse flex flex-col items-center">
+        <div class="text-6xl mb-4">⏳</div>
+        <h2 class="text-2xl font-bold">Buscando técnico cercano...</h2>
+        <p class="mt-2 text-teal-200">Su solicitud ha sido enviada con éxito.</p>
+        <p class="text-sm text-teal-300 mt-1">Por favor, no cierre esta ventana.</p>
+    </div>
+
+    <div class="mt-8">
+        <div class="w-12 h-12 border-4 border-teal-200 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    <script>
+    const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+    
+    // Recuperamos el ID de la solicitud guardado en el paso anterior (mapa.html)
+    const idSolicitud = localStorage.getItem('id_solicitud');
+
+    if (!idSolicitud) {
+        alert("Error: No se encontró una solicitud activa. Volviendo al inicio.");
+        window.location.href = 'index.html';
+    } else {
+        // Escuchar cambios en esta solicitud específica
+        client.channel('espera_channel')
+          .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'solicitudes', 
+            filter: `solicitud_id=eq.${idSolicitud}` 
+          }, (payload) => {
+            // Verificamos si el estado cambió a 'aceptado'
+            if (payload.new.respuesta_solicitud === 'aceptado') {
+                // Redirigir al usuario al mapa de interacción
+                window.location.href = `mapa_usuario.html?id=${idSolicitud}`;
+            }
+          }).subscribe();
+    }
+    </script>
+</body>
+</html>
