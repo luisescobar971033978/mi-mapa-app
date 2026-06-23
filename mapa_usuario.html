@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seguimiento de Servicio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col">
+
+    <div id="overlayInicio" class="fixed inset-0 bg-teal-900 flex flex-col items-center justify-center z-[3000]">
+        <button onclick="habilitarAudio()" class="bg-white text-teal-900 px-8 py-4 rounded-xl font-bold text-xl shadow-2xl animate-bounce">
+            🔔 INICIAR SEGUIMIENTO
+        </button>
+    </div>
+
+    <div id="infoBar" class="bg-teal-900 text-white p-2 text-xs flex justify-between px-4 z-[1000]">
+        <span id="infoCliente">Cargando datos del servicio...</span>
+    </div>
+
+    <div id="map" class="flex-grow w-full h-1/2 relative"></div>
+
+    <div class="h-1/2 bg-white p-4 shadow-lg flex flex-col">
+        <h3 class="font-bold text-teal-900 mb-2">CHAT CON EL TÉCNICO</h3>
+        <div id="chatBox" class="flex-grow overflow-y-auto border p-2 mb-2 bg-gray-50 rounded"></div>
+        <div class="flex gap-2">
+            <input type="text" id="inputMensaje" class="flex-grow p-2 border rounded" placeholder="Escribe un mensaje...">
+            <button onclick="enviarMensaje()" class="bg-teal-800 text-white px-4 py-2 rounded font-bold">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+    const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+    const urlParams = new URLSearchParams(window.location.search);
+    const solicitudId = urlParams.get('id');
+    const sonidoAlerta = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+
+    const map = L.map('map').setView([-17.7833, -63.1821], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+
+    let marcadorCliente = null, marcadorMovil = null;
+
+    function habilitarAudio() {
+        sonidoAlerta.play().then(() => {
+            document.getElementById('overlayInicio').classList.add('hidden');
+        }).catch(e => console.log("Esperando interacción"));
+    }
+
+    async function cargarInfo() {
+        const { data } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
+        if (data) {
+            document.getElementById('infoCliente').innerText = `Servicio: ${data.comentario_solicitud}`;
+            marcadorCliente = L.marker([data.latitud, data.longitud], { icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) }).addTo(map);
+            cargarMensajesPrevios();
+            escucharUbicacionMovil();
+        }
+    }
+
+    function escucharUbicacionMovil() {
+        client.channel('ubicacion_channel')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'ubicacion_moviles', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
+                const { latitud, longitud } = payload.new;
+                if (!marcadorMovil) {
+                    marcadorMovil = L.marker([latitud, longitud], { icon: L.divIcon({ html: '🚐', className: 'text-2xl' }) }).addTo(map);
+                } else {
+                    marcadorMovil.setLatLng([latitud, longitud]);
+                }
+            }).subscribe();
+    }
+
+    async function cargarMensajesPrevios() {
+        const { data } = await client.from('mensajes').select('*').eq('solicitud_id', solicitudId).order('created_at', { ascending: true });
+        if (data) data.forEach(msg => renderizarMensaje(msg));
+    }
+
+    client.channel('mensajes_channel')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
+          renderizarMensaje(payload.new);
+          sonidoAlerta.play(); // Alarma sonora al recibir cualquier mensaje
+      }).subscribe();
+
+    async function enviarMensaje() {
+        const input = document.getElementById('inputMensaje');
+        const texto = input.value.trim();
+        if (!texto) return;
+        input.value = "";
+        await client.from('mensajes').insert({ solicitud_id: solicitudId, emisor: 'cliente', mensaje: texto });
+        document.getElementById('chatBox').innerHTML = ""; 
+        await cargarMensajesPrevios();
+    }
+
+    function renderizarMensaje(msg) {
+        const chatBox = document.getElementById('chatBox');
+        const esTecnico = msg.emisor === 'tecnico';
+        const div = document.createElement('div');
+        div.className = `mb-2 ${esTecnico ? 'text-left' : 'text-right'}`;
+        div.innerHTML = `<span class="inline-block p-2 rounded ${esTecnico ? 'bg-teal-100' : 'bg-blue-100'} text-sm">${msg.mensaje}</span>`;
+        chatBox.appendChild(div);
+        setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 100);
+    }
+
+    window.onload = () => cargarInfo();
+    </script>
+</body>
+</html>
