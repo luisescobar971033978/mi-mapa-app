@@ -55,51 +55,45 @@
         const { data } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
         if (data) {
             document.getElementById('infoCliente').innerText = `Servicio: ${data.comentario_solicitud}`;
-            marcadorCliente = L.marker([data.latitud, data.longitud], { icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) }).addTo(map);
+            // Centrar mapa en el cliente
+            map.setView([data.latitud, data.longitud], 15);
+            marcadorCliente = L.marker([data.latitud, data.longitud], { 
+                icon: L.divIcon({ html: '<div style="font-size:30px">🏠</div>', className: '' }) 
+            }).addTo(map);
+            
             cargarMensajesPrevios();
             escucharUbicacionMovil();
+            iniciarCanalMensajes(); // Llamamos a la función unificada
         }
     }
 
     function escucharUbicacionMovil() {
         client.channel('ubicacion_channel')
-            .on('postgres_changes', { 
-                event: 'UPDATE', // Solo escuchamos actualizaciones
-                schema: 'public', 
-                table: 'ubicacion_moviles', 
-                filter: `solicitud_id=eq.${solicitudId}` 
-            }, (payload) => {
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ubicacion_moviles', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
                 if (!payload.new) return;
                 const { latitud, longitud } = payload.new;
                 if (!marcadorMovil) {
-                    marcadorMovil = L.marker([latitud, longitud], { icon: L.divIcon({ html: '🚐', className: 'text-2xl' }) }).addTo(map);
+                    marcadorMovil = L.marker([latitud, longitud], { 
+                        icon: L.divIcon({ html: '<div style="font-size:30px">🚐</div>', className: '' }) 
+                    }).addTo(map);
                 } else {
                     marcadorMovil.setLatLng([latitud, longitud]);
                 }
             }).subscribe();
     }
 
-    client.channel('mensajes_channel')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
-          renderizarMensaje(payload.new);
-          // Aseguramos la reproducción del sonido con protección de errores
-          try {
-              sonidoAlerta.play();
-          } catch(e) {
-              console.log("Audio no pudo reproducirse automáticamente");
-          }
-      }).subscribe();
+    function iniciarCanalMensajes() {
+        client.channel('mensajes_channel')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
+                renderizarMensaje(payload.new);
+                try { sonidoAlerta.play(); } catch(e) { console.log("Audio bloqueado"); }
+            }).subscribe();
+    }
 
     async function cargarMensajesPrevios() {
         const { data } = await client.from('mensajes').select('*').eq('solicitud_id', solicitudId).order('created_at', { ascending: true });
         if (data) data.forEach(msg => renderizarMensaje(msg));
     }
-
-    client.channel('mensajes_channel')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
-          renderizarMensaje(payload.new);
-          sonidoAlerta.play(); // Alarma sonora al recibir cualquier mensaje
-      }).subscribe();
 
     async function enviarMensaje() {
         const input = document.getElementById('inputMensaje');
@@ -107,8 +101,6 @@
         if (!texto) return;
         input.value = "";
         await client.from('mensajes').insert({ solicitud_id: solicitudId, emisor: 'cliente', mensaje: texto });
-        document.getElementById('chatBox').innerHTML = ""; 
-        await cargarMensajesPrevios();
     }
 
     function renderizarMensaje(msg) {
@@ -118,7 +110,7 @@
         div.className = `mb-2 ${esTecnico ? 'text-left' : 'text-right'}`;
         div.innerHTML = `<span class="inline-block p-2 rounded ${esTecnico ? 'bg-teal-100' : 'bg-blue-100'} text-sm">${msg.mensaje}</span>`;
         chatBox.appendChild(div);
-        setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 100);
+        chatBox.scrollTop = chatBox.scrollHeight;
     }
 
     window.onload = () => cargarInfo();
