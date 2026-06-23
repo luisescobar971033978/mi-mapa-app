@@ -48,33 +48,34 @@
     function habilitarAudio() {
         sonidoAlerta.play().then(() => {
             document.getElementById('overlayInicio').classList.add('hidden');
-        }).catch(e => console.log("Esperando interacción"));
+        }).catch(e => console.log("Audio bloqueado por navegador"));
     }
 
     async function cargarInfo() {
-        const { data } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
+        if (!solicitudId) return;
+        const { data, error } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
         if (data) {
             document.getElementById('infoCliente').innerText = `Servicio: ${data.comentario_solicitud}`;
-            // Centrar mapa en el cliente
-            map.setView([data.latitud, data.longitud], 15);
+            map.setView([data.latitud, data.longitud], 16);
+            
+            // Icono Cliente
             marcadorCliente = L.marker([data.latitud, data.longitud], { 
-                icon: L.divIcon({ html: '<div style="font-size:30px">🏠</div>', className: '' }) 
+                icon: L.divIcon({ html: '<div style="font-size:30px;">🏠</div>', className: 'my-div-icon' }) 
             }).addTo(map);
             
             cargarMensajesPrevios();
             escucharUbicacionMovil();
-            iniciarCanalMensajes(); // Llamamos a la función unificada
+            iniciarCanalMensajes();
         }
     }
 
     function escucharUbicacionMovil() {
         client.channel('ubicacion_channel')
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ubicacion_moviles', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
-                if (!payload.new) return;
                 const { latitud, longitud } = payload.new;
                 if (!marcadorMovil) {
                     marcadorMovil = L.marker([latitud, longitud], { 
-                        icon: L.divIcon({ html: '<div style="font-size:30px">🚐</div>', className: '' }) 
+                        icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: 'my-div-icon' }) 
                     }).addTo(map);
                 } else {
                     marcadorMovil.setLatLng([latitud, longitud]);
@@ -86,7 +87,7 @@
         client.channel('mensajes_channel')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
                 renderizarMensaje(payload.new);
-                try { sonidoAlerta.play(); } catch(e) { console.log("Audio bloqueado"); }
+                sonidoAlerta.play().catch(e => console.log("Audio bloqueado"));
             }).subscribe();
     }
 
@@ -97,23 +98,22 @@
 
     async function enviarMensaje() {
         const input = document.getElementById('inputMensaje');
-        const texto = input.value.trim();
-        if (!texto) return;
+        if (!input.value.trim()) return;
+        const texto = input.value;
         input.value = "";
         await client.from('mensajes').insert({ solicitud_id: solicitudId, emisor: 'cliente', mensaje: texto });
     }
 
     function renderizarMensaje(msg) {
         const chatBox = document.getElementById('chatBox');
-        const esTecnico = msg.emisor === 'tecnico';
         const div = document.createElement('div');
-        div.className = `mb-2 ${esTecnico ? 'text-left' : 'text-right'}`;
-        div.innerHTML = `<span class="inline-block p-2 rounded ${esTecnico ? 'bg-teal-100' : 'bg-blue-100'} text-sm">${msg.mensaje}</span>`;
+        div.className = `mb-2 ${msg.emisor === 'tecnico' ? 'text-left' : 'text-right'}`;
+        div.innerHTML = `<span class="inline-block p-2 rounded ${msg.emisor === 'tecnico' ? 'bg-teal-100' : 'bg-blue-100'} text-sm">${msg.mensaje}</span>`;
         chatBox.appendChild(div);
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    window.onload = () => cargarInfo();
+    window.onload = cargarInfo;
     </script>
 </body>
 </html>
