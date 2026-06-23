@@ -63,7 +63,13 @@
 
     function escucharUbicacionMovil() {
         client.channel('ubicacion_channel')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'ubicacion_moviles', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
+            .on('postgres_changes', { 
+                event: 'UPDATE', // Solo escuchamos actualizaciones
+                schema: 'public', 
+                table: 'ubicacion_moviles', 
+                filter: `solicitud_id=eq.${solicitudId}` 
+            }, (payload) => {
+                if (!payload.new) return;
                 const { latitud, longitud } = payload.new;
                 if (!marcadorMovil) {
                     marcadorMovil = L.marker([latitud, longitud], { icon: L.divIcon({ html: '🚐', className: 'text-2xl' }) }).addTo(map);
@@ -72,6 +78,17 @@
                 }
             }).subscribe();
     }
+
+    client.channel('mensajes_channel')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
+          renderizarMensaje(payload.new);
+          // Aseguramos la reproducción del sonido con protección de errores
+          try {
+              sonidoAlerta.play();
+          } catch(e) {
+              console.log("Audio no pudo reproducirse automáticamente");
+          }
+      }).subscribe();
 
     async function cargarMensajesPrevios() {
         const { data } = await client.from('mensajes').select('*').eq('solicitud_id', solicitudId).order('created_at', { ascending: true });
