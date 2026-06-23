@@ -20,37 +20,30 @@
         <div class="w-12 h-12 border-4 border-teal-200 border-t-transparent rounded-full animate-spin"></div>
     </div>
 
-    <script>
+   <script>
     const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     
     const idSolicitud = localStorage.getItem('id_solicitud');
-    console.log("Esperando confirmación para ID:", idSolicitud);
+    console.log("ESPERANDO ID:", idSolicitud);
 
-    if (!idSolicitud) {
-        alert("Error: No se encontró una solicitud activa.");
-        window.location.href = 'index.html';
-    } else {
-        // Usamos un canal genérico y filtramos en el callback para mayor seguridad
-        client.channel('any_channel_name')
-          .on('postgres_changes', { 
-            event: 'UPDATE', 
-            schema: 'public', 
-            table: 'solicitudes'
-          }, (payload) => {
-            console.log("Cambio detectado en BD:", payload.new);
-            
-            // Verificamos si el ID coincide y si el estado es aceptado
-            if (payload.new.solicitud_id == idSolicitud && payload.new.respuesta_solicitud === 'aceptado') {
-                console.log("¡Confirmación recibida! Redirigiendo...");
+    client.channel('any_channel')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitudes' }, (payload) => {
+        console.log("EVENTO RECIBIDO:", payload.new);
+        
+        // Convertimos ambos a string para asegurar que la comparación funcione
+        const idBD = String(payload.new.solicitud_id);
+        const idEsperado = String(idSolicitud);
+        
+        if (idBD === idEsperado) {
+            console.log("ID COINCIDE, ESTADO:", payload.new.respuesta_solicitud);
+            // Si el estado es aceptado, redirigimos
+            if (payload.new.respuesta_solicitud === 'aceptado') {
                 window.location.href = `mapa_usuario.html?id=${idSolicitud}`;
             }
-          })
-          .subscribe((status) => {
-            console.log("Estado de suscripción a Realtime:", status);
-          });
-    }
-    </script>
+        }
+      }).subscribe();
+</script>
 </body>
 </html>
