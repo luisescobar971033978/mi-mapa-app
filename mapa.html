@@ -58,10 +58,8 @@
                 guardando = false;
                 document.getElementById('btnConfirmar').innerText = "CONFIRMAR UBICACIÓN";
             } else {
-                // Éxito: Guardamos la bandera y redirigimos
-                localStorage.setItem('mensaje_exito', 'Ubicación guardada. Estamos programando su servicio.');
-                localStorage.removeItem('id_solicitud');
-                window.location.href = 'index.html';
+                // Éxito: En lugar de volver al index, enviamos al usuario a la pantalla de espera
+                window.location.href = 'espera.html';
             }
         }
 
