@@ -98,8 +98,8 @@
         .from('solicitudes')
         .select('*')
         .eq('respuesta_solicitud', 'pendiente')
-        .order('fecha_solicitud', { ascending: false }); 
-
+        .order('solicitud_id', { ascending: false });
+     
     if (error) { 
         console.error("Error Supabase:", error);
         // Mostramos el error real en la pantalla para confirmar que se arregló
