@@ -67,63 +67,39 @@
         }).catch(e => document.getElementById('overlayInicio').classList.add('hidden'));
     }
 
-   async function cargarInfo() {
-    if (!solicitudId) { window.location.href = 'index.html'; return; }
-    
-    // Consultamos la solicitud
-    const { data, error } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
-    
-    // Verificamos si data existe antes de acceder a .latitud
-    if (data && data.latitud) {
-        document.getElementById('infoCliente').innerText = `Servicio: ${data.comentario_solicitud}`;
-        map.setView([data.latitud, data.longitud], 16);
-        marcadorCliente = L.marker([data.latitud, data.longitud], { 
-            icon: L.divIcon({ html: '<div style="font-size:30px;">🏠</div>', className: '' }) 
-        }).addTo(map);
-    } else {
-        console.warn("Esperando coordenadas...");
-    }
-    
-    cargarMensajesPrevios();
-    inicializarCanales();
-}
-
-        document.getElementById('infoCliente').innerText = `Servicio: ${data.comentario_solicitud}`;
-        map.setView([data.latitud, data.longitud], 16);
-        marcadorCliente = L.marker([data.latitud, data.longitud], { 
-            icon: L.divIcon({ html: '<div style="font-size:30px;">🏠</div>', className: '' }) 
-        }).addTo(map);
+    async function cargarInfo() {
+        if (!solicitudId) { window.location.href = 'index.html'; return; }
         
+        const { data, error } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
+        
+        if (data) {
+            document.getElementById('infoCliente').innerText = `Servicio: ${data.comentario_solicitud || 'En curso'}`;
+            if(data.latitud) {
+                map.setView([data.latitud, data.longitud], 16);
+                marcadorCliente = L.marker([data.latitud, data.longitud], { icon: L.divIcon({ html: '<div style="font-size:30px;">🏠</div>', className: '' }) }).addTo(map);
+            }
+        }
         cargarMensajesPrevios();
         inicializarCanales();
     }
 
     async function inicializarCanales() {
-        // Carga inicial movil
         const { data: ubicacion } = await client.from('ubicacion_moviles').select('*').eq('solicitud_id', solicitudId).single();
         if (ubicacion) {
-            marcadorMovil = L.marker([ubicacion.latitud, ubicacion.longitud], { 
-                icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) 
-            }).addTo(map);
+            marcadorMovil = L.marker([ubicacion.latitud, ubicacion.longitud], { icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) }).addTo(map);
         }
 
-        // Broadcast ubicación
         client.channel(`solicitud_${solicitudId}`).on('broadcast', { event: 'ubicacion_actualizada' }, (payload) => {
             if (!marcadorMovil) marcadorMovil = L.marker([payload.payload.latitud, payload.payload.longitud], { icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) }).addTo(map);
             else marcadorMovil.setLatLng([payload.payload.latitud, payload.payload.longitud]);
         }).subscribe();
 
-        // Estado Finalizado (Unificado con Modal)
         client.channel('status_channel').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitudes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
             if (payload.new.respuesta_solicitud === 'finalizado') {
-                localStorage.setItem('servicio_finalizado', 'true');
-                mostrarModal("Servicio Finalizado", "El servicio ha concluido. Gracias por su confianza.", () => {
-                    window.location.href = 'index.html';
-                });
+                mostrarModal("Servicio Finalizado", "Gracias por su confianza.", () => window.location.href = 'index.html');
             }
         }).subscribe();
 
-        // Canal de Mensajes
         client.channel('mensajes_channel').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
             renderizarMensaje(payload.new);
             sonidoAlerta.play().catch(e => {});
