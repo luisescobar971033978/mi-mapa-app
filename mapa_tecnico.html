@@ -148,23 +148,26 @@
     function cerrarModal() { document.getElementById('customModal').classList.add('hidden'); }
 
     async function finalizarServicio(id) {
-    // 1. Actualizamos el estado en la base de datos
-    const { error } = await client
-        .from('solicitudes')
-        .update({ respuesta_solicitud: 'finalizado' })
-        .eq('solicitud_id', id);
+    try {
+        // 1. Actualizamos el estado a 'finalizado'
+        const { error } = await client
+            .from('solicitudes')
+            .update({ respuesta_solicitud: 'finalizado' })
+            .eq('solicitud_id', id);
 
-    if (!error) {
-        // 2. IMPORTANTE: Limpiamos el ID activo para que no lo vuelva a intentar abrir
+        if (error) throw error;
+
+        // 2. LIMPIEZA CRÍTICA: Eliminamos el ID activo para permitir que el técnico vuelva a la lista
         localStorage.removeItem('solicitudId_activo');
         
-        // 3. Redirigimos al panel inicial
-        window.location.href = 'tecnico.html'; 
-    } else {
-        alert("Error al finalizar el servicio.");
+        // 3. Redirigimos al panel principal
+        window.location.href = 'tecnico.html';
+        
+    } catch (err) {
+        console.error("Error al finalizar:", err);
+        alert("Error al finalizar el servicio. Por favor, intenta de nuevo.");
     }
 }
-
     window.onload = () => { cargarInfo(); iniciarTracking(); };
     </script>
 </body>
