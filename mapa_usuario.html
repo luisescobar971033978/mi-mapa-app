@@ -11,6 +11,14 @@
 </head>
 <body class="bg-gray-100 h-screen flex flex-col">
 
+    <div id="modalCustom" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[4000] flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg w-80 text-center shadow-xl">
+            <h3 id="modalTitle" class="font-bold text-lg mb-2 text-teal-900">Mensaje</h3>
+            <p id="modalText" class="mb-6 text-sm text-gray-600"></p>
+            <button id="btnConfirmar" class="w-full bg-teal-800 text-white px-6 py-2 rounded font-bold">Aceptar</button>
+        </div>
+    </div>
+
     <div id="overlayInicio" class="fixed inset-0 bg-teal-900 flex flex-col items-center justify-center z-[3000]">
         <button onclick="habilitarAudio()" class="bg-white text-teal-900 px-8 py-4 rounded-xl font-bold text-xl shadow-2xl animate-bounce">
             🔔 INICIAR SEGUIMIENTO
@@ -18,7 +26,7 @@
     </div>
 
     <div id="infoBar" class="bg-teal-900 text-white p-2 text-xs flex justify-between px-4 z-[1000]">
-        <span id="infoCliente">Cargando datos del servicio...</span>
+        <span id="infoCliente">Cargando datos...</span>
     </div>
 
     <div id="map" class="flex-grow w-full h-1/2 relative"></div>
@@ -45,30 +53,43 @@
 
     let marcadorCliente = null, marcadorMovil = null;
 
+    function mostrarModal(titulo, texto, onConfirm) {
+        const modal = document.getElementById('modalCustom');
+        document.getElementById('modalTitle').innerText = titulo;
+        document.getElementById('modalText').innerText = texto;
+        document.getElementById('btnConfirmar').onclick = () => { modal.classList.add('hidden'); if(onConfirm) onConfirm(); };
+        modal.classList.remove('hidden');
+    }
+
     function habilitarAudio() {
         sonidoAlerta.play().then(() => {
             document.getElementById('overlayInicio').classList.add('hidden');
-        }).catch(e => console.log("Audio bloqueado"));
+        }).catch(e => document.getElementById('overlayInicio').classList.add('hidden'));
     }
 
     async function cargarInfo() {
         if (!solicitudId) { window.location.href = 'index.html'; return; }
         
         const { data } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
-        if (data) {
-            document.getElementById('infoCliente').innerText = `Servicio: ${data.comentario_solicitud}`;
-            map.setView([data.latitud, data.longitud], 16);
-            marcadorCliente = L.marker([data.latitud, data.longitud], { 
-                icon: L.divIcon({ html: '<div style="font-size:30px;">🏠</div>', className: '' }) 
-            }).addTo(map);
-            
-            cargarMensajesPrevios();
-            inicializarCanales();
+        
+        // Protección: Si no hay coordenadas, redirige a mapa.html
+        if (!data || !data.latitud) {
+            window.location.href = 'mapa.html?id=' + solicitudId;
+            return;
         }
+
+        document.getElementById('infoCliente').innerText = `Servicio: ${data.comentario_solicitud}`;
+        map.setView([data.latitud, data.longitud], 16);
+        marcadorCliente = L.marker([data.latitud, data.longitud], { 
+            icon: L.divIcon({ html: '<div style="font-size:30px;">🏠</div>', className: '' }) 
+        }).addTo(map);
+        
+        cargarMensajesPrevios();
+        inicializarCanales();
     }
 
     async function inicializarCanales() {
-        // 1. Carga inicial ubicación
+        // Carga inicial movil
         const { data: ubicacion } = await client.from('ubicacion_moviles').select('*').eq('solicitud_id', solicitudId).single();
         if (ubicacion) {
             marcadorMovil = L.marker([ubicacion.latitud, ubicacion.longitud], { 
@@ -76,38 +97,27 @@
             }).addTo(map);
         }
 
-        // 2. Escucha Broadcast (Ubicación)
-        client.channel(`solicitud_${solicitudId}`)
-            .on('broadcast', { event: 'ubicacion_actualizada' }, (payload) => {
-                const { latitud, longitud } = payload.payload;
-                if (!marcadorMovil) {
-                    marcadorMovil = L.marker([latitud, longitud], { icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) }).addTo(map);
-                } else {
-                    marcadorMovil.setLatLng([latitud, longitud]);
-                }
-            }).subscribe();
+        // Broadcast ubicación
+        client.channel(`solicitud_${solicitudId}`).on('broadcast', { event: 'ubicacion_actualizada' }, (payload) => {
+            if (!marcadorMovil) marcadorMovil = L.marker([payload.payload.latitud, payload.payload.longitud], { icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) }).addTo(map);
+            else marcadorMovil.setLatLng([payload.payload.latitud, payload.payload.longitud]);
+        }).subscribe();
 
-        // 3. Escucha Cambios de Estado (Finalización)
-        client.channel('status_channel')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitudes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
-                if (payload.new.respuesta_solicitud === 'finalizado') {
-                    localStorage.setItem('servicio_finalizado', 'true');
-                    alert("El servicio ha sido finalizado. Gracias.");
+        // Estado Finalizado (Unificado con Modal)
+        client.channel('status_channel').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitudes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
+            if (payload.new.respuesta_solicitud === 'finalizado') {
+                localStorage.setItem('servicio_finalizado', 'true');
+                mostrarModal("Servicio Finalizado", "El servicio ha concluido. Gracias por su confianza.", () => {
                     window.location.href = 'index.html';
-                }
-            }).subscribe();
+                });
+            }
+        }).subscribe();
 
-        // 4. Canal de Mensajes
-        client.channel('mensajes_channel')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
-                renderizarMensaje(payload.new);
-                sonidoAlerta.play().catch(e => console.log("Audio bloqueado"));
-            }).subscribe();
-    }
-
-    async function cargarMensajesPrevios() {
-        const { data } = await client.from('mensajes').select('*').eq('solicitud_id', solicitudId).order('created_at', { ascending: true });
-        if (data) data.forEach(msg => renderizarMensaje(msg));
+        // Canal de Mensajes
+        client.channel('mensajes_channel').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
+            renderizarMensaje(payload.new);
+            sonidoAlerta.play().catch(e => {});
+        }).subscribe();
     }
 
     async function enviarMensaje() {
@@ -125,6 +135,11 @@
         div.innerHTML = `<span class="inline-block p-2 rounded ${msg.emisor === 'tecnico' ? 'bg-teal-100' : 'bg-blue-100'} text-sm">${msg.mensaje}</span>`;
         chatBox.appendChild(div);
         chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function cargarMensajesPrevios() {
+        const { data } = await client.from('mensajes').select('*').eq('solicitud_id', solicitudId).order('created_at', { ascending: true });
+        if (data) data.forEach(msg => renderizarMensaje(msg));
     }
 
     window.onload = cargarInfo;
