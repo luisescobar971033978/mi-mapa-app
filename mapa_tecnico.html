@@ -147,12 +147,23 @@
     function mostrarConfirmacion() { document.getElementById('customModal').classList.remove('hidden'); }
     function cerrarModal() { document.getElementById('customModal').classList.add('hidden'); }
 
-    async function finalizarServicio() {
-        await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
-        await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
-        await client.from('solicitudes').update({ respuesta_solicitud: 'finalizado' }).eq('solicitud_id', solicitudId);
-        window.location.href = "tecnico.html";
+    async function finalizarServicio(id) {
+    // 1. Actualizamos el estado en la base de datos
+    const { error } = await client
+        .from('solicitudes')
+        .update({ respuesta_solicitud: 'finalizado' })
+        .eq('solicitud_id', id);
+
+    if (!error) {
+        // 2. IMPORTANTE: Limpiamos el ID activo para que no lo vuelva a intentar abrir
+        localStorage.removeItem('solicitudId_activo');
+        
+        // 3. Redirigimos al panel inicial
+        window.location.href = 'tecnico.html'; 
+    } else {
+        alert("Error al finalizar el servicio.");
     }
+}
 
     window.onload = () => { cargarInfo(); iniciarTracking(); };
     </script>
