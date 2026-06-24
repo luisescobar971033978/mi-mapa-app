@@ -16,6 +16,10 @@
         <div class="watermark"></div>
         
         <div class="content-layer">
+            <div id="btnCerrar" class="hidden absolute top-4 left-4 cursor-pointer" onclick="cerrarSesion()">
+                <span class="text-3xl" title="Finalizar ciclo y limpiar">🚪</span>
+            </div>
+
             <div class="absolute top-4 right-4 cursor-pointer" 
                  onclick="mostrarModal('¿Cómo funciona?', '1. Llene sus datos\n2. Seleccione el servicio\n3. Presione Solicitar\n4. Marque su ubicación en el mapa')">
                 <span class="text-2xl">ℹ️</span>
@@ -72,6 +76,11 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
         const client = supabase.createClient(supabaseUrl, supabaseKey);
         
+        function cerrarSesion() {
+            localStorage.clear();
+            location.reload();
+        }
+
         function mostrarModal(titulo, texto, accion = null) {
             document.getElementById('modalTitulo').innerText = titulo;
             document.getElementById('modalTexto').innerText = texto;
@@ -79,6 +88,7 @@
             document.getElementById('modalApp').classList.remove('hidden');
         }
         function cerrarModal() {
+            document.getElementById('modalApp').classList.remove('hidden');
             document.getElementById('modalApp').classList.add('hidden');
             if (window.accionPostModal) window.accionPostModal();
         }
@@ -97,15 +107,24 @@
             if (error) { mostrarModal("Error", error.message); } 
             else {
                 localStorage.setItem('id_solicitud', data[0].solicitud_id);
-                mostrarModal("¡Éxito!", "Solicitud enviada. Presione aceptar para marcar su ubicación.", () => { window.location.href = 'mapa.html'; });
+                // Redirigimos a mapa_usuario.html pasando el ID
+                mostrarModal("¡Éxito!", "Solicitud enviada. Presione aceptar para marcar su ubicación.", () => { window.location.href = 'mapa_usuario.html?id=' + data[0].solicitud_id; });
             }
         });
 
         window.onload = function() {
-            const mensaje = localStorage.getItem('mensaje_exito');
-            if (mensaje) {
-                mostrarModal("¡Éxito!", mensaje);
-                localStorage.removeItem('mensaje_exito');
+            const idGuardado = localStorage.getItem('id_solicitud');
+            const servicioFinalizado = localStorage.getItem('servicio_finalizado');
+
+            if (servicioFinalizado === 'true') {
+                // Caso: Servicio concluido, permitimos cerrar sesión para empezar nuevo ciclo
+                document.getElementById('btnCerrar').classList.remove('hidden');
+                mostrarModal("Servicio Finalizado", "El servicio ha concluido. Presione el ícono de puerta (🚪) para iniciar un nuevo servicio.");
+            } else if (idGuardado) {
+                // Caso: Persistencia de sesión activa
+                mostrarModal("Servicio Activo", "Tiene una solicitud en curso. ¿Desea retomar el seguimiento?", () => { 
+                    window.location.href = 'mapa_usuario.html?id=' + idGuardado; 
+                });
             }
         };
     </script>
