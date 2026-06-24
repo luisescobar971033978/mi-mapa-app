@@ -50,6 +50,10 @@
     const solicitudId = urlParams.get('id');
     const sonidoAlerta = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
 
+    // Inicializamos el canal de broadcast aquí mismo
+    const canalSeguimiento = client.channel(`solicitud_${solicitudId}`);
+    canalSeguimiento.subscribe();
+
     const map = L.map('map').setView([-17.7833, -63.1821], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
@@ -70,7 +74,7 @@
             document.getElementById('infoCliente').innerText = `${data.nombre_usuario || 'Cliente'}: ${data.comentario_solicitud || ''}`;
             document.getElementById('infoTecnico').innerText = `ID: ${localStorage.getItem('tecnico')}`;
             coordsCliente = [data.latitud, data.longitud];
-            marcadorCliente = L.marker(coordsCliente, { icon: L.divIcon({ html: '🏠', className: 'text-2xl' }) }).addTo(map);
+            marcadorCliente = L.marker(coordsCliente, { icon: L.divIcon({ html: '<div style="font-size:30px;">🏠</div>', className: '' }) }).addTo(map);
             cargarMensajesPrevios();
         }
     }
@@ -83,12 +87,16 @@
     function iniciarTracking() {
         navigator.geolocation.watchPosition(async (pos) => {
             coordsMovil = [pos.coords.latitude, pos.coords.longitude];
+            
+            // Actualizar mapa local
             if (!marcadorMovil) {
-                marcadorMovil = L.marker(coordsMovil, { icon: L.divIcon({ html: '🚐', className: 'text-2xl' }) }).addTo(map);
+                marcadorMovil = L.marker(coordsMovil, { icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) }).addTo(map);
             } else {
                 marcadorMovil.setLatLng(coordsMovil);
             }
             ajustarVista();
+
+            // 1. Guardar en Base de Datos (Seguridad)
             await client.from('ubicacion_moviles').upsert({ 
                 solicitud_id: solicitudId, 
                 movil_id: localStorage.getItem('tecnico'),
@@ -96,9 +104,18 @@
                 longitud: coordsMovil[1], 
                 ultima_actualizacion: new Date().toISOString() 
             });
+
+            // 2. Transmitir vía Broadcast (Velocidad instantánea al usuario)
+            canalSeguimiento.send({
+                type: 'broadcast',
+                event: 'ubicacion_actualizada',
+                payload: { latitud: coordsMovil[0], longitud: coordsMovil[1] }
+            });
+
         }, null, { enableHighAccuracy: true });
     }
 
+    // Canal de mensajes
     client.channel('mensajes_channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
           renderizarMensaje(payload.new);
@@ -106,26 +123,12 @@
       }).subscribe();
 
     async function enviarMensaje() {
-    const input = document.getElementById('inputMensaje');
-    const texto = input.value.trim();
-    if (!texto) return;
-
-    input.value = ""; // Limpiar input
-
-    // 1. Enviamos el mensaje
-    const { error } = await client.from('mensajes').insert({ 
-        solicitud_id: solicitudId, 
-        emisor: 'tecnico', 
-        mensaje: texto 
-    });
-
-    if (!error) {
-        // 2. RECUPERAR TODO EL CHAT DE NUEVO (Esta es la "actualización de pantalla" suave)
-        // Esto garantiza que el chat esté sincronizado con la BD.
-        document.getElementById('chatBox').innerHTML = ""; 
-        await cargarMensajesPrevios();
+        const input = document.getElementById('inputMensaje');
+        const texto = input.value.trim();
+        if (!texto) return;
+        input.value = "";
+        await client.from('mensajes').insert({ solicitud_id: solicitudId, emisor: 'tecnico', mensaje: texto });
     }
-}
 
     function renderizarMensaje(msg) {
         const chatBox = document.getElementById('chatBox');
@@ -134,7 +137,6 @@
         div.className = `mb-2 ${esTecnico ? 'text-right' : 'text-left'}`;
         div.innerHTML = `<span class="inline-block p-2 rounded ${esTecnico ? 'bg-teal-100' : 'bg-gray-200'} text-sm">${msg.mensaje}</span>`;
         chatBox.appendChild(div);
-        // Scroll al final asegurado
         setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 100);
     }
 
@@ -149,7 +151,6 @@
         await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
         await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
         await client.from('solicitudes').update({ respuesta_solicitud: 'finalizado' }).eq('solicitud_id', solicitudId);
-        localStorage.removeItem('solicitudId_activo');
         window.location.href = "tecnico.html";
     }
 
