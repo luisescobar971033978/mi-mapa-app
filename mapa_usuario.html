@@ -67,16 +67,26 @@
         }).catch(e => document.getElementById('overlayInicio').classList.add('hidden'));
     }
 
-    async function cargarInfo() {
-        if (!solicitudId) { window.location.href = 'index.html'; return; }
-        
-        const { data } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
-        
-        // Protección: Si no hay coordenadas, redirige a mapa.html
-        if (!data || !data.latitud) {
-            window.location.href = 'mapa.html?id=' + solicitudId;
-            return;
-        }
+   async function cargarInfo() {
+    if (!solicitudId) { window.location.href = 'index.html'; return; }
+    
+    // Consultamos la solicitud
+    const { data, error } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
+    
+    // Verificamos si data existe antes de acceder a .latitud
+    if (data && data.latitud) {
+        document.getElementById('infoCliente').innerText = `Servicio: ${data.comentario_solicitud}`;
+        map.setView([data.latitud, data.longitud], 16);
+        marcadorCliente = L.marker([data.latitud, data.longitud], { 
+            icon: L.divIcon({ html: '<div style="font-size:30px;">🏠</div>', className: '' }) 
+        }).addTo(map);
+    } else {
+        console.warn("Esperando coordenadas...");
+    }
+    
+    cargarMensajesPrevios();
+    inicializarCanales();
+}
 
         document.getElementById('infoCliente').innerText = `Servicio: ${data.comentario_solicitud}`;
         map.setView([data.latitud, data.longitud], 16);
