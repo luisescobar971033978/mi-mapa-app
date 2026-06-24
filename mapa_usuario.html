@@ -48,42 +48,49 @@
     function habilitarAudio() {
         sonidoAlerta.play().then(() => {
             document.getElementById('overlayInicio').classList.add('hidden');
-        }).catch(e => console.log("Audio bloqueado por navegador"));
+        }).catch(e => console.log("Audio bloqueado"));
     }
 
     async function cargarInfo() {
         if (!solicitudId) return;
-        const { data, error } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
+        
+        // Carga inicial de datos
+        const { data } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
         if (data) {
             document.getElementById('infoCliente').innerText = `Servicio: ${data.comentario_solicitud}`;
             map.setView([data.latitud, data.longitud], 16);
-            
-            // Icono Cliente
             marcadorCliente = L.marker([data.latitud, data.longitud], { 
-                icon: L.divIcon({ html: '<div style="font-size:30px;">🏠</div>', className: 'my-div-icon' }) 
+                icon: L.divIcon({ html: '<div style="font-size:30px;">🏠</div>', className: '' }) 
             }).addTo(map);
             
             cargarMensajesPrevios();
-            escucharUbicacionMovil();
-            iniciarCanalMensajes();
+            inicializarCanales();
         }
     }
 
-    function escucharUbicacionMovil() {
-        client.channel('ubicacion_channel')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ubicacion_moviles', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
-                const { latitud, longitud } = payload.new;
+    async function inicializarCanales() {
+        // 1. CARGA INICIAL: Consultar posición actual desde la DB
+        const { data: ubicacion } = await client.from('ubicacion_moviles').select('*').eq('solicitud_id', solicitudId).single();
+        if (ubicacion) {
+            marcadorMovil = L.marker([ubicacion.latitud, ubicacion.longitud], { 
+                icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) 
+            }).addTo(map);
+        }
+
+        // 2. ESCUCHA DE BROADCAST (Movimiento fluido)
+        client.channel(`solicitud_${solicitudId}`)
+            .on('broadcast', { event: 'ubicacion_actualizada' }, (payload) => {
+                const { latitud, longitud } = payload.payload;
                 if (!marcadorMovil) {
                     marcadorMovil = L.marker([latitud, longitud], { 
-                        icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: 'my-div-icon' }) 
+                        icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) 
                     }).addTo(map);
                 } else {
                     marcadorMovil.setLatLng([latitud, longitud]);
                 }
             }).subscribe();
-    }
 
-    function iniciarCanalMensajes() {
+        // 3. CANAL DE MENSAJES
         client.channel('mensajes_channel')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
                 renderizarMensaje(payload.new);
