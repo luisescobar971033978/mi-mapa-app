@@ -84,7 +84,11 @@
     }
 
     async function inicializarCanales() {
-        const { data: ubicacion } = await client.from('ubicacion_moviles').select('*').eq('solicitud_id', solicitudId).single();
+        const { data: ubicacion, error: errorUbi } = await client
+    .from('ubicacion_moviles')
+    .select('*')
+    .eq('solicitud_id', solicitudId)
+    .maybeSingle();
         if (ubicacion) {
             marcadorMovil = L.marker([ubicacion.latitud, ubicacion.longitud], { icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) }).addTo(map);
         }
