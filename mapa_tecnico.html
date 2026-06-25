@@ -157,10 +157,15 @@
 
         if (error) throw error;
 
-        // 2. LIMPIEZA CRÍTICA: Eliminamos el ID activo para permitir que el técnico vuelva a la lista
+        // 2. LIMPIEZA DE DATOS TEMPORALES (Funcionalidad recuperada)
+        // Eliminamos los mensajes y la ubicación asociada a este servicio
+        await client.from('mensajes').delete().eq('solicitud_id', id);
+        await client.from('ubicacion_moviles').delete().eq('solicitud_id', id);
+
+        // 3. LIMPIEZA CRÍTICA: Eliminamos el ID activo para permitir que el técnico vuelva a la lista
         localStorage.removeItem('solicitudId_activo');
         
-        // 3. Redirigimos al panel principal
+        // 4. Redirigimos al panel principal
         window.location.href = 'tecnico.html';
         
     } catch (err) {
