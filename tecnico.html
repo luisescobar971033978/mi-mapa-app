@@ -41,20 +41,34 @@
     const client = supabase.createClient(supabaseUrl, supabaseKey);
 
     window.onload = () => {
-        const t = localStorage.getItem('tecnico');
-        if (!t) {
-            document.getElementById('loginForm').classList.remove('hidden');
+    const t = localStorage.getItem('tecnico');
+    
+    // 1. Elementos para control
+    const loginForm = document.getElementById('loginForm');
+    const header = document.getElementById('headerPrincipal');
+    const lista = document.getElementById('listaSolicitudes');
+
+    if (!t) {
+        // NO hay sesión: Aseguramos que solo se vea el login
+        loginForm.classList.remove('hidden');
+        header.classList.add('hidden');
+        lista.classList.add('hidden');
+    } else {
+        // SÍ hay sesión: Aseguramos que el login esté oculto
+        loginForm.classList.add('hidden'); 
+        
+        document.getElementById('displayTecnico').innerText = t;
+        header.classList.remove('hidden');
+        
+        const servicioPendiente = localStorage.getItem('solicitudId_activo');
+        if (servicioPendiente) {
+            window.location.href = `mapa_tecnico.html?id=${servicioPendiente}`;
         } else {
-            document.getElementById('displayTecnico').innerText = t;
-            document.getElementById('headerPrincipal').classList.remove('hidden');
-            const servicioPendiente = localStorage.getItem('solicitudId_activo');
-            if (servicioPendiente) {
-                window.location.href = `mapa_tecnico.html?id=${servicioPendiente}`;
-            } else {
-                cargarSolicitudes();
-            }
+            // Solo cargamos si hay sesión
+            cargarSolicitudes();
         }
-    };
+    }
+};
 
     function cerrarSesion() {
         if(confirm("¿Deseas cerrar sesión?")) {
