@@ -98,11 +98,21 @@
             else marcadorMovil.setLatLng([payload.payload.latitud, payload.payload.longitud]);
         }).subscribe();
 
-        client.channel('status_channel').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitudes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
-            if (payload.new.respuesta_solicitud === 'finalizado') {
-                mostrarModal("Servicio Finalizado", "Gracias por su confianza.", () => window.location.href = 'index.html');
-            }
-        }).subscribe();
+        client.channel('status_channel').on('postgres_changes', { 
+    event: 'UPDATE', 
+    schema: 'public', 
+    table: 'solicitudes', 
+    filter: `solicitud_id=eq.${solicitudId}` 
+}, (payload) => {
+    if (payload.new.respuesta_solicitud === 'finalizado') {
+        mostrarModal("Servicio Finalizado", "Gracias por su confianza.", () => {
+            // AQUÍ ESTÁ LA CORRECCIÓN:
+            // Borramos el ID del servicio para que no sea detectado al volver
+            localStorage.removeItem('id_solicitud'); 
+            window.location.href = 'index.html';
+        });
+    }
+}).subscribe();
 
         client.channel('mensajes_channel').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
             renderizarMensaje(payload.new);
