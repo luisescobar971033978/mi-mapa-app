@@ -40,7 +40,7 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-    window.onload = () => {
+   window.onload = () => {
     const t = localStorage.getItem('tecnico');
     
     // 1. Elementos para control
@@ -59,6 +59,17 @@
         
         document.getElementById('displayTecnico').innerText = t;
         header.classList.remove('hidden');
+        
+        // 2. Verificación de servicio activo o carga de lista
+        const servicioPendiente = localStorage.getItem('solicitudId_activo');
+        if (servicioPendiente) {
+            window.location.href = `mapa_tecnico.html?id=${servicioPendiente}`;
+        } else {
+            // Solo cargamos la lista si estamos validados
+            cargarSolicitudes();
+        }
+    }
+};
         
         const servicioPendiente = localStorage.getItem('solicitudId_activo');
         if (servicioPendiente) {
