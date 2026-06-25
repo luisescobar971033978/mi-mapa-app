@@ -93,49 +93,52 @@
    async function cargarSolicitudes() {
     const lista = document.getElementById('listaSolicitudes');
     
-    // Obtenemos los datos de solicitudes pendientes
+    // Obtener las solicitudes pendientes
     const { data, error } = await client
         .from('solicitudes')
         .select('*')
         .eq('respuesta_solicitud', 'pendiente')
         .order('solicitud_id', { ascending: false });
-     
+      
     if (error) { 
         console.error("Error Supabase:", error);
         lista.innerHTML = `<p class="text-red-500 text-center">Error: ${error.message}</p>`; 
-        lista.classList.remove('hidden'); // Aseguramos que se muestre el mensaje de error
+        lista.classList.remove('hidden'); // Mostrar error
         return; 
     }
     
     if (data.length === 0) { 
         lista.innerHTML = `<p class="text-gray-500 text-center">No hay pendientes.</p>`; 
-        lista.classList.remove('hidden'); // Mostramos el mensaje de lista vacía
+        lista.classList.remove('hidden'); // Mostrar mensaje vacío
         return; 
     }
     
     lista.innerHTML = "";
     data.forEach(s => {
-        // Extraemos fecha y hora
-        const fecha = s.fecha_solicitud || '';
-        const hora = s.hora_solicitud ? s.hora_solicitud.substring(0, 5) : '';
-        
+        // Formatear fecha y hora
+        const fecha = s.fecha_solicitud || 'N/A';
+        const hora = s.hora_solicitud ? s.hora_solicitud.substring(0, 5) : 'N/A';
+
         lista.innerHTML += `
         <div class="bg-white p-4 rounded-lg shadow-md border-l-4 border-teal-800 mb-4">
             <h3 class="font-bold text-lg">${s.comentario_solicitud || 'Sin comentario'}</h3>
             <p class="text-sm text-gray-600"><strong>Cliente:</strong> ${s.nombre_usuario || 'Anónimo'}</p>
             
-            <p class="text-xs text-gray-500 mt-2 flex items-center gap-3 italic">
+            <p class="text-xs text-gray-500 mt-2 flex gap-4">
                 <span>📅 ${fecha}</span>
                 <span>🕒 ${hora}</span>
             </p>
-            
+
             <button onclick="confirmar(${s.solicitud_id})" class="w-full mt-3 bg-teal-800 text-white p-2 rounded font-bold">
                 CONFIRMAR SERVICIO
             </button>
         </div>`;
     });
-    }
 
+    // Hacer visible la lista ahora que ya está renderizada
+    lista.classList.remove('hidden');
+}
+     
     async function confirmar(id) {
         localStorage.setItem('solicitudId_activo', id);
         try {
