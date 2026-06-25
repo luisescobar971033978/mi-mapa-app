@@ -111,19 +111,36 @@
             }
         });
 
-        window.onload = function() {
-            const idGuardado = localStorage.getItem('id_solicitud');
-            const servicioFinalizado = localStorage.getItem('servicio_finalizado');
+        window.onload = async function() {
+    const idGuardado = localStorage.getItem('id_solicitud');
 
-            if (servicioFinalizado === 'true') {
-                document.getElementById('btnCerrar').classList.remove('hidden');
-                mostrarModal("Servicio Finalizado", "El servicio ha concluido. Presione la puerta (🚪) para iniciar otro.");
-            } else if (idGuardado) {
-                mostrarModal("Servicio Activo", "Tiene una solicitud en curso. ¿Desea retomar?", () => { 
-                    window.location.href = 'mapa_usuario.html?id=' + idGuardado; 
-                });
-            }
-        };
+    if (idGuardado) {
+        // 1. Consultamos a Supabase si el servicio sigue 'pendiente' o 'en_curso'
+        const { data, error } = await client
+            .from('solicitudes')
+            .select('respuesta_solicitud')
+            .eq('solicitud_id', idGuardado)
+            .maybeSingle();
+
+        // 2. Si el servicio existe y está en progreso, retomar
+        if (data && (data.respuesta_solicitud === 'pendiente' || data.respuesta_solicitud === 'en_curso')) {
+            mostrarModal("Servicio Activo", "Tiene una solicitud en curso. ¿Desea retomar?", () => { 
+                window.location.href = 'mapa_usuario.html?id=' + idGuardado; 
+            });
+        } else {
+            // 3. Si el servicio fue finalizado o no existe, LIMPIAMOS y no hacemos nada
+            localStorage.removeItem('id_solicitud');
+            localStorage.removeItem('servicio_finalizado');
+        }
+    }
+    
+    // Mantenemos la lógica de servicio finalizado por si acaso
+    const servicioFinalizado = localStorage.getItem('servicio_finalizado');
+    if (servicioFinalizado === 'true') {
+        document.getElementById('btnCerrar').classList.remove('hidden');
+        mostrarModal("Servicio Finalizado", "El servicio ha concluido. Presione la puerta (🚪) para iniciar otro.");
+    }
+};
     </script>
 </body>
 </html>
