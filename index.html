@@ -70,77 +70,62 @@
             <button id="modalBtn" onclick="cerrarModal()" class="w-full bg-teal-800 text-white p-3 rounded-xl font-bold">Aceptar</button>
         </div>
     </div>
-
-    <script>
-        const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
-        const client = supabase.createClient(supabaseUrl, supabaseKey);
-        
-        function cerrarSesion() {
-            localStorage.clear();
-            location.reload();
-        }
-
-        function mostrarModal(titulo, texto, accion = null) {
-            document.getElementById('modalTitulo').innerText = titulo;
-            document.getElementById('modalTexto').innerText = texto;
-            window.accionPostModal = accion;
-            document.getElementById('modalApp').classList.remove('hidden');
-        }
-        function cerrarModal() {
-            document.getElementById('modalApp').classList.add('hidden');
-            if (window.accionPostModal) window.accionPostModal();
-        }
-
-        window.verificarOtro = () => document.getElementById('otroCampo').classList.toggle('hidden', document.getElementById('opcion_servicio').value !== 'Otro');
-
-        document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const { data, error } = await client.from('solicitudes').insert([{ 
-                nombre_usuario: document.getElementById('nombre').value, 
-                celular_contacto: document.getElementById('celular').value, 
-                comentario_solicitud: (document.getElementById('opcion_servicio').value === 'Otro') ? document.getElementById('descripcion').value : document.getElementById('opcion_servicio').value,
-                respuesta_solicitud: 'iniciando' // <--- CAMBIO: Ahora empieza como "iniciando"
-            }]).select();
-
-            if (error) { mostrarModal("Error", error.message); } 
-            else {
-                localStorage.setItem('id_solicitud', data[0].solicitud_id);
-                // CORRECCIÓN: Ir primero a mapa.html para marcar ubicación
-                mostrarModal("¡Éxito!", "Solicitud enviada. Presione aceptar para marcar su ubicación.", () => { window.location.href = 'mapa.html'; });
-            }
-        });
-
-        window.onload = async function() {
-    const idGuardado = localStorage.getItem('id_solicitud');
-
-    if (idGuardado) {
-        // 1. Consultamos a Supabase si el servicio sigue 'pendiente' o 'en_curso'
-        const { data, error } = await client
-            .from('solicitudes')
-            .select('respuesta_solicitud')
-            .eq('solicitud_id', idGuardado)
-            .maybeSingle();
-
-        // 2. Si el servicio existe y está en progreso, retomar
-        if (data && (data.respuesta_solicitud === 'pendiente' || data.respuesta_solicitud === 'en_curso')) {
-            mostrarModal("Servicio Activo", "Tiene una solicitud en curso. ¿Desea retomar?", () => { 
-                window.location.href = 'mapa_usuario.html?id=' + idGuardado; 
-            });
-        } else {
-            // 3. Si el servicio fue finalizado o no existe, LIMPIAMOS y no hacemos nada
-            localStorage.removeItem('id_solicitud');
-            localStorage.removeItem('servicio_finalizado');
-        }
-    }
+<script>
+    const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
     
-    // Mantenemos la lógica de servicio finalizado por si acaso
-    const servicioFinalizado = localStorage.getItem('servicio_finalizado');
-    if (servicioFinalizado === 'true') {
-        document.getElementById('btnCerrar').classList.remove('hidden');
-        mostrarModal("Servicio Finalizado", "El servicio ha concluido. Presione la puerta (🚪) para iniciar otro.");
+    function cerrarSesion() {
+        localStorage.clear();
+        location.reload();
     }
-};
-    </script>
+
+    function mostrarModal(titulo, texto, accion = null) {
+        document.getElementById('modalTitulo').innerText = titulo;
+        document.getElementById('modalTexto').innerText = texto;
+        window.accionPostModal = accion;
+        document.getElementById('modalApp').classList.remove('hidden');
+    }
+    function cerrarModal() {
+        document.getElementById('modalApp').classList.add('hidden');
+        if (window.accionPostModal) window.accionPostModal();
+    }
+
+    window.verificarOtro = () => document.getElementById('otroCampo').classList.toggle('hidden', document.getElementById('opcion_servicio').value !== 'Otro');
+
+    document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const { data, error } = await client.from('solicitudes').insert([{ 
+            nombre_usuario: document.getElementById('nombre').value, 
+            celular_contacto: document.getElementById('celular').value, 
+            comentario_solicitud: (document.getElementById('opcion_servicio').value === 'Otro') ? document.getElementById('descripcion').value : document.getElementById('opcion_servicio').value,
+            respuesta_solicitud: 'iniciando' 
+        }]).select();
+
+        if (error) { mostrarModal("Error", error.message); } 
+        else {
+            // MODIFICACIÓN: Ya no guardamos 'id_solicitud' en localStorage aquí.
+            // Pasamos el ID por URL para que sea mapa.html quien decida cuándo iniciar la sesión.
+            const id = data[0].solicitud_id;
+            mostrarModal("¡Éxito!", "Solicitud enviada. Presione aceptar para marcar su ubicación.", () => { 
+                window.location.href = 'mapa.html?id=' + id; 
+            });
+        }
+    });
+
+    window.onload = function() {
+        // Mantenemos la lógica de la "puerta" (servicio finalizado) para limpiar el dispositivo
+        const servicioFinalizado = localStorage.getItem('servicio_finalizado');
+        if (servicioFinalizado === 'true') {
+            const btnCerrar = document.getElementById('btnCerrar');
+            if (btnCerrar) btnCerrar.classList.remove('hidden');
+            mostrarModal("Servicio Finalizado", "El servicio ha concluido. Presione la puerta (🚪) para iniciar otro.");
+        }
+        
+        // NOTA: Se eliminó la lógica de recuperación automática de sesión desde index.html.
+        // Ahora, el usuario siempre verá el formulario limpio si no tiene un servicio activo en proceso,
+        // evitando confusiones y datos "iniciando" prematuros.
+    };
+</script>    
 </body>
 </html>
