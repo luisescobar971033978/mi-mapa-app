@@ -40,7 +40,7 @@
         </div>
     </div>
 
-    <script>
+   <script>
     const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
@@ -84,50 +84,42 @@
     }
 
     async function inicializarCanales() {
-        const { data: ubicacion, error: errorUbi } = await client
-    .from('ubicacion_moviles')
-    .select('*')
-    .eq('solicitud_id', solicitudId)
-    .maybeSingle();
+        // Carga inicial de ubicación
+        const { data: ubicacion } = await client
+            .from('ubicacion_moviles')
+            .select('*')
+            .eq('solicitud_id', solicitudId)
+            .maybeSingle();
+            
         if (ubicacion) {
             marcadorMovil = L.marker([ubicacion.latitud, ubicacion.longitud], { icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) }).addTo(map);
         }
 
+        // Canal de ubicación
         client.channel(`solicitud_${solicitudId}`).on('broadcast', { event: 'ubicacion_actualizada' }, (payload) => {
             if (!marcadorMovil) marcadorMovil = L.marker([payload.payload.latitud, payload.payload.longitud], { icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) }).addTo(map);
             else marcadorMovil.setLatLng([payload.payload.latitud, payload.payload.longitud]);
         }).subscribe();
 
+        // Canal de estado
         client.channel('status_channel').on('postgres_changes', { 
-    event: 'UPDATE', 
-    schema: 'public', 
-    table: 'solicitudes', 
-    filter: `solicitud_id=eq.${solicitudId}` 
-}, async (payload) => { 
-    if (payload.new.respuesta_solicitud === 'finalizado') {
-        
-        // 1. Limpiar ubicación del móvil
-        await client
-            .from('ubicacion_moviles')
-            .delete()
-            .eq('solicitud_id', solicitudId);
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'solicitudes', 
+            filter: `solicitud_id=eq.${solicitudId}` 
+        }, async (payload) => { 
+            if (payload.new.respuesta_solicitud === 'finalizado') {
+                await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
+                await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
 
-        // 2. Limpiar mensajes asociados a la solicitud
-        await client
-            .from('mensajes')
-            .delete()
-            .eq('solicitud_id', solicitudId);
+                mostrarModal("Servicio Finalizado", "Gracias por su confianza.", () => {
+                    localStorage.removeItem('id_solicitud'); 
+                    window.location.href = 'index.html';
+                });
+            }
+        }).subscribe();
 
-        // 3. Finalizar y redirigir
-        mostrarModal("Servicio Finalizado", "Gracias por su confianza.", () => {
-            localStorage.removeItem('id_solicitud'); 
-            window.location.href = 'index.html';
-        });
-    }
-}).subscribe();
-    }
-}).subscribe();
-
+        // Canal de mensajes
         client.channel('mensajes_channel').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
             renderizarMensaje(payload.new);
             sonidoAlerta.play().catch(e => {});
@@ -157,6 +149,6 @@
     }
 
     window.onload = cargarInfo;
-    </script>
+</script>
 </body>
 </html>
