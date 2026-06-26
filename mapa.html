@@ -34,34 +34,38 @@
 
         let guardando = false;
 
-        async function guardarUbicacion() {
-            if (guardando) return;
-            
-            const idSolicitud = localStorage.getItem('id_solicitud');
-            var center = map.getCenter();
+       async function guardarUbicacion() {
+    if (guardando) return;
+    
+    const idSolicitud = localStorage.getItem('id_solicitud');
+    var center = map.getCenter();
 
-            if (!idSolicitud) { 
-                mostrarModal("Error", "No se encontró el ID de solicitud."); 
-                return; 
-            }
+    if (!idSolicitud) { 
+        mostrarModal("Error", "No se encontró el ID de solicitud."); 
+        return; 
+    }
 
-            guardando = true;
-            document.getElementById('btnConfirmar').innerText = "GUARDANDO...";
+    guardando = true;
+    document.getElementById('btnConfirmar').innerText = "GUARDANDO...";
 
-            const { error } = await client
-                .from('solicitudes')
-                .update({ latitud: center.lat, longitud: center.lng })
-                .eq('solicitud_id', parseInt(idSolicitud));
+    const { error } = await client
+        .from('solicitudes')
+        .update({ 
+            latitud: center.lat, 
+            longitud: center.lng,
+            respuesta_solicitud: 'pendiente' // <--- AÑADIDO: Cambia el estado a pendiente
+        })
+        .eq('solicitud_id', parseInt(idSolicitud));
 
-            if (error) {
-                mostrarModal("Error", "Error al guardar: " + error.message);
-                guardando = false;
-                document.getElementById('btnConfirmar').innerText = "CONFIRMAR UBICACIÓN";
-            } else {
-                // Éxito: En lugar de volver al index, enviamos al usuario a la pantalla de espera
-                window.location.href = 'espera.html';
-            }
-        }
+    if (error) {
+        mostrarModal("Error", "Error al guardar: " + error.message);
+        guardando = false;
+        document.getElementById('btnConfirmar').innerText = "CONFIRMAR UBICACIÓN";
+    } else {
+        // Éxito: Ahora que es 'pendiente', el técnico la verá y enviamos al usuario a espera.html
+        window.location.href = 'espera.html';
+    }
+}
 
         function mostrarModal(titulo, texto) {
             document.getElementById('modalTitulo').innerText = titulo;
