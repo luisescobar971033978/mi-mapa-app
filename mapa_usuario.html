@@ -103,11 +103,17 @@
     schema: 'public', 
     table: 'solicitudes', 
     filter: `solicitud_id=eq.${solicitudId}` 
-}, (payload) => {
+}, async (payload) => { // <--- Convertimos a async para poder usar await
     if (payload.new.respuesta_solicitud === 'finalizado') {
+        
+        // Añadimos la limpieza de la tabla de ubicaciones
+        await client
+            .from('ubicacion_moviles')
+            .delete()
+            .eq('solicitud_id', solicitudId);
+
         mostrarModal("Servicio Finalizado", "Gracias por su confianza.", () => {
-            // AQUÍ ESTÁ LA CORRECCIÓN:
-            // Borramos el ID del servicio para que no sea detectado al volver
+            // Borramos el ID del servicio
             localStorage.removeItem('id_solicitud'); 
             window.location.href = 'index.html';
         });
