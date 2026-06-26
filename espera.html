@@ -11,7 +11,7 @@
     
     <div class="animate-pulse flex flex-col items-center">
         <div class="text-6xl mb-4">⏳</div>
-        <h2 class="text-2xl font-bold">Buscando técnico cercano...</h2>
+        <h2 class="text-2xl font-bold">Buscando Técnico y Unidad Movil Cercana...</h2>
         <p class="mt-2 text-teal-200">Su solicitud ha sido enviada con éxito.</p>
         <p class="text-sm text-teal-300 mt-1">Por favor, no cierre esta ventana.</p>
     </div>
@@ -28,6 +28,26 @@
     const idSolicitud = localStorage.getItem('id_solicitud');
     console.log("ESPERANDO ID:", idSolicitud);
 
+    // Función de resguardo: Verifica si el servicio ya terminó mientras el usuario estaba fuera
+    window.onload = async function() {
+        if (!idSolicitud) {
+            window.location.href = 'index.html';
+            return;
+        }
+
+        const { data } = await client
+            .from('solicitudes')
+            .select('respuesta_solicitud')
+            .eq('solicitud_id', parseInt(idSolicitud))
+            .maybeSingle();
+
+        if (data && data.respuesta_solicitud === 'finalizado') {
+            localStorage.setItem('servicio_finalizado', 'true');
+            localStorage.removeItem('id_solicitud');
+            window.location.href = 'index.html';
+        }
+    };
+
     client.channel('any_channel')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitudes' }, (payload) => {
         console.log("EVENTO RECIBIDO:", payload.new);
@@ -38,9 +58,17 @@
         
         if (idBD === idEsperado) {
             console.log("ID COINCIDE, ESTADO:", payload.new.respuesta_solicitud);
-            // Si el estado es aceptado, redirigimos
+            
+            // Redirección si el técnico acepta el servicio
             if (payload.new.respuesta_solicitud === 'aceptado') {
                 window.location.href = `mapa_usuario.html?id=${idSolicitud}`;
+            }
+            
+            // Redirección si el técnico finaliza el servicio
+            if (payload.new.respuesta_solicitud === 'finalizado') {
+                localStorage.setItem('servicio_finalizado', 'true');
+                localStorage.removeItem('id_solicitud');
+                window.location.href = 'index.html';
             }
         }
       }).subscribe();
