@@ -34,12 +34,33 @@
             <div class="text-center py-10">Cargando datos...</div>
         </div>
     </div>
-
+<div id="modalCustom" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+    <div class="bg-white p-6 rounded shadow-lg">
+        <h2 id="modalTitle" class="text-xl font-bold mb-4"></h2>
+        <p id="modalText" class="mb-4"></p>
+        <button id="btnConfirmar" class="bg-teal-800 text-white px-4 py-2 rounded">Aceptar</button>
+    </div>
+</div>
    <script>
     const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
-
+      
+// Añadir esto al inicio de tu script en tecnico.html
+function mostrarModal(titulo, texto, onConfirm) {
+    const modal = document.getElementById('modalCustom');
+    if (!modal) {
+        console.error("El elemento modalCustom no existe en este HTML");
+        return;
+    }
+    document.getElementById('modalTitle').innerText = titulo;
+    document.getElementById('modalText').innerText = texto;
+    document.getElementById('btnConfirmar').onclick = () => { 
+        modal.classList.add('hidden'); 
+        if(onConfirm) onConfirm(); 
+    };
+    modal.classList.remove('hidden');
+}
     window.onload = () => {
         const t = localStorage.getItem('tecnico');
         const loginForm = document.getElementById('loginForm');
