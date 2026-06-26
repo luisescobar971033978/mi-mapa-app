@@ -71,11 +71,13 @@
     };
 
     function cerrarSesion() {
-        if(confirm("¿Deseas cerrar sesión?")) {
-            localStorage.clear();
-            location.reload();
-        }
-    }
+    // Usamos tu función mostrarModal personalizada
+    mostrarModal("Cerrar Sesión", "¿Deseas cerrar sesión?", () => {
+        // Esto se ejecuta solo si el usuario confirma en tu modal
+        localStorage.clear();
+        location.reload();
+    });
+}
 
     async function guardarSesion() {
         const idTecnico = document.getElementById('id_tecnico').value.trim();
