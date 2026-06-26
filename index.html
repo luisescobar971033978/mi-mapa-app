@@ -100,7 +100,7 @@
                 nombre_usuario: document.getElementById('nombre').value, 
                 celular_contacto: document.getElementById('celular').value, 
                 comentario_solicitud: (document.getElementById('opcion_servicio').value === 'Otro') ? document.getElementById('descripcion').value : document.getElementById('opcion_servicio').value,
-                respuesta_solicitud: 'pendiente'
+                respuesta_solicitud: 'iniciando' // <--- CAMBIO: Ahora empieza como "iniciando"
             }]).select();
 
             if (error) { mostrarModal("Error", error.message); } 
