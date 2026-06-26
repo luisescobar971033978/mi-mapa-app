@@ -42,42 +42,35 @@
 
     window.onload = () => {
         const t = localStorage.getItem('tecnico');
-        
-        // 1. Elementos para control
         const loginForm = document.getElementById('loginForm');
         const header = document.getElementById('headerPrincipal');
         const lista = document.getElementById('listaSolicitudes');
 
         if (!t) {
-            // NO hay sesión: Aseguramos que solo se vea el login
             loginForm.classList.remove('hidden');
             header.classList.add('hidden');
             lista.classList.add('hidden');
         } else {
-            // SÍ hay sesión: Aseguramos que el login esté oculto
             loginForm.classList.add('hidden'); 
             document.getElementById('displayTecnico').innerText = t;
             header.classList.remove('hidden');
             
-            // 2. Verificación de servicio activo o carga de lista
             const servicioPendiente = localStorage.getItem('solicitudId_activo');
             if (servicioPendiente) {
                 window.location.href = `mapa_tecnico.html?id=${servicioPendiente}`;
             } else {
-                // Solo cargamos la lista si estamos validados
                 cargarSolicitudes();
             }
         }
     };
 
     function cerrarSesion() {
-    // Usamos tu función mostrarModal personalizada
-    mostrarModal("Cerrar Sesión", "¿Deseas cerrar sesión?", () => {
-        // Esto se ejecuta solo si el usuario confirma en tu modal
-        localStorage.clear();
-        location.reload();
-    });
-}
+        // CORRECCIÓN: Asegúrate de que tu mostrarModal ejecute el callback
+        mostrarModal("Cerrar Sesión", "¿Deseas cerrar sesión?", () => {
+            localStorage.clear();
+            location.reload();
+        });
+    }
 
     async function guardarSesion() {
         const idTecnico = document.getElementById('id_tecnico').value.trim();
@@ -172,8 +165,10 @@
         }
     }
 
-    // Canal en tiempo real
+    // Canal en tiempo real: Solo recarga si hay cambios relevantes
     client.channel('solicitudes_channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, () => { cargarSolicitudes(); })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'solicitudes' }, () => { 
+            cargarSolicitudes(); 
+        })
         .subscribe();
 </script>
