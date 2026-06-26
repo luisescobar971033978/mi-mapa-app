@@ -103,20 +103,28 @@
     schema: 'public', 
     table: 'solicitudes', 
     filter: `solicitud_id=eq.${solicitudId}` 
-}, async (payload) => { // <--- Convertimos a async para poder usar await
+}, async (payload) => { 
     if (payload.new.respuesta_solicitud === 'finalizado') {
         
-        // Añadimos la limpieza de la tabla de ubicaciones
+        // 1. Limpiar ubicación del móvil
         await client
             .from('ubicacion_moviles')
             .delete()
             .eq('solicitud_id', solicitudId);
 
+        // 2. Limpiar mensajes asociados a la solicitud
+        await client
+            .from('mensajes')
+            .delete()
+            .eq('solicitud_id', solicitudId);
+
+        // 3. Finalizar y redirigir
         mostrarModal("Servicio Finalizado", "Gracias por su confianza.", () => {
-            // Borramos el ID del servicio
             localStorage.removeItem('id_solicitud'); 
             window.location.href = 'index.html';
         });
+    }
+}).subscribe();
     }
 }).subscribe();
 
