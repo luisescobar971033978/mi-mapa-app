@@ -184,11 +184,14 @@
         
     async function confirmar(id) {
         localStorage.setItem('solicitudId_activo', id);
+        // Obtenemos la hora actual en formato HH:mm:ss
+        const ahora = new Date().toTimeString().split(' ')[0];
         try {
             const { error } = await client.from('solicitudes').update({ 
                 respuesta_solicitud: 'aceptado',
                 id_tecnico: localStorage.getItem('tecnico'),
-                movil_id: localStorage.getItem('movil')
+                movil_id: localStorage.getItem('movil'),
+                hora_contacto: ahora // <--- Línea añadida para recuperar el dato en Supabase
             }).eq('solicitud_id', id);
 
             if (error) throw error;
