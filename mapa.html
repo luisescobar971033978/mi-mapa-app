@@ -29,43 +29,52 @@
         const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
         const client = supabase.createClient(supabaseUrl, supabaseKey);
+        
+        // Inicialización del mapa con respaldo en Santa Cruz
         var map = L.map('map').setView([-17.7833, -63.1821], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+        // Intento de geolocalización al cargar
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => map.setView([pos.coords.latitude, pos.coords.longitude], 15),
+                () => console.log("Ubicación no disponible, usando centro por defecto.")
+            );
+        }
+
         let guardando = false;
 
-       async function guardarUbicacion() {
-    if (guardando) return;
-    
-    const idSolicitud = localStorage.getItem('id_solicitud');
-    var center = map.getCenter();
+        async function guardarUbicacion() {
+            if (guardando) return;
+            
+            const idSolicitud = localStorage.getItem('id_solicitud');
+            var center = map.getCenter();
 
-    if (!idSolicitud) { 
-        mostrarModal("Error", "No se encontró el ID de solicitud."); 
-        return; 
-    }
+            if (!idSolicitud) { 
+                mostrarModal("Error", "No se encontró el ID de solicitud."); 
+                return; 
+            }
 
-    guardando = true;
-    document.getElementById('btnConfirmar').innerText = "GUARDANDO...";
+            guardando = true;
+            document.getElementById('btnConfirmar').innerText = "GUARDANDO...";
 
-    const { error } = await client
-        .from('solicitudes')
-        .update({ 
-            latitud: center.lat, 
-            longitud: center.lng,
-            respuesta_solicitud: 'pendiente' // <--- AÑADIDO: Cambia el estado a pendiente
-        })
-        .eq('solicitud_id', parseInt(idSolicitud));
+            const { error } = await client
+                .from('solicitudes')
+                .update({ 
+                    latitud: center.lat, 
+                    longitud: center.lng,
+                    respuesta_solicitud: 'pendiente'
+                })
+                .eq('solicitud_id', parseInt(idSolicitud));
 
-    if (error) {
-        mostrarModal("Error", "Error al guardar: " + error.message);
-        guardando = false;
-        document.getElementById('btnConfirmar').innerText = "CONFIRMAR UBICACIÓN";
-    } else {
-        // Éxito: Ahora que es 'pendiente', el técnico la verá y enviamos al usuario a espera.html
-        window.location.href = 'espera.html';
-    }
-}
+            if (error) {
+                mostrarModal("Error", "Error al guardar: " + error.message);
+                guardando = false;
+                document.getElementById('btnConfirmar').innerText = "CONFIRMAR UBICACIÓN";
+            } else {
+                window.location.href = 'espera.html';
+            }
+        }
 
         function mostrarModal(titulo, texto) {
             document.getElementById('modalTitulo').innerText = titulo;
