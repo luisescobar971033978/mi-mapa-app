@@ -1,4 +1,3 @@
-HTML
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -55,12 +54,12 @@ HTML
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <section class="bg-white p-6 rounded shadow">
                 <h2 class="text-xl font-bold text-teal-900 mb-4">3.- INCIDENCIA POR SERVICIO</h2>
-                <div style="height: 300px;"><canvas id="graficoServicios"></canvas></div>
+                <div style="height: 400px;"><canvas id="graficoServicios"></canvas></div>
                 <table class="w-full mt-4 text-sm"><tbody id="tablaIncidencia"></tbody></table>
             </section>
             <section class="bg-white p-6 rounded shadow">
                 <h2 class="text-xl font-bold text-teal-900 mb-4">4.- PRODUCTIVIDAD POR TECNICO</h2>
-                <div style="height: 300px;"><canvas id="graficoProductividad"></canvas></div>
+                <div style="height: 400px;"><canvas id="graficoProductividad"></canvas></div>
                 <table class="w-full mt-4 text-sm"><tbody id="tablaProductividad"></tbody></table>
             </section>
         </div>
@@ -90,34 +89,53 @@ HTML
             
             document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `<tr><td class="p-3">${s.solicitud_id}</td><td class="p-3">${s.nombre_usuario || 'Anónimo'}</td><td class="p-3">${s.id_tecnico || 'Sin asignar'}</td><td class="p-3 font-bold">${s.respuesta_solicitud.toUpperCase()}</td></tr>`).join('');
 
-            // Gráfico 3
+            // Gráfico 3: Incidencia
             const conteo = {};
             solicitudes.forEach(s => conteo[s.comentario_solicitud || 'Otro'] = (conteo[s.comentario_solicitud || 'Otro'] || 0) + 1);
             const labels = Object.keys(conteo);
-            const data = Object.values(conteo).map(c => ((c / solicitudes.length) * 100).toFixed(1));
+            const data = Object.values(conteo).map(c => parseFloat(((c / solicitudes.length) * 100).toFixed(1)));
+            const maxVal = Math.max(...data);
             
             if (chartIncidencia) chartIncidencia.destroy();
             chartIncidencia = new Chart(document.getElementById('graficoServicios').getContext('2d'), { 
                 type: 'bar', 
                 plugins: [ChartDataLabels],
                 data: { labels, datasets: [{ data, backgroundColor: data.map(v => getColor(Number(v), data)) }] }, 
-                options: { indexAxis: 'y', plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', formatter: v => v + '%' } } } 
+                options: { 
+                    indexAxis: 'y', 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false }, 
+                        datalabels: { anchor: 'end', align: 'right', formatter: v => v + '%', padding: 5 } 
+                    },
+                    scales: { x: { max: maxVal + 15, beginAtZero: true } }
+                } 
             });
             document.getElementById('tablaIncidencia').innerHTML = labels.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(data[i]), data)}">${data[i]}%</td></tr>`).join('');
 
-            // Gráfico 4
+            // Gráfico 4: Productividad
             const finalizados = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado');
             const cTech = {};
             finalizados.forEach(s => cTech[s.id_tecnico || 'Sin asignar'] = (cTech[s.id_tecnico || 'Sin asignar'] || 0) + 1);
             const lTech = Object.keys(cTech);
-            const dTech = Object.values(cTech).map(c => ((c / finalizados.length) * 100).toFixed(1));
+            const dTech = Object.values(cTech).map(c => parseFloat(((c / finalizados.length) * 100).toFixed(1)));
+            const maxTech = Math.max(...dTech);
 
             if (chartProductividad) chartProductividad.destroy();
             chartProductividad = new Chart(document.getElementById('graficoProductividad').getContext('2d'), { 
                 type: 'bar', 
                 plugins: [ChartDataLabels],
                 data: { labels: lTech, datasets: [{ data: dTech, backgroundColor: dTech.map(v => getColor(Number(v), dTech)) }] }, 
-                options: { plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: v => v + '%' } } } 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false }, 
+                        datalabels: { anchor: 'end', align: 'top', formatter: v => v + '%' } 
+                    },
+                    scales: { y: { max: maxTech + 15, beginAtZero: true } } 
+                } 
             });
             document.getElementById('tablaProductividad').innerHTML = lTech.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(dTech[i]), dTech)}">${dTech[i]}%</td></tr>`).join('');
         }
