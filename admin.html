@@ -21,12 +21,7 @@
             <div class="bg-white rounded shadow p-4 overflow-x-auto">
                 <table class="w-full text-left">
                     <thead class="bg-gray-100 border-b">
-                        <tr>
-                            <th class="p-2">Móvil</th>
-                            <th class="p-2">Celular</th>
-                            <th class="p-2">Estado</th>
-                            <th class="p-2">ID Técnico</th>
-                        </tr>
+                        <tr><th class="p-2">Móvil</th><th class="p-2">Celular</th><th class="p-2">Estado</th><th class="p-2">ID Técnico</th></tr>
                     </thead>
                     <tbody id="tablaMoviles"></tbody>
                 </table>
@@ -37,139 +32,86 @@
             <h2 class="text-xl font-bold text-teal-900 mb-4">2.- FLUJO GENERAL DE SERVICIOS</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div class="bg-white p-4 rounded shadow border-l-4 border-yellow-500">
-                    <p class="text-gray-500 text-sm">Pendientes</p>
-                    <h2 id="countPendientes" class="text-2xl font-bold">0</h2>
+                    <p class="text-gray-500 text-sm">Pendientes</p><h2 id="countPendientes" class="text-2xl font-bold">0</h2>
                 </div>
                 <div class="bg-white p-4 rounded shadow border-l-4 border-blue-500">
-                    <p class="text-gray-500 text-sm">En Camino</p>
-                    <h2 id="countEnCamino" class="text-2xl font-bold">0</h2>
+                    <p class="text-gray-500 text-sm">En Camino</p><h2 id="countEnCamino" class="text-2xl font-bold">0</h2>
                 </div>
                 <div class="bg-white p-4 rounded shadow border-l-4 border-green-500">
-                    <p class="text-gray-500 text-sm">Finalizados</p>
-                    <h2 id="countFinalizados" class="text-2xl font-bold">0</h2>
+                    <p class="text-gray-500 text-sm">Finalizados</p><h2 id="countFinalizados" class="text-2xl font-bold">0</h2>
                 </div>
             </div>
             <div class="bg-white rounded shadow overflow-x-auto">
                 <table class="w-full text-left">
                     <thead class="bg-gray-100 border-b">
-                        <tr>
-                            <th class="p-3">ID</th>
-                            <th class="p-3">Cliente</th>
-                            <th class="p-3">Técnico</th>
-                            <th class="p-3">Estado</th>
-                        </tr>
+                        <tr><th class="p-3">ID</th><th class="p-3">Cliente</th><th class="p-3">Técnico</th><th class="p-3">Estado</th></tr>
                     </thead>
                     <tbody id="tablaSolicitudes"></tbody>
                 </table>
             </div>
         </section>
 
-        <section class="bg-white p-6 rounded shadow">
-            <h2 class="text-xl font-bold text-teal-900 mb-4">3.- ESTADISTICAS: INCIDENCIA POR SERVICIO</h2>
-            <div style="height: 500px;">
-                <canvas id="graficoServicios"></canvas>
-            </div>
-        </section>
-
-        <section class="bg-white p-6 rounded shadow">
-            <h2 class="text-xl font-bold text-teal-900 mb-4">4.- PRODUCTIVIDAD POR TECNICO (% SERVICIOS FINALIZADOS)</h2>
-            <div style="height: 400px;">
-                <canvas id="graficoProductividad"></canvas>
-            </div>
-        </section>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section class="bg-white p-6 rounded shadow">
+                <h2 class="text-xl font-bold text-teal-900 mb-4">3.- INCIDENCIA POR SERVICIO</h2>
+                <div style="height: 300px;"><canvas id="graficoServicios"></canvas></div>
+                <table class="w-full mt-4 text-sm"><tbody id="tablaIncidencia"></tbody></table>
+            </section>
+            <section class="bg-white p-6 rounded shadow">
+                <h2 class="text-xl font-bold text-teal-900 mb-4">4.- PRODUCTIVIDAD POR TECNICO</h2>
+                <div style="height: 300px;"><canvas id="graficoProductividad"></canvas></div>
+                <table class="w-full mt-4 text-sm"><tbody id="tablaProductividad"></tbody></table>
+            </section>
+        </div>
     </div>
 
     <script>
-        const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
-        const client = supabase.createClient(supabaseUrl, supabaseKey);
-        
+        const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
         let chartIncidencia, chartProductividad;
 
-        async function cargarTodo() {
-            // 1. Cargar Móviles
-            const { data: moviles } = await client.from('moviles').select('*');
-            document.getElementById('tablaMoviles').innerHTML = moviles.map(m => `
-                <tr class="border-b">
-                    <td class="p-2">${m.movil_id}</td>
-                    <td class="p-2">${m.celular}</td>
-                    <td class="p-2 font-bold ${m.estado === 'activo' ? 'text-green-600' : 'text-red-600'}">${m.estado}</td>
-                    <td class="p-2">${m.id_tecnico || 'Libre'}</td>
-                </tr>
-            `).join('');
+        function getColor(val, all) {
+            const max = Math.max(...all);
+            const min = Math.min(...all);
+            if (val === max) return '#10b981'; // Verde (Mayor)
+            if (val === min) return '#ef4444'; // Rojo (Menor)
+            if (val > (max * 0.6)) return '#f59e0b'; // Naranja
+            return '#eab308'; // Amarillo
+        }
 
-            // 2. Cargar Solicitudes
+        async function cargarTodo() {
+            const { data: moviles } = await client.from('moviles').select('*');
+            document.getElementById('tablaMoviles').innerHTML = moviles.map(m => `<tr><td class="p-2">${m.movil_id}</td><td class="p-2">${m.celular}</td><td class="p-2 font-bold ${m.estado === 'activo' ? 'text-green-600' : 'text-red-600'}">${m.estado}</td><td class="p-2">${m.id_tecnico || 'Libre'}</td></tr>`).join('');
+
             const { data: solicitudes } = await client.from('solicitudes').select('*').order('solicitud_id', { ascending: false });
-            
             document.getElementById('countPendientes').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'pendiente').length;
             document.getElementById('countEnCamino').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'aceptado').length;
             document.getElementById('countFinalizados').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado').length;
+            
+            document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `<tr><td class="p-3">${s.solicitud_id}</td><td class="p-3">${s.nombre_usuario || 'Anónimo'}</td><td class="p-3">${s.id_tecnico || 'Sin asignar'}</td><td class="p-3 font-bold">${s.respuesta_solicitud.toUpperCase()}</td></tr>`).join('');
 
-            document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="p-3">${s.solicitud_id}</td>
-                    <td class="p-3">${s.nombre_usuario || 'Anónimo'}</td>
-                    <td class="p-3">${s.id_tecnico || 'Sin asignar'}</td>
-                    <td class="p-3 font-bold">${s.respuesta_solicitud.toUpperCase()}</td>
-                </tr>
-            `).join('');
-
-            // 3 & 4. Actualizar ambos gráficos
-            actualizarGraficos(solicitudes);
-        }
-
-        function actualizarGraficos(solicitudes) {
-            // --- Gráfico 3: Incidencia (Horizontal) ---
-            const ctx1 = document.getElementById('graficoServicios').getContext('2d');
+            // Gráficos y Tablas
             const conteo = {};
-            solicitudes.forEach(s => {
-                const tipo = s.comentario_solicitud || 'Otro';
-                conteo[tipo] = (conteo[tipo] || 0) + 1;
-            });
-
+            solicitudes.forEach(s => conteo[s.comentario_solicitud || 'Otro'] = (conteo[s.comentario_solicitud || 'Otro'] || 0) + 1);
+            const labels = Object.keys(conteo);
+            const data = Object.values(conteo).map(c => ((c / solicitudes.length) * 100).toFixed(1));
+            
             if (chartIncidencia) chartIncidencia.destroy();
-            chartIncidencia = new Chart(ctx1, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(conteo),
-                    datasets: [{
-                        label: '% Incidencia',
-                        data: Object.values(conteo).map(c => ((c / solicitudes.length) * 100).toFixed(1)),
-                        backgroundColor: '#0f766e'
-                    }]
-                },
-                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { max: 100, ticks: { callback: v => v + '%' } } } }
-            });
+            chartIncidencia = new Chart(document.getElementById('graficoServicios').getContext('2d'), { type: 'bar', data: { labels, datasets: [{ data, backgroundColor: data.map(v => getColor(Number(v), data)) }] }, options: { indexAxis: 'y', plugins: { legend: { display: false } } } });
+            document.getElementById('tablaIncidencia').innerHTML = labels.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(data[i]), data)}">${data[i]}%</td></tr>`).join('');
 
-            // --- Gráfico 4: Productividad (Vertical) ---
-            const ctx2 = document.getElementById('graficoProductividad').getContext('2d');
             const finalizados = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado');
-            const conteoTecnicos = {};
-            finalizados.forEach(s => {
-                const tech = s.id_tecnico || 'Sin asignar';
-                conteoTecnicos[tech] = (conteoTecnicos[tech] || 0) + 1;
-            });
+            const cTech = {};
+            finalizados.forEach(s => cTech[s.id_tecnico || 'Sin asignar'] = (cTech[s.id_tecnico || 'Sin asignar'] || 0) + 1);
+            const lTech = Object.keys(cTech);
+            const dTech = Object.values(cTech).map(c => ((c / finalizados.length) * 100).toFixed(1));
 
             if (chartProductividad) chartProductividad.destroy();
-            chartProductividad = new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(conteoTecnicos),
-                    datasets: [{
-                        label: '% Servicios Finalizados por Técnico',
-                        data: Object.values(conteoTecnicos).map(c => ((c / finalizados.length) * 100).toFixed(1)),
-                        backgroundColor: '#d97706'
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { max: 100, ticks: { callback: v => v + '%' } } } }
-            });
+            chartProductividad = new Chart(document.getElementById('graficoProductividad').getContext('2d'), { type: 'bar', data: { labels: lTech, datasets: [{ data: dTech, backgroundColor: dTech.map(v => getColor(Number(v), dTech)) }] }, options: { plugins: { legend: { display: false } } } });
+            document.getElementById('tablaProductividad').innerHTML = lTech.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(dTech[i]), dTech)}">${dTech[i]}%</td></tr>`).join('');
         }
 
         cargarTodo();
-        client.channel('admin_channel')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'moviles' }, cargarTodo)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, cargarTodo)
-            .subscribe();
+        client.channel('admin_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, cargarTodo).subscribe();
     </script>
 </body>
 </html>
