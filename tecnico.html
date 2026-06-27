@@ -41,11 +41,14 @@
             <div class="text-center py-10">Cargando datos...</div>
         </div>
     </div>
-<div id="modalCustom" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white p-6 rounded shadow-lg">
+<div id="modalCustom" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-[3000]">
+    <div class="bg-white p-6 rounded shadow-lg max-w-sm w-full">
         <h2 id="modalTitle" class="text-xl font-bold mb-4"></h2>
         <p id="modalText" class="mb-4"></p>
-        <button id="btnConfirmar" class="bg-teal-800 text-white px-4 py-2 rounded">Aceptar</button>
+        <div class="flex gap-2">
+            <button id="btnCancelar" class="flex-1 bg-gray-300 text-gray-800 px-4 py-2 rounded font-bold">NO</button>
+            <button id="btnConfirmar" class="flex-1 bg-teal-800 text-white px-4 py-2 rounded font-bold">SÍ</button>
+        </div>
     </div>
 </div>
    <script>
@@ -53,7 +56,6 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
       
-    // Función de actualización manual con animación
     async function actualizarManual() {
         const btnIcon = document.getElementById('btnIcon');
         btnIcon.classList.add('girando');
@@ -66,10 +68,16 @@
         if (!modal) return;
         document.getElementById('modalTitle').innerText = titulo;
         document.getElementById('modalText').innerText = texto;
+        
         document.getElementById('btnConfirmar').onclick = () => { 
             modal.classList.add('hidden'); 
             if(onConfirm) onConfirm(); 
         };
+        
+        document.getElementById('btnCancelar').onclick = () => { 
+            modal.classList.add('hidden'); 
+        };
+        
         modal.classList.remove('hidden');
     }
 
@@ -188,7 +196,7 @@
             await client.from('mensajes').insert({
                 solicitud_id: id,
                 emisor: 'tecnico',
-                mensaje: 'Hola, soy su técnico. Voy en camino, Por favor confirmas la ubicacion del servicio,Gracias....!'
+                mensaje: 'Hola, soy su técnico. Voy en camino, Por favor confirmas la ubicacion del Servicio, Gracias....!'
             });
 
             window.location.href = `mapa_tecnico.html?id=${id}`;
