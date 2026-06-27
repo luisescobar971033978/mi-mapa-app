@@ -1,1 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    
+    <nav class="bg-teal-900 text-white p-4 shadow-lg">
+        <h1 class="text-xl font-bold">ADMINISTRACIÓN CENTRAL</h1>
+    </nav>
 
+    <div class="container mx-auto p-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white p-4 rounded shadow border-l-4 border-yellow-500">
+                <p class="text-gray-500 text-sm">Pendientes</p>
+                <h2 id="countPendientes" class="text-2xl font-bold">0</h2>
+            </div>
+            <div class="bg-white p-4 rounded shadow border-l-4 border-blue-500">
+                <p class="text-gray-500 text-sm">En Camino</p>
+                <h2 id="countEnCamino" class="text-2xl font-bold">0</h2>
+            </div>
+            <div class="bg-white p-4 rounded shadow border-l-4 border-green-500">
+                <p class="text-gray-500 text-sm">Finalizados</p>
+                <h2 id="countFinalizados" class="text-2xl font-bold">0</h2>
+            </div>
+        </div>
+
+        <div class="bg-white rounded shadow overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-gray-100 border-b">
+                    <tr>
+                        <th class="p-3">ID</th>
+                        <th class="p-3">Cliente</th>
+                        <th class="p-3">Técnico</th>
+                        <th class="p-3">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaSolicitudes">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de Supabase (la misma que usas en el técnico)
+        const supabaseUrl = 'TU_URL_SUPABASE';
+        const supabaseKey = 'TU_KEY_SUPABASE';
+        const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Aquí irá la lógica para cargar datos y escuchar cambios en tiempo real
+    </script>
+</body>
+</html>
