@@ -1,3 +1,4 @@
+HTML
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -7,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
     
@@ -15,7 +17,6 @@
     </nav>
 
     <div class="container mx-auto p-4 space-y-8">
-        
         <section>
             <h2 class="text-xl font-bold text-teal-900 mb-4">1.- TECNICOS Y MOVILES DISPONIBLES</h2>
             <div class="bg-white rounded shadow p-4 overflow-x-auto">
@@ -72,10 +73,10 @@
         function getColor(val, all) {
             const max = Math.max(...all);
             const min = Math.min(...all);
-            if (val === max) return '#10b981'; // Verde (Mayor)
-            if (val === min) return '#ef4444'; // Rojo (Menor)
-            if (val > (max * 0.6)) return '#f59e0b'; // Naranja
-            return '#eab308'; // Amarillo
+            if (val === max) return '#10b981';
+            if (val === min) return '#ef4444';
+            if (val > (max * 0.6)) return '#f59e0b';
+            return '#eab308';
         }
 
         async function cargarTodo() {
@@ -89,16 +90,22 @@
             
             document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `<tr><td class="p-3">${s.solicitud_id}</td><td class="p-3">${s.nombre_usuario || 'Anónimo'}</td><td class="p-3">${s.id_tecnico || 'Sin asignar'}</td><td class="p-3 font-bold">${s.respuesta_solicitud.toUpperCase()}</td></tr>`).join('');
 
-            // Gráficos y Tablas
+            // Gráfico 3
             const conteo = {};
             solicitudes.forEach(s => conteo[s.comentario_solicitud || 'Otro'] = (conteo[s.comentario_solicitud || 'Otro'] || 0) + 1);
             const labels = Object.keys(conteo);
             const data = Object.values(conteo).map(c => ((c / solicitudes.length) * 100).toFixed(1));
             
             if (chartIncidencia) chartIncidencia.destroy();
-            chartIncidencia = new Chart(document.getElementById('graficoServicios').getContext('2d'), { type: 'bar', data: { labels, datasets: [{ data, backgroundColor: data.map(v => getColor(Number(v), data)) }] }, options: { indexAxis: 'y', plugins: { legend: { display: false } } } });
+            chartIncidencia = new Chart(document.getElementById('graficoServicios').getContext('2d'), { 
+                type: 'bar', 
+                plugins: [ChartDataLabels],
+                data: { labels, datasets: [{ data, backgroundColor: data.map(v => getColor(Number(v), data)) }] }, 
+                options: { indexAxis: 'y', plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', formatter: v => v + '%' } } } 
+            });
             document.getElementById('tablaIncidencia').innerHTML = labels.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(data[i]), data)}">${data[i]}%</td></tr>`).join('');
 
+            // Gráfico 4
             const finalizados = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado');
             const cTech = {};
             finalizados.forEach(s => cTech[s.id_tecnico || 'Sin asignar'] = (cTech[s.id_tecnico || 'Sin asignar'] || 0) + 1);
@@ -106,7 +113,12 @@
             const dTech = Object.values(cTech).map(c => ((c / finalizados.length) * 100).toFixed(1));
 
             if (chartProductividad) chartProductividad.destroy();
-            chartProductividad = new Chart(document.getElementById('graficoProductividad').getContext('2d'), { type: 'bar', data: { labels: lTech, datasets: [{ data: dTech, backgroundColor: dTech.map(v => getColor(Number(v), dTech)) }] }, options: { plugins: { legend: { display: false } } } });
+            chartProductividad = new Chart(document.getElementById('graficoProductividad').getContext('2d'), { 
+                type: 'bar', 
+                plugins: [ChartDataLabels],
+                data: { labels: lTech, datasets: [{ data: dTech, backgroundColor: dTech.map(v => getColor(Number(v), dTech)) }] }, 
+                options: { plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: v => v + '%' } } } 
+            });
             document.getElementById('tablaProductividad').innerHTML = lTech.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(dTech[i]), dTech)}">${dTech[i]}%</td></tr>`).join('');
         }
 
