@@ -46,12 +46,47 @@
     </div>
 
     <script>
-        // Configuración de Supabase (la misma que usas en el técnico)
         const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
         const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Aquí irá la lógica para cargar datos y escuchar cambios en tiempo real
+        async function cargarDatos() {
+            // 1. Obtener todas las solicitudes
+            const { data, error } = await client.from('solicitudes').select('*').order('solicitud_id', { ascending: false });
+
+            if (error) {
+                console.error("Error cargando datos:", error);
+                return;
+            }
+
+            // 2. Actualizar contadores
+            document.getElementById('countPendientes').innerText = data.filter(s => s.respuesta_solicitud === 'pendiente').length;
+            document.getElementById('countEnCamino').innerText = data.filter(s => s.respuesta_solicitud === 'aceptado').length;
+            document.getElementById('countFinalizados').innerText = data.filter(s => s.respuesta_solicitud === 'finalizado').length;
+
+            // 3. Renderizar tabla
+            const tbody = document.getElementById('tablaSolicitudes');
+            tbody.innerHTML = data.map(s => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-3">${s.solicitud_id}</td>
+                    <td class="p-3">${s.nombre_usuario || 'Anónimo'}</td>
+                    <td class="p-3">${s.id_tecnico || 'Sin asignar'}</td>
+                    <td class="p-3 font-bold ${s.respuesta_solicitud === 'pendiente' ? 'text-yellow-600' : 'text-blue-600'}">
+                        ${s.respuesta_solicitud.toUpperCase()}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 4. Suscripción a cambios en tiempo real (para que se actualice solo)
+        client.channel('solicitudes_admin')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, () => {
+                cargarDatos();
+            })
+            .subscribe();
+
+        // Carga inicial al abrir la página
+        cargarDatos();
     </script>
 </body>
 </html>
