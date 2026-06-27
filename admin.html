@@ -90,30 +90,54 @@
             document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `<tr><td class="p-3">${s.solicitud_id}</td><td class="p-3">${s.nombre_usuario || 'Anónimo'}</td><td class="p-3">${s.id_tecnico || 'Sin asignar'}</td><td class="p-3 font-bold">${s.respuesta_solicitud.toUpperCase()}</td></tr>`).join('');
 
             // Gráfico 3: Incidencia
-            const conteo = {};
-            solicitudes.forEach(s => conteo[s.comentario_solicitud || 'Otro'] = (conteo[s.comentario_solicitud || 'Otro'] || 0) + 1);
-            const labels = Object.keys(conteo);
-            const data = Object.values(conteo).map(c => parseFloat(((c / solicitudes.length) * 100).toFixed(1)));
-            const maxVal = Math.max(...data);
-            
-            if (chartIncidencia) chartIncidencia.destroy();
-            chartIncidencia = new Chart(document.getElementById('graficoServicios').getContext('2d'), { 
-                type: 'bar', 
-                plugins: [ChartDataLabels],
-                data: { labels, datasets: [{ data, backgroundColor: data.map(v => getColor(Number(v), data)) }] }, 
-                options: { 
-                    indexAxis: 'y', 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { display: false }, 
-                        datalabels: { anchor: 'end', align: 'right', formatter: v => v + '%', padding: 5 } 
-                    },
-                    scales: { x: { max: maxVal + 15, beginAtZero: true } }
-                } 
-            });
-            document.getElementById('tablaIncidencia').innerHTML = labels.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(data[i]), data)}">${data[i]}%</td></tr>`).join('');
+            const serviciosValidos = [
+    "Fumigación contra El dengue y chikungunya",
+    "Desbrozado de entrada, patios y Jardines",
+    "Problemas de Plomería",
+    "Fuga de Agua",
+    "Tuberías trancadas del drenaje sanitario y de lluvias",
+    "Mi Ducha Eléctrica NO funciona",
+    "Interruptor / Tomacorriente NO funciona",
+    "Requiero Solución definitiva para GOTERAS",
+    "Mantenimiento de AIRE ACONDICIONADO",
+    "Instalación de AIRE ACONDICIONADO",
+    "Servicio control de Humedad en Paredes",
+    "Retoques de pintura en Fachada, Puertas de Acceso, Etc.",
+    "Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)",
+    "Necesito aplicar veneno para los Sepes",
+    "Remodelación de Vivienda y Oficinas",
+    "Ampliación de Vivienda y Oficinas"
+];
 
+// Lógica de conteo actualizada
+const conteo = {};
+solicitudes.forEach(s => {
+    // Si el comentario no está en la lista, se asigna como "Otros"
+    const categoria = serviciosValidos.includes(s.comentario_solicitud) ? s.comentario_solicitud : "Otros";
+    conteo[categoria] = (conteo[categoria] || 0) + 1;
+});
+
+const labels = Object.keys(conteo);
+const data = Object.values(conteo).map(c => parseFloat(((c / solicitudes.length) * 100).toFixed(1)));
+const maxVal = Math.max(...data);
+
+if (chartIncidencia) chartIncidencia.destroy();
+chartIncidencia = new Chart(document.getElementById('graficoServicios').getContext('2d'), { 
+    type: 'bar', 
+    plugins: [ChartDataLabels],
+    data: { labels, datasets: [{ data, backgroundColor: data.map(v => getColor(Number(v), data)) }] }, 
+    options: { 
+        indexAxis: 'y', 
+        responsive: true, 
+        maintainAspectRatio: false,
+        plugins: { 
+            legend: { display: false }, 
+            datalabels: { anchor: 'end', align: 'right', formatter: v => v + '%', padding: 5 } 
+        },
+        scales: { x: { max: maxVal + 15, beginAtZero: true } }
+    } 
+});
+document.getElementById('tablaIncidencia').innerHTML = labels.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(data[i]), data)}">${data[i]}%</td></tr>`).join('');
             // Gráfico 4: Productividad
             const finalizados = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado');
             const cTech = {};
