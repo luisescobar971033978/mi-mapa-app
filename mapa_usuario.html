@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-    /* Asegura que los iconos estén perfectamente centrados en sus coordenadas */
     .icon-wrapper {
         display: flex;
         justify-content: center;
@@ -68,8 +67,16 @@
             html: `<div class="icon-wrapper" style="font-size:30px;">${emoji}</div>`,
             className: '', 
             iconSize: [30, 30],
-            iconAnchor: [15, 15] // Punto de anclaje en el centro
+            iconAnchor: [15, 15]
         });
+    }
+
+    // Función para centrar ambos marcadores
+    function centrarMapa() {
+        if (marcadorCliente && marcadorMovil) {
+            const grupo = L.featureGroup([marcadorCliente, marcadorMovil]);
+            map.fitBounds(grupo.getBounds(), { padding: [50, 50] });
+        }
     }
 
     function mostrarModal(titulo, texto, onConfirm) {
@@ -89,41 +96,35 @@
     async function cargarInfo() {
         if (!solicitudId) { window.location.href = 'index.html'; return; }
         
-        const { data, error } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
+        const { data } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
         
-        if (data) {
+        if (data && data.latitud) {
             document.getElementById('infoCliente').innerText = `Servicio: ${data.comentario_solicitud || 'En curso'}`;
-            if(data.latitud) {
-                map.setView([data.latitud, data.longitud], 16);
-                marcadorCliente = L.marker([data.latitud, data.longitud], { icon: crearIcono('🏠') }).addTo(map);
-            }
+            marcadorCliente = L.marker([data.latitud, data.longitud], { icon: crearIcono('🏠') }).addTo(map);
         }
         cargarMensajesPrevios();
         inicializarCanales();
     }
 
     async function inicializarCanales() {
-        const { data: ubicacion } = await client
-            .from('ubicacion_moviles')
-            .select('*')
-            .eq('solicitud_id', solicitudId)
-            .maybeSingle();
+        const { data: ubicacion } = await client.from('ubicacion_moviles').select('*').eq('solicitud_id', solicitudId).maybeSingle();
             
         if (ubicacion) {
             marcadorMovil = L.marker([ubicacion.latitud, ubicacion.longitud], { icon: crearIcono('🚐') }).addTo(map);
+            centrarMapa();
         }
 
         client.channel(`solicitud_${solicitudId}`).on('broadcast', { event: 'ubicacion_actualizada' }, (payload) => {
-            if (!marcadorMovil) marcadorMovil = L.marker([payload.payload.latitud, payload.payload.longitud], { icon: crearIcono('🚐') }).addTo(map);
-            else marcadorMovil.setLatLng([payload.payload.latitud, payload.payload.longitud]);
+            if (!marcadorMovil) {
+                marcadorMovil = L.marker([payload.payload.latitud, payload.payload.longitud], { icon: crearIcono('🚐') }).addTo(map);
+                centrarMapa();
+            } else {
+                marcadorMovil.setLatLng([payload.payload.latitud, payload.payload.longitud]);
+            }
         }).subscribe();
 
-        client.channel('status_channel').on('postgres_changes', { 
-            event: 'UPDATE', 
-            schema: 'public', 
-            table: 'solicitudes', 
-            filter: `solicitud_id=eq.${solicitudId}` 
-        }, async (payload) => { 
+        // Canal de estado y mensajes (sin cambios)
+        client.channel('status_channel').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitudes', filter: `solicitud_id=eq.${solicitudId}` }, async (payload) => { 
             if (payload.new.respuesta_solicitud === 'finalizado') {
                 await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
                 await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
@@ -165,4 +166,5 @@
 
     window.onload = cargarInfo;
 </script>
+</body>
 </html>
