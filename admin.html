@@ -65,9 +65,16 @@
         </section>
 
         <section class="bg-white p-6 rounded shadow">
-            <h2 class="text-xl font-bold text-teal-900 mb-4">3.- ESTADISTICAS</h2>
+            <h2 class="text-xl font-bold text-teal-900 mb-4">3.- ESTADISTICAS: INCIDENCIA POR SERVICIO</h2>
             <div style="height: 500px;">
                 <canvas id="graficoServicios"></canvas>
+            </div>
+        </section>
+
+        <section class="bg-white p-6 rounded shadow">
+            <h2 class="text-xl font-bold text-teal-900 mb-4">4.- PRODUCTIVIDAD POR TECNICO (% SERVICIOS FINALIZADOS)</h2>
+            <div style="height: 400px;">
+                <canvas id="graficoProductividad"></canvas>
             </div>
         </section>
     </div>
@@ -76,7 +83,8 @@
         const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
         const client = supabase.createClient(supabaseUrl, supabaseKey);
-        let miGrafico;
+        
+        let chartIncidencia, chartProductividad;
 
         async function cargarTodo() {
             // 1. Cargar Móviles
@@ -106,37 +114,54 @@
                 </tr>
             `).join('');
 
-            // 3. Actualizar Gráfico
-            actualizarGrafico(solicitudes);
+            // 3 & 4. Actualizar ambos gráficos
+            actualizarGraficos(solicitudes);
         }
 
-        function actualizarGrafico(solicitudes) {
-            const ctx = document.getElementById('graficoServicios').getContext('2d');
+        function actualizarGraficos(solicitudes) {
+            // --- Gráfico 3: Incidencia (Horizontal) ---
+            const ctx1 = document.getElementById('graficoServicios').getContext('2d');
             const conteo = {};
-            const total = solicitudes.length;
-            
             solicitudes.forEach(s => {
                 const tipo = s.comentario_solicitud || 'Otro';
                 conteo[tipo] = (conteo[tipo] || 0) + 1;
             });
 
-            if (miGrafico) miGrafico.destroy();
-            miGrafico = new Chart(ctx, {
+            if (chartIncidencia) chartIncidencia.destroy();
+            chartIncidencia = new Chart(ctx1, {
                 type: 'bar',
                 data: {
                     labels: Object.keys(conteo),
                     datasets: [{
                         label: '% Incidencia',
-                        data: Object.values(conteo).map(c => total > 0 ? ((c / total) * 100).toFixed(1) : 0),
+                        data: Object.values(conteo).map(c => ((c / solicitudes.length) * 100).toFixed(1)),
                         backgroundColor: '#0f766e'
                     }]
                 },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } } }
-                }
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { max: 100, ticks: { callback: v => v + '%' } } } }
+            });
+
+            // --- Gráfico 4: Productividad (Vertical) ---
+            const ctx2 = document.getElementById('graficoProductividad').getContext('2d');
+            const finalizados = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado');
+            const conteoTecnicos = {};
+            finalizados.forEach(s => {
+                const tech = s.id_tecnico || 'Sin asignar';
+                conteoTecnicos[tech] = (conteoTecnicos[tech] || 0) + 1;
+            });
+
+            if (chartProductividad) chartProductividad.destroy();
+            chartProductividad = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(conteoTecnicos),
+                    datasets: [{
+                        label: '% Servicios Finalizados por Técnico',
+                        data: Object.values(conteoTecnicos).map(c => ((c / finalizados.length) * 100).toFixed(1)),
+                        backgroundColor: '#d97706'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { max: 100, ticks: { callback: v => v + '%' } } } }
             });
         }
 
