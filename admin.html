@@ -79,7 +79,77 @@
         </div>
     </div>
     <script>
-        // ... (código existente de carga y gráficos)
+        const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
+        let chartIncidencia, chartProductividad;
+
+        function getColor(val, all) {
+            const max = Math.max(...all);
+            const min = Math.min(...all);
+            if (val === max) return '#10b981';
+            if (val === min) return '#ef4444';
+            if (val > (max * 0.6)) return '#f59e0b';
+            return '#eab308';
+        }
+
+        async function cargarTodo() {
+            try {
+                const { data: moviles } = await client.from('moviles').select('*');
+                if (moviles) document.getElementById('tablaMoviles').innerHTML = moviles.map(m => `<tr><td class="p-2">${m.movil_id}</td><td class="p-2">${m.celular}</td><td class="p-2 font-bold ${m.estado === 'activo' ? 'text-green-600' : 'text-red-600'}">${m.estado}</td><td class="p-2">${m.id_tecnico || 'Libre'}</td></tr>`).join('');
+
+                const { data: solicitudes } = await client.from('solicitudes').select('*').order('solicitud_id', { ascending: false });
+                if (!solicitudes) return;
+
+                document.getElementById('countPendientes').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'pendiente').length;
+                document.getElementById('countEnCamino').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'aceptado').length;
+                document.getElementById('countFinalizados').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado').length;
+                
+                document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `<tr><td class="p-3">${s.solicitud_id}</td><td class="p-3">${s.nombre_usuario || 'Anónimo'}</td><td class="p-3">${s.id_tecnico || 'Sin asignar'}</td><td class="p-3 font-bold">${s.respuesta_solicitud.toUpperCase()}</td></tr>`).join('');
+
+                // Gráfico 3: Incidencia
+                const serviciosValidos = ["Fumigación contra El dengue y chikungunya", "Desbrozado de entrada, patios y Jardines", "Problemas de Plomería", "Fuga de Agua", "Tuberías trancadas del drenaje sanitario y de lluvias", "Mi Ducha Eléctrica NO funciona", "Interruptor / Tomacorriente NO funciona", "Requiero Solución definitiva para GOTERAS", "Mantenimiento de AIRE ACONDICIONADO", "Instalación de AIRE ACONDICIONADO", "Servicio control de Humedad en Paredes", "Retoques de pintura en Fachada, Puertas de Acceso, Etc.", "Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)", "Necesito aplicar veneno para los Sepes", "Remodelación de Vivienda y Oficinas", "Ampliación de Vivienda y Oficinas"];
+
+                const conteo = {};
+                solicitudes.forEach(s => {
+                    const categoria = serviciosValidos.includes(s.comentario_solicitud) ? s.comentario_solicitud : "Otros";
+                    conteo[categoria] = (conteo[categoria] || 0) + 1;
+                });
+
+                const labels = Object.keys(conteo);
+                const data = Object.values(conteo).map(c => parseFloat(((c / solicitudes.length) * 100).toFixed(1)));
+                const maxVal = Math.max(...data);
+
+                if (chartIncidencia) chartIncidencia.destroy();
+                chartIncidencia = new Chart(document.getElementById('graficoServicios').getContext('2d'), { 
+                    type: 'bar', plugins: [ChartDataLabels],
+                    data: { labels, datasets: [{ data, backgroundColor: data.map(v => getColor(Number(v), data)) }] }, 
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', formatter: v => v + '%', padding: 5 } }, scales: { x: { max: maxVal + 15, beginAtZero: true } } } 
+                });
+                document.getElementById('tablaIncidencia').innerHTML = labels.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(data[i]), data)}">${data[i]}%</td></tr>`).join('');
+
+                // Gráfico 4: Productividad
+                const finalizados = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado');
+                const cTech = {};
+                finalizados.forEach(s => cTech[s.id_tecnico || 'Sin asignar'] = (cTech[s.id_tecnico || 'Sin asignar'] || 0) + 1);
+                const lTech = Object.keys(cTech);
+                const dTech = Object.values(cTech).map(c => parseFloat(((c / finalizados.length) * 100).toFixed(1)));
+                const maxTech = Math.max(...dTech);
+
+                if (chartProductividad) chartProductividad.destroy();
+                chartProductividad = new Chart(document.getElementById('graficoProductividad').getContext('2d'), { 
+                    type: 'bar', plugins: [ChartDataLabels],
+                    data: { labels: lTech, datasets: [{ data: dTech, backgroundColor: dTech.map(v => getColor(Number(v), dTech)) }] }, 
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: v => v + '%' } }, scales: { y: { max: maxTech + 15, beginAtZero: true } } } 
+                });
+                document.getElementById('tablaProductividad').innerHTML = lTech.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(dTech[i]), dTech)}">${dTech[i]}%</td></tr>`).join('');
+            } catch (e) {
+                console.error("Error al cargar datos:", e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarTodo();
+            client.channel('admin_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, cargarTodo).subscribe();
+        });
     </script>
 </body>
 </html>
