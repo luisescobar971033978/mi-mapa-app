@@ -6,6 +6,10 @@
     <title>Panel de Técnico</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .girando { animation: spin 1s linear infinite; }
+    </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-4">
     <div class="max-w-md mx-auto">
@@ -24,6 +28,9 @@
 
         <header class="mb-6 text-center hidden" id="headerPrincipal">
             <h2 class="text-2xl font-bold text-teal-900">SOLICITUDES PENDIENTES</h2>
+            <button onclick="actualizarManual()" class="mt-2 text-teal-800 hover:text-teal-600 transition-all">
+                <span id="btnIcon" style="font-size: 24px; display: inline-block;">⟳</span>
+            </button>
             <div class="flex justify-center items-center gap-2 mt-2">
                 <p class="text-gray-500 text-sm">Técnico: <span id="displayTecnico" class="font-bold"></span></p>
             </div>
@@ -34,33 +41,38 @@
             <div class="text-center py-10">Cargando datos...</div>
         </div>
     </div>
-<div id="modalCustom" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white p-6 rounded shadow-lg">
-        <h2 id="modalTitle" class="text-xl font-bold mb-4"></h2>
-        <p id="modalText" class="mb-4"></p>
-        <button id="btnConfirmar" class="bg-teal-800 text-white px-4 py-2 rounded">Aceptar</button>
+    
+    <div id="modalCustom" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-[3000]">
+        <div class="bg-white p-6 rounded shadow-lg">
+            <h2 id="modalTitle" class="text-xl font-bold mb-4"></h2>
+            <p id="modalText" class="mb-4"></p>
+            <button id="btnConfirmar" class="bg-teal-800 text-white px-4 py-2 rounded">Aceptar</button>
+        </div>
     </div>
-</div>
+
    <script>
     const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
       
-// Añadir esto al inicio de tu script en tecnico.html
-function mostrarModal(titulo, texto, onConfirm) {
-    const modal = document.getElementById('modalCustom');
-    if (!modal) {
-        console.error("El elemento modalCustom no existe en este HTML");
-        return;
+    function mostrarModal(titulo, texto, onConfirm) {
+        const modal = document.getElementById('modalCustom');
+        document.getElementById('modalTitle').innerText = titulo;
+        document.getElementById('modalText').innerText = texto;
+        document.getElementById('btnConfirmar').onclick = () => { 
+            modal.classList.add('hidden'); 
+            if(onConfirm) onConfirm(); 
+        };
+        modal.classList.remove('hidden');
     }
-    document.getElementById('modalTitle').innerText = titulo;
-    document.getElementById('modalText').innerText = texto;
-    document.getElementById('btnConfirmar').onclick = () => { 
-        modal.classList.add('hidden'); 
-        if(onConfirm) onConfirm(); 
-    };
-    modal.classList.remove('hidden');
-}
+
+    async function actualizarManual() {
+        const btnIcon = document.getElementById('btnIcon');
+        btnIcon.classList.add('girando');
+        await cargarSolicitudes();
+        setTimeout(() => btnIcon.classList.remove('girando'), 500);
+    }
+
     window.onload = () => {
         const t = localStorage.getItem('tecnico');
         const loginForm = document.getElementById('loginForm');
@@ -75,7 +87,6 @@ function mostrarModal(titulo, texto, onConfirm) {
             loginForm.classList.add('hidden'); 
             document.getElementById('displayTecnico').innerText = t;
             header.classList.remove('hidden');
-            
             const servicioPendiente = localStorage.getItem('solicitudId_activo');
             if (servicioPendiente) {
                 window.location.href = `mapa_tecnico.html?id=${servicioPendiente}`;
@@ -86,7 +97,6 @@ function mostrarModal(titulo, texto, onConfirm) {
     };
 
     function cerrarSesion() {
-        // CORRECCIÓN: Asegúrate de que tu mostrarModal ejecute el callback
         mostrarModal("Cerrar Sesión", "¿Deseas cerrar sesión?", () => {
             localStorage.clear();
             location.reload();
@@ -114,15 +124,11 @@ function mostrarModal(titulo, texto, onConfirm) {
             localStorage.setItem('tecnico', idTecnico);
             localStorage.setItem('movil', movil);
             location.reload();
-        } catch (err) {
-            console.error(err);
-            alert("Error de conexión.");
-        }
+        } catch (err) { alert("Error de conexión."); }
     }
 
     async function cargarSolicitudes() {
         const lista = document.getElementById('listaSolicitudes');
-        
         const { data, error } = await client
             .from('solicitudes')
             .select('*')
@@ -130,8 +136,7 @@ function mostrarModal(titulo, texto, onConfirm) {
             .order('solicitud_id', { ascending: false });
         
         if (error) { 
-            console.error("Error Supabase:", error);
-            lista.innerHTML = `<p class="text-red-500 text-center">Error: ${error.message}</p>`; 
+            lista.innerHTML = `<p class="text-red-500 text-center">Error al cargar.</p>`; 
             lista.classList.remove('hidden');
             return; 
         }
@@ -144,20 +149,11 @@ function mostrarModal(titulo, texto, onConfirm) {
         
         lista.innerHTML = "";
         data.forEach(s => {
-            const fecha = s.fecha_solicitud || 'N/A';
-            const hora = s.hora_solicitud ? s.hora_solicitud.substring(0, 5) : 'N/A';
-
             lista.innerHTML += `
             <div class="bg-white p-4 rounded-lg shadow-md border-l-4 border-teal-800 mb-4">
                 <h3 class="font-bold text-lg">${s.comentario_solicitud || 'Sin comentario'}</h3>
                 <p class="text-sm text-gray-600"><strong>Cliente:</strong> ${s.nombre_usuario || 'Anónimo'}</p>
-                <p class="text-xs text-gray-500 mt-2 flex gap-4">
-                    <span>📅 ${fecha}</span>
-                    <span>🕒 ${hora}</span>
-                </p>
-                <button onclick="confirmar(${s.solicitud_id})" class="w-full mt-3 bg-teal-800 text-white p-2 rounded font-bold">
-                    CONFIRMAR SERVICIO
-                </button>
+                <button onclick="confirmar(${s.solicitud_id})" class="w-full mt-3 bg-teal-800 text-white p-2 rounded font-bold">CONFIRMAR SERVICIO</button>
             </div>`;
         });
         lista.classList.remove('hidden');
@@ -173,23 +169,13 @@ function mostrarModal(titulo, texto, onConfirm) {
             }).eq('solicitud_id', id);
 
             if (error) throw error;
-
-            await client.from('mensajes').insert({
-                solicitud_id: id,
-                emisor: 'tecnico',
-                mensaje: 'Hola, soy su técnico. Voy en camino.'
-            });
-
             window.location.href = `mapa_tecnico.html?id=${id}`;
-        } catch (err) {
-            alert("Error al confirmar el servicio.");
-        }
+        } catch (err) { alert("Error al confirmar."); }
     }
 
-    // Canal en tiempo real: Solo recarga si hay cambios relevantes
     client.channel('solicitudes_channel')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'solicitudes' }, () => { 
-            cargarSolicitudes(); 
-        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'solicitudes' }, () => { cargarSolicitudes(); })
         .subscribe();
 </script>
+</body>
+</html>
