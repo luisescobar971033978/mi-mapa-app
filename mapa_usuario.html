@@ -8,6 +8,16 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+    /* Asegura que los iconos estén perfectamente centrados en sus coordenadas */
+    .icon-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 30px;
+        height: 30px;
+    }
+</style>
 </head>
 <body class="bg-gray-100 h-screen flex flex-col">
 
@@ -53,6 +63,15 @@
 
     let marcadorCliente = null, marcadorMovil = null;
 
+    function crearIcono(emoji) {
+        return L.divIcon({
+            html: `<div class="icon-wrapper" style="font-size:30px;">${emoji}</div>`,
+            className: '', 
+            iconSize: [30, 30],
+            iconAnchor: [15, 15] // Punto de anclaje en el centro
+        });
+    }
+
     function mostrarModal(titulo, texto, onConfirm) {
         const modal = document.getElementById('modalCustom');
         document.getElementById('modalTitle').innerText = titulo;
@@ -76,7 +95,7 @@
             document.getElementById('infoCliente').innerText = `Servicio: ${data.comentario_solicitud || 'En curso'}`;
             if(data.latitud) {
                 map.setView([data.latitud, data.longitud], 16);
-                marcadorCliente = L.marker([data.latitud, data.longitud], { icon: L.divIcon({ html: '<div style="font-size:30px;">🏠</div>', className: '' }) }).addTo(map);
+                marcadorCliente = L.marker([data.latitud, data.longitud], { icon: crearIcono('🏠') }).addTo(map);
             }
         }
         cargarMensajesPrevios();
@@ -84,7 +103,6 @@
     }
 
     async function inicializarCanales() {
-        // Carga inicial de ubicación
         const { data: ubicacion } = await client
             .from('ubicacion_moviles')
             .select('*')
@@ -92,16 +110,14 @@
             .maybeSingle();
             
         if (ubicacion) {
-            marcadorMovil = L.marker([ubicacion.latitud, ubicacion.longitud], { icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) }).addTo(map);
+            marcadorMovil = L.marker([ubicacion.latitud, ubicacion.longitud], { icon: crearIcono('🚐') }).addTo(map);
         }
 
-        // Canal de ubicación
         client.channel(`solicitud_${solicitudId}`).on('broadcast', { event: 'ubicacion_actualizada' }, (payload) => {
-            if (!marcadorMovil) marcadorMovil = L.marker([payload.payload.latitud, payload.payload.longitud], { icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) }).addTo(map);
+            if (!marcadorMovil) marcadorMovil = L.marker([payload.payload.latitud, payload.payload.longitud], { icon: crearIcono('🚐') }).addTo(map);
             else marcadorMovil.setLatLng([payload.payload.latitud, payload.payload.longitud]);
         }).subscribe();
 
-        // Canal de estado
         client.channel('status_channel').on('postgres_changes', { 
             event: 'UPDATE', 
             schema: 'public', 
@@ -111,9 +127,7 @@
             if (payload.new.respuesta_solicitud === 'finalizado') {
                 await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
                 await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
-// --- AQUÍ ESTÁ EL AJUSTE --
-        localStorage.setItem('servicio_finalizado', 'true'); // Marcamos la bandera para la puerta 🚪
-        // ---------------------------
+                localStorage.setItem('servicio_finalizado', 'true');
                 mostrarModal("Servicio Finalizado", "Gracias por su confianza...Nuestro principal Objetivo es lograr su CONFORMIDAD", () => {
                     localStorage.removeItem('id_solicitud'); 
                     window.location.href = 'index.html';
@@ -121,7 +135,6 @@
             }
         }).subscribe();
 
-        // Canal de mensajes
         client.channel('mensajes_channel').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
             renderizarMensaje(payload.new);
             sonidoAlerta.play().catch(e => {});
@@ -152,5 +165,4 @@
 
     window.onload = cargarInfo;
 </script>
-</body>
 </html>
