@@ -83,11 +83,17 @@
     let filaSeleccionada = null; 
 
     function marcarCelda(campo, id, event) {
-        celdaSeleccionada = { campo, id };
-        event.stopPropagation();
-        document.querySelectorAll('td').forEach(td => td.classList.remove('ring', 'ring-teal-500'));
-        event.target.classList.add('ring', 'ring-teal-500');
-    }
+    celdaSeleccionada = { campo, id };
+    
+    // Sincronizamos la selección de elemento para que el botón Editar sepa qué ID usar
+    elementoSeleccionado = { id: id, tipo: 'movil' };
+    
+    event.stopPropagation();
+    
+    // Feedback visual
+    document.querySelectorAll('td').forEach(td => td.classList.remove('ring', 'ring-teal-500'));
+    event.target.classList.add('ring', 'ring-teal-500');
+}
 
     function getColor(v, arr) {
         const sorted = [...arr].sort((a, b) => b - a);
@@ -101,23 +107,21 @@
     }
 
     function seleccionarElemento(id, tipo, event) {
-        elementoSeleccionado = { id, tipo };
-        document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
-        const fila = event.target.closest('tr');
-        if (fila) {
-            fila.classList.add('bg-teal-100');
-            filaSeleccionada = fila;
-        }
-        const botones = { btnVer: (tipo === 'solicitud'), btnEditar: (tipo === 'movil'), btnBorrar: (tipo === 'solicitud'), btnAsignar: (tipo === 'solicitud'), btnMensaje: (tipo === 'solicitud'), btnFinalizar: (tipo === 'solicitud') };
-        Object.keys(botones).forEach(idBtn => {
-            const btn = document.getElementById(idBtn);
-            if (btn) {
-                btn.disabled = !botones[idBtn];
-                btn.classList.toggle('opacity-50', btn.disabled);
-                btn.classList.toggle('cursor-not-allowed', btn.disabled);
-            }
-        });
+    // 1. Guardamos el elemento seleccionado
+    elementoSeleccionado = { id, tipo };
+    
+    // 2. Resaltado visual de la fila
+    document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
+    const fila = event.target.closest('tr');
+    if (fila) fila.classList.add('bg-teal-100');
+
+    // 3. ¡IMPORTANTE! Forzamos la habilitación del botón Editar si es un móvil
+    const btnEditar = document.getElementById('btnEditar');
+    if (btnEditar && tipo === 'movil') {
+        btnEditar.disabled = false;
+        btnEditar.classList.remove('opacity-50', 'cursor-not-allowed');
     }
+}
 
     async function cargarTodo() {
         // Carga de Móviles
@@ -173,23 +177,30 @@
     }
 
     async function editarElemento() {
-        if (elementoSeleccionado.tipo !== 'movil') return;
-        if (!celdaSeleccionada.campo || celdaSeleccionada.id !== elementoSeleccionado.id) {
-            alert("Por favor, haga clic primero en la celda específica que desea editar.");
-            return;
-        }
-        const campo = celdaSeleccionada.campo;
-        const nuevoValor = prompt(`Ingrese el nuevo valor para [${campo}]:`);
-        if (nuevoValor === null) return;
-        const { error } = await client.from('moviles').update({ [campo]: nuevoValor }).eq('movil_id', celdaSeleccionada.id);
-        if (error) {
-            alert("Error al actualizar: " + error.message);
-        } else {
-            alert("¡Actualización exitosa!");
-            celdaSeleccionada = { campo: null, id: null };
-            cargarTodo();
-        }
+    // Si no hay celda seleccionada, avisar
+    if (!celdaSeleccionada.campo) {
+        alert("Primero haz clic en la celda que deseas editar.");
+        return;
     }
+
+    const campo = celdaSeleccionada.campo;
+    const nuevoValor = prompt(`Ingrese el nuevo valor para ${campo}:`);
+    
+    if (nuevoValor === null) return;
+
+    const { error } = await client
+        .from('moviles')
+        .update({ [campo]: nuevoValor })
+        .eq('movil_id', celdaSeleccionada.id);
+
+    if (error) {
+        alert("Error: " + error.message);
+    } else {
+        alert("¡Actualizado!");
+        celdaSeleccionada = { campo: null, id: null };
+        cargarTodo();
+    }
+}
 
     async function borrarElemento() {
         if (elementoSeleccionado.tipo !== 'solicitud') return;
