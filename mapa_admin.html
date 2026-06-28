@@ -27,21 +27,80 @@ HTML
         </div>
     </div>
 
-    <script>
-        // 1. Obtener ID de la URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const solicitudId = urlParams.get('id');
+   <script>
+    // 1. Obtener ID de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const solicitudId = urlParams.get('id');
 
-        async function cargarDatosVisor() {
-            if (!solicitudId) {
-                document.body.innerHTML = "<h1>Error: No se ha especificado un servicio.</h1>";
-                return;
-            }
-            console.log("Cargando supervisor para la solicitud:", solicitudId);
-            // Aquí luego conectaremos con Supabase para traer los datos
+    // Cliente Supabase
+    const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
+
+    // Función principal unificada
+    async function cargarDatosVisor() {
+        if (!solicitudId) {
+            document.body.innerHTML = "<h1>Error: No se ha especificado un servicio.</h1>";
+            return;
+        }
+        
+        console.log("Cargando supervisor para la solicitud:", solicitudId);
+
+        // 1. Obtener la solicitud
+        const { data: solicitud, error } = await client
+            .from('solicitudes')
+            .select('*')
+            .eq('solicitud_id', solicitudId)
+            .single();
+
+        if (error || !solicitud) {
+            document.getElementById('infoServicio').innerText = "Error al cargar la información del servicio.";
+            return;
         }
 
-        window.onload = cargarDatosVisor;
-    </script>
+        // 2. Mostrar datos en modo solo lectura
+        document.getElementById('infoServicio').innerHTML = `
+            <p><strong>ID Servicio:</strong> ${solicitud.solicitud_id}</p>
+            <p><strong>Usuario:</strong> ${solicitud.nombre_usuario || 'Anónimo'}</p>
+            <p><strong>Técnico Asignado:</strong> ${solicitud.id_tecnico || 'Sin asignar'}</p>
+            <p><strong>Estado:</strong> ${solicitud.respuesta_solicitud || 'PENDIENTE'}</p>
+        `;
+
+        // 3. Cargar mensajes
+        cargarMensajes(solicitudId);
+    }
+
+    async function cargarMensajes(id) {
+        const { data: mensajes } = await client
+            .from('mensajes')
+            .select('*')
+            .eq('solicitud_id', id)
+            .order('created_at', { ascending: true });
+
+        if (mensajes) {
+            document.getElementById('chatMensajes').innerHTML = mensajes.map(m => `
+                <div class="mb-2">
+                    <span class="font-bold">${m.emisor}:</span> ${m.contenido}
+                </div>
+            `).join('');
+        }
+    }
+
+    // Inicialización y Suscripción en Tiempo Real
+    window.onload = () => {
+        cargarDatosVisor();
+
+        // Suscripción para ver actualizaciones en tiempo real (solo lectura)
+        client.channel('realtime_visor')
+            .on('postgres_changes', { 
+                event: 'UPDATE', 
+                schema: 'public', 
+                table: 'solicitudes', 
+                filter: `solicitud_id=eq.${solicitudId}` 
+            }, (payload) => {
+                console.log("Actualización recibida en tiempo real");
+                cargarDatosVisor();
+            })
+            .subscribe();
+    };
+</script>
 </body>
 </html>
