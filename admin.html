@@ -74,64 +74,52 @@
     </div>
 
     <script>
-        const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
-        let chartIncidencia, chartProductividad;
-        let elementoSeleccionado = { id: null, tipo: null };
+    const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
+    let chartIncidencia, chartProductividad;
+    let elementoSeleccionado = { id: null, tipo: null };
 
-        function seleccionarElemento(id, tipo, event) {
-    elementoSeleccionado = { id, tipo };
-    
-    // Limpiar selección visual
-    document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
-    // Marcar fila actual
-    event.currentTarget.classList.add('bg-teal-100');
+    function seleccionarElemento(id, tipo, event) {
+        elementoSeleccionado = { id, tipo };
+        
+        document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
+        event.currentTarget.classList.add('bg-teal-100');
 
-    // Desbloqueo lógico
-    document.getElementById('btnVer').disabled = (tipo !== 'solicitud');
-    document.getElementById('btnEditar').disabled = (tipo !== 'movil'); // <-- Aquí está la clave
-    document.getElementById('btnBorrar').disabled = (tipo !== 'solicitud');
-    document.getElementById('btnAsignar').disabled = (tipo !== 'solicitud');
-    document.getElementById('btnMensaje').disabled = (tipo !== 'solicitud');
-    document.getElementById('btnFinalizar').disabled = (tipo !== 'solicitud');
-}
+        document.getElementById('btnVer').disabled = (tipo !== 'solicitud');
+        document.getElementById('btnEditar').disabled = (tipo !== 'movil');
+        document.getElementById('btnBorrar').disabled = (tipo !== 'solicitud');
+        document.getElementById('btnAsignar').disabled = (tipo !== 'solicitud');
+        document.getElementById('btnMensaje').disabled = (tipo !== 'solicitud');
+        document.getElementById('btnFinalizar').disabled = (tipo !== 'solicitud');
+    }
 
-        function getColor(val, all) {
-            const max = Math.max(...all);
-            const min = Math.min(...all);
-            if (val === max) return '#10b981';
-            if (val === min) return '#ef4444';
-            return val > (max * 0.6) ? '#f59e0b' : '#eab308';
+    async function cargarTodo() {
+        const { data: moviles } = await client.from('moviles').select('*');
+        if (moviles) {
+            document.getElementById('tablaMoviles').innerHTML = moviles.map(m => `
+                <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${m.movil_id}', 'movil', event)">
+                    <td class="p-2">${m.movil_id}</td>
+                    <td class="p-2">${m.celular}</td>
+                    <td class="p-2 font-bold ${m.estado === 'activo' ? 'text-green-600' : 'text-red-600'}">${m.estado}</td>
+                    <td class="p-2">${m.id_tecnico || 'Libre'}</td>
+                </tr>`).join('');
         }
 
-        async function cargarTodo() {
-    const { data: moviles } = await client.from('moviles').select('*');
-    if (moviles) {
-        document.getElementById('tablaMoviles').innerHTML = moviles.map(m => `
-            <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${m.movil_id}', 'movil', event)">
-                <td class="p-2">${m.movil_id}</td>
-                <td class="p-2">${m.celular}</td>
-                <td class="p-2 font-bold ${m.estado === 'activo' ? 'text-green-600' : 'text-red-600'}">${m.estado}</td>
-                <td class="p-2">${m.id_tecnico || 'Libre'}</td>
-            </tr>`).join('');
+        const { data: solicitudes } = await client.from('solicitudes').select('*').order('solicitud_id', { ascending: false });
+        if (solicitudes) {
+            document.getElementById('countPendientes').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'pendiente').length;
+            document.getElementById('countEnCamino').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'aceptado').length;
+            document.getElementById('countFinalizados').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado').length;
+            
+            document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `
+                <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${s.solicitud_id}', 'solicitud', event)">
+                    <td class="p-3">${s.solicitud_id}</td>
+                    <td class="p-3">${s.nombre_usuario || 'Anónimo'}</td>
+                    <td class="p-3">${s.id_tecnico || 'Sin asignar'}</td>
+                    <td class="p-3 font-bold">${s.respuesta_solicitud.toUpperCase()}</td>
+                </tr>`).join('');
+        }
     }
 
-    const { data: solicitudes } = await client.from('solicitudes').select('*').order('solicitud_id', { ascending: false });
-    if (solicitudes) {
-        document.getElementById('countPendientes').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'pendiente').length;
-        document.getElementById('countEnCamino').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'aceptado').length;
-        document.getElementById('countFinalizados').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado').length;
-        
-        document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `
-            <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${s.solicitud_id}', 'solicitud', event)">
-                <td class="p-3">${s.solicitud_id}</td>
-                <td class="p-3">${s.nombre_usuario || 'Anónimo'}</td>
-                <td class="p-3">${s.id_tecnico || 'Sin asignar'}</td>
-                <td class="p-3 font-bold">${s.respuesta_solicitud.toUpperCase()}</td>
-            </tr>`).join('');
-    }
-    // Lógica de gráficos permanece igual
-
-        document.addEventListener('DOMContentLoaded', cargarTodo);
-    </script>
-</body>
-</html>
+    // Inicialización fuera de la función
+    document.addEventListener('DOMContentLoaded', cargarTodo);
+</script>
