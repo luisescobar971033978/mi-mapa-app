@@ -100,21 +100,31 @@ function getColor(v, arr) {
     return '#14b8a6'; // Teal intermedio para el resto de datos
 }
 
-        function seleccionarElemento(id, tipo, event) {
-            elementoSeleccionado = { id, tipo };
-            document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
-            const fila = event.target.closest('tr');
-            if (fila) fila.classList.add('bg-teal-100');
-            const botones = { btnVer: (tipo === 'solicitud'), btnEditar: (tipo === 'movil'), btnBorrar: (tipo === 'solicitud'), btnAsignar: (tipo === 'solicitud'), btnMensaje: (tipo === 'solicitud'), btnFinalizar: (tipo === 'solicitud') };
-            Object.keys(botones).forEach(idBtn => {
-                const btn = document.getElementById(idBtn);
-                if (btn) {
-                    btn.disabled = !botones[idBtn];
-                    btn.classList.toggle('opacity-50', btn.disabled);
-                    btn.classList.toggle('cursor-not-allowed', btn.disabled);
-                }
-            });
+        // Agrega esta variable global arriba junto a las otras
+let filaSeleccionada = null; 
+
+function seleccionarElemento(id, tipo, event) {
+    elementoSeleccionado = { id, tipo };
+    
+    // Resaltamos la fila visualmente
+    document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
+    const fila = event.target.closest('tr');
+    if (fila) {
+        fila.classList.add('bg-teal-100');
+        filaSeleccionada = fila; // Guardamos la referencia a la fila
+    }
+
+    // Lógica original de botones
+    const botones = { btnVer: (tipo === 'solicitud'), btnEditar: (tipo === 'movil'), btnBorrar: (tipo === 'solicitud'), btnAsignar: (tipo === 'solicitud'), btnMensaje: (tipo === 'solicitud'), btnFinalizar: (tipo === 'solicitud') };
+    Object.keys(botones).forEach(idBtn => {
+        const btn = document.getElementById(idBtn);
+        if (btn) {
+            btn.disabled = !botones[idBtn];
+            btn.classList.toggle('opacity-50', btn.disabled);
+            btn.classList.toggle('cursor-not-allowed', btn.disabled);
         }
+    });
+}
 
         async function cargarTodo() {
             const { data: moviles } = await client.from('moviles').select('*');
@@ -167,13 +177,31 @@ function getColor(v, arr) {
         // ... (resto de funciones de edición y borrado sin cambios)
 
         async function editarElemento() {
-            if (elementoSeleccionado.tipo !== 'movil') return;
-            const nuevoEstado = prompt("Ingrese el nuevo estado para el móvil (activo/inactivo):");
-            if (!nuevoEstado) return;
-            const { error } = await client.from('moviles').update({ estado: nuevoEstado }).eq('movil_id', elementoSeleccionado.id);
-            if (error) alert("Error: " + error.message);
-            else { alert("¡Móvil actualizado!"); cargarTodo(); }
-        }
+    if (elementoSeleccionado.tipo !== 'movil') return;
+
+    // Pedimos el campo directamente (se puede mejorar para que sea un menú desplegable)
+    const campo = prompt("¿Qué desea editar? Escriba: estado, celular, o id_tecnico");
+    
+    if (!campo || !['estado', 'celular', 'id_tecnico'].includes(campo.toLowerCase())) {
+        alert("Campo no válido. Debe ser: estado, celular o id_tecnico");
+        return;
+    }
+
+    const nuevoValor = prompt(`Ingrese el nuevo valor para ${campo.toLowerCase()}:`);
+    if (nuevoValor === null) return;
+
+    const { error } = await client
+        .from('moviles')
+        .update({ [campo.toLowerCase()]: nuevoValor })
+        .eq('movil_id', elementoSeleccionado.id);
+
+    if (error) {
+        alert("Error al actualizar: " + error.message);
+    } else {
+        alert("¡Actualización exitosa!");
+        cargarTodo(); // Refresca la tabla y mantiene el orden
+    }
+}
 
         async function borrarElemento() {
             if (elementoSeleccionado.tipo !== 'solicitud') return;
