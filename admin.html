@@ -176,6 +176,9 @@ async function borrarElemento() {
         }
     }
 }
+        // Inicialización fuera de la función
+    document.addEventListener('DOMContentLoaded', cargarTodo);
+        
 // Gráfico 3: Incidencia
             const serviciosValidos = [
     "Fumigación contra El dengue y chikungunya",
@@ -250,8 +253,8 @@ document.getElementById('tablaIncidencia').innerHTML = labels.map((l, i) => `<tr
             });
             document.getElementById('tablaProductividad').innerHTML = lTech.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(dTech[i]), dTech)}">${dTech[i]}%</td></tr>`).join('');
         }
-        
-    // Inicialización fuera de la función
-    document.addEventListener('DOMContentLoaded', cargarTodo);
+        cargarTodo();
+        client.channel('admin_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, cargarTodo).subscribe();
+    
         
 </script>
