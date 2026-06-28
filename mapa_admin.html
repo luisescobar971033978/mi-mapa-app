@@ -1,0 +1,47 @@
+HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Visor de Servicio en Curso</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-6">
+
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-4">Supervisión en Tiempo Real</h1>
+        
+        <div id="mapa" class="w-full h-96 bg-gray-200 rounded-lg shadow-md mb-6 flex items-center justify-center">
+            <p class="text-gray-500">Cargando mapa y ubicación de la unidad...</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-4 rounded shadow">
+                <h2 class="font-bold mb-2">Detalles del Servicio</h2>
+                <div id="infoServicio">Cargando datos del servicio...</div>
+            </div>
+            <div class="bg-white p-4 rounded shadow">
+                <h2 class="font-bold mb-2">Chat de Comunicación</h2>
+                <div id="chatMensajes" class="h-40 overflow-y-auto border-t pt-2 text-sm"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. Obtener ID de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const solicitudId = urlParams.get('id');
+
+        async function cargarDatosVisor() {
+            if (!solicitudId) {
+                document.body.innerHTML = "<h1>Error: No se ha especificado un servicio.</h1>";
+                return;
+            }
+            console.log("Cargando supervisor para la solicitud:", solicitudId);
+            // Aquí luego conectaremos con Supabase para traer los datos
+        }
+
+        window.onload = cargarDatosVisor;
+    </script>
+</body>
+</html>
