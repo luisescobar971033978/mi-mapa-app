@@ -17,7 +17,7 @@
 
     <div id="toolbar" class="sticky top-0 z-50 bg-white border-b border-gray-200 p-3 shadow-md flex flex-wrap gap-2 justify-center text-sm font-semibold">
         <button onclick="cargarTodo()" class="hover:bg-gray-100 p-2 rounded">🔄 Refresh</button>
-        <button id="btnVer" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👁️ Ver</button>
+        <button id="btnVer" onclick="verServicio()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👁️ Ver</button>
         <button id="btnEditar" onclick="editarElemento()" class="transition-opacity duration-300 p-2 rounded" disabled>✏️ Editar</button>
         <button id="btnBorrar" onclick="borrarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>🗑️ Borrar</button>
         <button id="btnAsignar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👤 Asignar</button>
@@ -120,37 +120,56 @@
     }
 
     function seleccionarElemento(id, tipo, event) {
-        elementoSeleccionado = { id, tipo };
-        
-        document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
-        const fila = event.target.closest('tr');
-        if (fila) fila.classList.add('bg-teal-100');
+    elementoSeleccionado = { id, tipo };
+    
+    document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
+    const fila = event.target.closest('tr');
+    if (fila) fila.classList.add('bg-teal-100');
 
-        // Lógica unificada de botones
-        const botones = {
-            btnVer: (tipo === 'solicitud'),
-            btnEditar: (tipo === 'movil'),
-            btnBorrar: (tipo === 'solicitud'),
-            btnAsignar: (tipo === 'solicitud'),
-            btnMensaje: (tipo === 'solicitud'),
-            btnFinalizar: (tipo === 'solicitud')
-        };
-
-        Object.keys(botones).forEach(idBtn => {
-            const btn = document.getElementById(idBtn);
-            if (btn) {
-                btn.disabled = !botones[idBtn];
-                if (btn.disabled) {
-                    btn.classList.add('opacity-50', 'cursor-not-allowed');
-                    btn.classList.remove('cursor-pointer');
-                } else {
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    btn.classList.add('cursor-pointer');
-                }
-            }
-        });
+    // Extraemos el estado de la fila si es una solicitud (asumiendo que el estado es la 4ta columna)
+    let esAceptado = false;
+    if (tipo === 'solicitud' && fila) {
+        const estadoTexto = fila.cells[3]?.innerText.toLowerCase() || '';
+        esAceptado = estadoTexto === 'aceptado';
     }
 
+    // Lógica unificada de botones
+    const botones = {
+        btnVer: (tipo === 'solicitud' && esAceptado), // Condición actualizada
+        btnEditar: (tipo === 'movil'),
+        btnBorrar: (tipo === 'solicitud'),
+        btnAsignar: (tipo === 'solicitud'),
+        btnMensaje: (tipo === 'solicitud'),
+        btnFinalizar: (tipo === 'solicitud')
+    };
+
+    Object.keys(botones).forEach(idBtn => {
+        const btn = document.getElementById(idBtn);
+        if (btn) {
+            btn.disabled = !botones[idBtn];
+            if (btn.disabled) {
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                btn.classList.remove('cursor-pointer');
+            } else {
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.classList.add('cursor-pointer');
+            }
+        }
+    });
+}
+function verServicio() {
+    // Si el botón está deshabilitado, no hacemos nada (el usuario no debería poder ni hacer clic)
+    const btnVer = document.getElementById('btnVer');
+    if (btnVer && btnVer.disabled) return;
+
+    if (!elementoSeleccionado.id || elementoSeleccionado.tipo !== 'solicitud') {
+        alert("Selecciona un servicio en curso (Aceptado) para visualizar.");
+        return;
+    }
+    
+    // Abrimos el visor enviando el ID de la solicitud por parámetro URL
+    window.open(`mapa_admin.html?id=${elementoSeleccionado.id}`, '_blank', 'width=1000,height=700');
+}
     async function cargarTodo() {
         const { data: moviles } = await client.from('moviles').select('*');
         if (moviles) {
