@@ -81,17 +81,23 @@
         // Función de color restaurada y mejorada
         
 function getColor(v, arr) {
-    // 1. Identificamos el máximo del conjunto de datos para saber la escala
-    const max = Math.max(...arr);
+    // 1. Ordenamos los valores de mayor a menor para determinar el ranking
+    const sorted = [...arr].sort((a, b) => b - a);
     
-    // 2. Si el valor es muy pequeño respecto al máximo (ej. < 10%), lo dejamos gris neutro
-    if (v <= max * 0.1) return '#9ca3af'; 
-    
-    // 3. Si es un valor medio, aplicamos un tono de teal intermedio
-    if (v < max * 0.6) return '#2dd4bf'; 
-    
-    // 4. Si es el valor más alto o cercano al máximo, aplicamos el teal intenso (tu color principal)
-    return '#0f766e'; 
+    // 2. Identificamos el valor máximo y el valor mínimo
+    const max = sorted[0];
+    const min = sorted[sorted.length - 1];
+
+    // 3. Casos especiales para el podio
+    if (v === max && sorted.length >= 1) return '#0f766e'; // 1er lugar: Verde (Teal oscuro)
+    if (v === sorted[1]) return '#f97316';                 // 2do lugar: Naranja
+    if (v === sorted[2]) return '#eab308';                 // 3er lugar: Amarillo
+
+    // 4. Color para el valor mínimo absoluto
+    if (v === min) return '#dc2626';                       // Mínimo: Rojo
+
+    // 5. Escala para valores restantes (intermedios entre 3er lugar y mínimo)
+    return '#14b8a6'; // Teal intermedio para el resto de datos
 }
 
         function seleccionarElemento(id, tipo, event) {
