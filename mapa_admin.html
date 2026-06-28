@@ -4,8 +4,16 @@ HTML
 <head>
     <meta charset="UTF-8">
     <title>Visor de Servicio en Curso</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        #mapa { z-index: 0; }
+    </style>
 </head>
 <body class="bg-gray-50 p-6">
 
@@ -36,38 +44,79 @@ HTML
     // Cliente Supabase
     const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
 
+       let map, markerMovil, markerServicio;
+
+async function inicializarMapa(latServicio, lngServicio) {
+    // 1. Inicializar mapa
+    map = L.map('mapa').setView([latServicio, lngServicio], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // 2. Marcador del Servicio (Usaremos un icono estándar)
+    markerServicio = L.marker([latServicio, lngServicio]).addTo(map)
+        .bindPopup("Ubicación del Servicio").openPopup();
+
+    // 3. Marcador del Móvil (Técnico) con un toque de color para diferenciar
+    // Usamos un icono azul más visible para el técnico
+    const iconoTecnico = L.divIcon({
+        className: 'custom-icon',
+        html: '<div style="background-color: #3b82f6; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>',
+        iconSize: [20, 20]
+    });
+
+    markerMovil = L.marker([latServicio, lngServicio], { icon: iconoTecnico }).addTo(map)
+        .bindPopup("Técnico en camino");
+}
+
+async function actualizarUbicacionMovil() {
+    const { data } = await client
+        .from('ubicacion_moviles')
+        .select('latitud, longitud')
+        .eq('solicitud_id', solicitudId)
+        .single();
+
+    if (data && markerMovil) {
+        markerMovil.setLatLng([data.latitud, data.longitud]);
+    }
+}
     // Función principal unificada
     async function cargarDatosVisor() {
-        if (!solicitudId) {
-            document.body.innerHTML = "<h1>Error: No se ha especificado un servicio.</h1>";
-            return;
-        }
-        
-        console.log("Cargando supervisor para la solicitud:", solicitudId);
-
-        // 1. Obtener la solicitud
-        const { data: solicitud, error } = await client
-            .from('solicitudes')
-            .select('*')
-            .eq('solicitud_id', solicitudId)
-            .single();
-
-        if (error || !solicitud) {
-            document.getElementById('infoServicio').innerText = "Error al cargar la información del servicio.";
-            return;
-        }
-
-        // 2. Mostrar datos en modo solo lectura
-        document.getElementById('infoServicio').innerHTML = `
-            <p><strong>ID Servicio:</strong> ${solicitud.solicitud_id}</p>
-            <p><strong>Usuario:</strong> ${solicitud.nombre_usuario || 'Anónimo'}</p>
-            <p><strong>Técnico Asignado:</strong> ${solicitud.id_tecnico || 'Sin asignar'}</p>
-            <p><strong>Estado:</strong> ${solicitud.respuesta_solicitud || 'PENDIENTE'}</p>
-        `;
-
-        // 3. Cargar mensajes
-        cargarMensajes(solicitudId);
+    if (!solicitudId) {
+        document.body.innerHTML = "<h1>Error: No se ha especificado un servicio.</h1>";
+        return;
     }
+    
+    console.log("Cargando supervisor para la solicitud:", solicitudId);
+
+    // 1. Obtener la solicitud (incluyendo coordenadas)
+    const { data: solicitud, error } = await client
+        .from('solicitudes')
+        .select('*') // Asegúrate de que tus columnas latitud/longitud estén aquí
+        .eq('solicitud_id', solicitudId)
+        .single();
+
+    if (error || !solicitud) {
+        document.getElementById('infoServicio').innerText = "Error al cargar la información del servicio.";
+        return;
+    }
+
+    // 2. Mostrar datos
+    document.getElementById('infoServicio').innerHTML = `
+        <p><strong>ID Servicio:</strong> ${solicitud.solicitud_id}</p>
+        <p><strong>Usuario:</strong> ${solicitud.nombre_usuario || 'Anónimo'}</p>
+        <p><strong>Técnico Asignado:</strong> ${solicitud.id_tecnico || 'Sin asignar'}</p>
+        <p><strong>Estado:</strong> ${solicitud.respuesta_solicitud || 'PENDIENTE'}</p>
+    `;
+
+    // 3. Inicializar Mapa (Solo si no existe ya)
+    if (!map && solicitud.latitud && solicitud.longitud) {
+        inicializarMapa(solicitud.latitud, solicitud.longitud);
+    }
+
+    // 4. Cargar mensajes
+    cargarMensajes(solicitudId);
+}
 
     async function cargarMensajes(id) {
     const { data: mensajes, error } = await client
@@ -95,11 +144,11 @@ HTML
     }
 }
 
-    // Inicialización y Suscripción en Tiempo Real
+   // Inicialización y Suscripciones en Tiempo Real
 window.onload = () => {
     cargarDatosVisor();
 
-    // 1. Suscripción para actualizaciones del servicio (estado, técnico, etc.)
+    // 1. Suscripción para actualizaciones del servicio
     client.channel('realtime_visor_solicitud')
         .on('postgres_changes', { 
             event: 'UPDATE', 
@@ -112,7 +161,7 @@ window.onload = () => {
         })
         .subscribe();
 
-    // 2. Suscripción para nuevos mensajes (¡INTEGRADA!)
+    // 2. Suscripción para nuevos mensajes
     client.channel('realtime_visor_mensajes')
         .on('postgres_changes', { 
             event: 'INSERT', 
@@ -122,6 +171,22 @@ window.onload = () => {
         }, (payload) => {
             console.log("Nuevo mensaje recibido");
             cargarMensajes(solicitudId);
+        })
+        .subscribe();
+
+    // 3. Suscripción para movimiento del móvil (NUEVA)
+    client.channel('realtime_movil')
+        .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'ubicacion_moviles', 
+            filter: `solicitud_id=eq.${solicitudId}` 
+        }, (payload) => {
+            console.log("Movimiento detectado");
+            // Si el marcador existe, lo movemos
+            if (markerMovil) {
+                markerMovil.setLatLng([payload.new.latitud, payload.new.longitud]);
+            }
         })
         .subscribe();
 };
