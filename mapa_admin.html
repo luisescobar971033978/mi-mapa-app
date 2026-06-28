@@ -4,6 +4,7 @@ HTML
 <head>
     <meta charset="UTF-8">
     <title>Visor de Servicio en Curso</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 p-6">
@@ -69,38 +70,61 @@ HTML
     }
 
     async function cargarMensajes(id) {
-        const { data: mensajes } = await client
-            .from('mensajes')
-            .select('*')
-            .eq('solicitud_id', id)
-            .order('created_at', { ascending: true });
+    const { data: mensajes, error } = await client
+        .from('mensajes')
+        .select('*')
+        .eq('solicitud_id', id)
+        .order('created_at', { ascending: true });
 
-        if (mensajes) {
-            document.getElementById('chatMensajes').innerHTML = mensajes.map(m => `
-                <div class="mb-2">
-                    <span class="font-bold">${m.emisor}:</span> ${m.contenido}
-                </div>
-            `).join('');
-        }
+    if (error) {
+        console.error("Error al cargar mensajes:", error);
+        return;
     }
 
-    // Inicialización y Suscripción en Tiempo Real
-    window.onload = () => {
-        cargarDatosVisor();
+    const contenedor = document.getElementById('chatMensajes');
+    
+    if (mensajes && mensajes.length > 0) {
+        contenedor.innerHTML = mensajes.map(m => `
+            <div class="mb-2 p-2 bg-gray-50 rounded border-b">
+                <span class="font-bold text-teal-700">${m.emisor || 'Usuario'}:</span> 
+                <span class="text-gray-700">${m.contenido}</span>
+            </div>
+        `).join('');
+    } else {
+        contenedor.innerHTML = '<p class="text-gray-400 text-center italic">No hay mensajes aún.</p>';
+    }
+}
 
-        // Suscripción para ver actualizaciones en tiempo real (solo lectura)
-        client.channel('realtime_visor')
-            .on('postgres_changes', { 
-                event: 'UPDATE', 
-                schema: 'public', 
-                table: 'solicitudes', 
-                filter: `solicitud_id=eq.${solicitudId}` 
-            }, (payload) => {
-                console.log("Actualización recibida en tiempo real");
-                cargarDatosVisor();
-            })
-            .subscribe();
-    };
+    // Inicialización y Suscripción en Tiempo Real
+window.onload = () => {
+    cargarDatosVisor();
+
+    // 1. Suscripción para actualizaciones del servicio (estado, técnico, etc.)
+    client.channel('realtime_visor_solicitud')
+        .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'solicitudes', 
+            filter: `solicitud_id=eq.${solicitudId}` 
+        }, (payload) => {
+            console.log("Servicio actualizado");
+            cargarDatosVisor();
+        })
+        .subscribe();
+
+    // 2. Suscripción para nuevos mensajes (¡INTEGRADA!)
+    client.channel('realtime_visor_mensajes')
+        .on('postgres_changes', { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'mensajes', 
+            filter: `solicitud_id=eq.${solicitudId}` 
+        }, (payload) => {
+            console.log("Nuevo mensaje recibido");
+            cargarMensajes(solicitudId);
+        })
+        .subscribe();
+};
 </script>
 </body>
 </html>
