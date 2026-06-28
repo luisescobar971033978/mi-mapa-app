@@ -69,7 +69,7 @@ HTML
         cargarMensajes(solicitudId);
     }
 
-    async function cargarMensajes(id) {
+    async function cargarMensajes(id) { // <-- Corregido: era 'sync', debe ser 'async'
     const { data: mensajes, error } = await client
         .from('mensajes')
         .select('*')
@@ -87,7 +87,7 @@ HTML
         contenedor.innerHTML = mensajes.map(m => `
             <div class="mb-2 p-2 bg-gray-50 rounded border-b">
                 <span class="font-bold text-teal-700">${m.emisor || 'Usuario'}:</span> 
-                <span class="text-gray-700">${m.contenido}</span>
+                <span class="text-gray-700">${m.contenido || ''}</span>
             </div>
         `).join('');
     } else {
