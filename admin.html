@@ -140,26 +140,25 @@
 async function editarElemento() {
     if (elementoSeleccionado.tipo !== 'movil') return;
     
-    const nuevoEstado = prompt("Ingrese el nuevo estado (activo/inactivo):");
+    const nuevoEstado = prompt("Ingrese el nuevo estado para el móvil (activo/inactivo):");
     if (!nuevoEstado) return;
 
-    console.log("Intentando actualizar ID:", elementoSeleccionado.id, "con estado:", nuevoEstado);
+    // Usamos el ID exacto que capturamos en la tabla
+    console.log("Actualizando ID:", elementoSeleccionado.id);
 
     const { data, error } = await client
         .from('moviles')
         .update({ estado: nuevoEstado })
-        .eq('movil_id', elementoSeleccionado.id);
+        .eq('movil_id', elementoSeleccionado.id); // Esto debe coincidir exactamente con "Movil_1"
 
     if (error) {
-        console.error("Error de Supabase:", error);
-        alert("Error al actualizar: " + error.message);
+        console.error("Error al actualizar:", error);
+        alert("Error: " + error.message);
     } else {
-        console.log("Éxito. Respuesta:", data);
-        alert("Móvil actualizado exitosamente.");
-        cargarTodo();
+        alert("¡Móvil actualizado exitosamente!");
+        await cargarTodo(); // Esperamos a que la tabla se refresque
     }
 }
-
 // Función para Borrar (específicamente para 'solicitudes')
 async function borrarElemento() {
     if (elementoSeleccionado.tipo !== 'solicitud') return;
