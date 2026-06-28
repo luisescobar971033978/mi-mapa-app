@@ -78,7 +78,14 @@
         let chartIncidencia, chartProductividad;
         let elementoSeleccionado = { id: null, tipo: null };
 
-        function getColor(v, arr) { return v > 20 ? '#0f766e' : '#9ca3af'; }
+        // Función de color restaurada y mejorada
+        function getColor(v, arr) {
+            const max = Math.max(...arr);
+            if (max === 0) return '#9ca3af';
+            if (v >= max * 0.8) return '#0f766e';
+            if (v >= max * 0.4) return '#14b8a6';
+            return '#9ca3af';
+        }
 
         function seleccionarElemento(id, tipo, event) {
             elementoSeleccionado = { id, tipo };
@@ -143,6 +150,8 @@
             chartProductividad = new Chart(document.getElementById('graficoProductividad').getContext('2d'), { type: 'bar', plugins: [ChartDataLabels], data: { labels: lTech, datasets: [{ data: dTech, backgroundColor: dTech.map(v => getColor(Number(v), dTech)) }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: v => v + '%' } }, scales: { y: { max: maxTech + 15, beginAtZero: true } } } });
             document.getElementById('tablaProductividad').innerHTML = lTech.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(dTech[i]), dTech)}">${dTech[i]}%</td></tr>`).join('');
         }
+        
+        // ... (resto de funciones de edición y borrado sin cambios)
 
         async function editarElemento() {
             if (elementoSeleccionado.tipo !== 'movil') return;
