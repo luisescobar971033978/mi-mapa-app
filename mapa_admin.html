@@ -47,25 +47,42 @@ HTML
        let map, markerMovil, markerServicio;
 
 async function inicializarMapa(latServicio, lngServicio) {
-    // 1. Inicializar mapa
-    map = L.map('mapa').setView([latServicio, lngServicio], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-    }).addTo(map);
+    // 1. Obtener ubicación inicial real del móvil
+    const { data: posInicial } = await client
+        .from('ubicacion_moviles')
+        .select('latitud, longitud')
+        .eq('solicitud_id', solicitudId)
+        .single();
 
-    // 2. Marcador del Servicio (Usaremos un icono estándar)
-    markerServicio = L.marker([latServicio, lngServicio]).addTo(map)
-        .bindPopup("Ubicación del Servicio").openPopup();
+    const latM = posInicial ? posInicial.latitud : latServicio;
+    const lngM = posInicial ? posInicial.longitud : lngServicio;
 
-    // 3. Marcador del Móvil (Técnico) con un toque de color para diferenciar
-    // Usamos un icono azul más visible para el técnico
-    const iconoTecnico = L.divIcon({
+    // 2. Inicializar mapa ajustado a ambos puntos
+    map = L.map('mapa').fitBounds([
+        [latServicio, lngServicio],
+        [latM, lngM]
+    ], { padding: [50, 50] });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // 3. Icono de Casa (Servicio)
+    const iconoCasa = L.divIcon({
         className: 'custom-icon',
-        html: '<div style="background-color: #3b82f6; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>',
-        iconSize: [20, 20]
+        html: '<div style="font-size: 24px;">🏠</div>',
+        iconSize: [30, 30]
     });
 
-    markerMovil = L.marker([latServicio, lngServicio], { icon: iconoTecnico }).addTo(map)
+    markerServicio = L.marker([latServicio, lngServicio], { icon: iconoCasa }).addTo(map)
+        .bindPopup("Ubicación del Servicio").openPopup();
+
+    // 4. Icono de Camioneta (Técnico)
+    const iconoCamioneta = L.divIcon({
+        className: 'custom-icon',
+        html: '<div style="font-size: 24px;">🚚</div>',
+        iconSize: [30, 30]
+    });
+
+    markerMovil = L.marker([latM, lngM], { icon: iconoCamioneta }).addTo(map)
         .bindPopup("Técnico en camino");
 }
 
