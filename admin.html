@@ -19,7 +19,7 @@
         <button onclick="cargarTodo()" class="hover:bg-gray-100 p-2 rounded">🔄 Refresh</button>
         <button id="btnVer" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👁️ Ver</button>
         <button id="btnEditar" onclick="editarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✏️ Editar</button>
-        <button id="btnBorrar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>🗑️ Borrar</button>
+        <button id="btnBorrar" onclick="borrarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>🗑️ Borrar</button>
         <button id="btnAsignar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👤 Asignar</button>
         <button id="btnMensaje" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>💬 Mensaje</button>
         <button id="btnFinalizar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✅ Finalizar</button>
@@ -136,6 +136,43 @@
                 </tr>`).join('');
         }
     }
+        // Función para Editar (específicamente para 'moviles')
+async function editarElemento() {
+    if (elementoSeleccionado.tipo !== 'movil') return;
+    
+    // Aquí puedes abrir un prompt, un modal o redirigir a un formulario de edición
+    const nuevoEstado = prompt("Ingrese el nuevo estado para el móvil (activo/inactivo):");
+    if (!nuevoEstado) return;
+
+    const { error } = await client
+        .from('moviles')
+        .update({ estado: nuevoEstado })
+        .eq('movil_id', elementoSeleccionado.id);
+
+    if (error) alert("Error al actualizar: " + error.message);
+    else {
+        alert("Móvil actualizado exitosamente.");
+        cargarTodo(); // Recargamos para ver los cambios
+    }
+}
+
+// Función para Borrar (específicamente para 'solicitudes')
+async function borrarElemento() {
+    if (elementoSeleccionado.tipo !== 'solicitud') return;
+    
+    if (confirm("¿Estás seguro de que deseas eliminar esta solicitud? Esta acción no se puede deshacer.")) {
+        const { error } = await client
+            .from('solicitudes')
+            .delete()
+            .eq('solicitud_id', elementoSeleccionado.id);
+
+        if (error) alert("Error al borrar: " + error.message);
+        else {
+            alert("Solicitud eliminada.");
+            cargarTodo(); // Recargamos la tabla
+        }
+    }
+}
 
     // Inicialización fuera de la función
     document.addEventListener('DOMContentLoaded', cargarTodo);
