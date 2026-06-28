@@ -124,6 +124,7 @@ async function actualizarUbicacionMovil() {
         <p><strong>Usuario:</strong> ${solicitud.nombre_usuario || 'Anónimo'}</p>
         <p><strong>Técnico Asignado:</strong> ${solicitud.id_tecnico || 'Sin asignar'}</p>
         <p><strong>Estado:</strong> ${solicitud.respuesta_solicitud || 'PENDIENTE'}</p>
+        <p><strong>Servicio:</strong> ${solicitud.comentario_solicitud || 'Sin descripción'}</p>
     `;
 
     // 3. Inicializar Mapa (Solo si no existe ya)
