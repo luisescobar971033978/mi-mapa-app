@@ -74,148 +74,136 @@
     </div>
 
     <script>
-        const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
-        let chartIncidencia, chartProductividad;
-        let elementoSeleccionado = { id: null, tipo: null };
-
-        // Función de color restaurada y mejorada
-        
-function getColor(v, arr) {
-    // 1. Ordenamos los valores de mayor a menor para determinar el ranking
-    const sorted = [...arr].sort((a, b) => b - a);
+    const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
     
-    // 2. Identificamos el valor máximo y el valor mínimo
-    const max = sorted[0];
-    const min = sorted[sorted.length - 1];
+    // Variables globales consolidadas
+    let chartIncidencia, chartProductividad;
+    let elementoSeleccionado = { id: null, tipo: null };
+    let celdaSeleccionada = { campo: null, id: null };
+    let filaSeleccionada = null; 
 
-    // 3. Casos especiales para el podio
-    if (v === max && sorted.length >= 1) return '#0f766e'; // 1er lugar: Verde (Teal oscuro)
-    if (v === sorted[1]) return '#f97316';                 // 2do lugar: Naranja
-    if (v === sorted[2]) return '#eab308';                 // 3er lugar: Amarillo
-
-    // 4. Color para el valor mínimo absoluto
-    if (v === min) return '#dc2626';                       // Mínimo: Rojo
-
-    // 5. Escala para valores restantes (intermedios entre 3er lugar y mínimo)
-    return '#14b8a6'; // Teal intermedio para el resto de datos
-}
-
-        // Agrega esta variable global arriba junto a las otras
-let filaSeleccionada = null; 
-
-function seleccionarElemento(id, tipo, event) {
-    elementoSeleccionado = { id, tipo };
-    
-    // Resaltamos la fila visualmente
-    document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
-    const fila = event.target.closest('tr');
-    if (fila) {
-        fila.classList.add('bg-teal-100');
-        filaSeleccionada = fila; // Guardamos la referencia a la fila
+    function marcarCelda(campo, id, event) {
+        celdaSeleccionada = { campo, id };
+        event.stopPropagation();
+        document.querySelectorAll('td').forEach(td => td.classList.remove('ring', 'ring-teal-500'));
+        event.target.classList.add('ring', 'ring-teal-500');
     }
 
-    // Lógica original de botones
-    const botones = { btnVer: (tipo === 'solicitud'), btnEditar: (tipo === 'movil'), btnBorrar: (tipo === 'solicitud'), btnAsignar: (tipo === 'solicitud'), btnMensaje: (tipo === 'solicitud'), btnFinalizar: (tipo === 'solicitud') };
-    Object.keys(botones).forEach(idBtn => {
-        const btn = document.getElementById(idBtn);
-        if (btn) {
-            btn.disabled = !botones[idBtn];
-            btn.classList.toggle('opacity-50', btn.disabled);
-            btn.classList.toggle('cursor-not-allowed', btn.disabled);
-        }
-    });
-}
-
-        async function cargarTodo() {
-            const { data: moviles } = await client.from('moviles').select('*');
-            if (moviles) {
-                document.getElementById('tablaMoviles').innerHTML = moviles.map(m => `
-                    <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${m.movil_id}', 'movil', event)">
-                        <td class="p-2">${m.movil_id}</td>
-                        <td class="p-2">${m.celular}</td>
-                        <td class="p-2 font-bold ${m.estado === 'activo' ? 'text-green-600' : 'text-red-600'}">${m.estado}</td>
-                        <td class="p-2">${m.id_tecnico || 'Libre'}</td>
-                    </tr>`).join('');
-            }
-            const { data: solicitudes } = await client.from('solicitudes').select('*').order('solicitud_id', { ascending: false });
-            if (solicitudes) {
-                document.getElementById('countPendientes').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'pendiente').length;
-                document.getElementById('countEnCamino').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'aceptado').length;
-                document.getElementById('countFinalizados').innerText = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado').length;
-                document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `
-                    <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${s.solicitud_id}', 'solicitud', event)">
-                        <td class="p-3">${s.solicitud_id}</td>
-                        <td class="p-3">${s.nombre_usuario || 'Anónimo'}</td>
-                        <td class="p-3">${s.id_tecnico || 'Sin asignar'}</td>
-                        <td class="p-3 font-bold">${s.respuesta_solicitud.toUpperCase()}</td>
-                    </tr>`).join('');
-                actualizarGraficos(solicitudes);
-            }
-        }
-
-        function actualizarGraficos(solicitudes) {
-            const serviciosValidos = ["Fumigación contra El dengue y chikungunya", "Desbrozado de entrada, patios y Jardines", "Problemas de Plomería", "Fuga de Agua", "Tuberías trancadas del drenaje sanitario y de lluvias", "Mi Ducha Eléctrica NO funciona", "Interruptor / Tomacorriente NO funciona", "Requiero Solución definitiva para GOTERAS", "Mantenimiento de AIRE ACONDICIONADO", "Instalación de AIRE ACONDICIONADO", "Servicio control de Humedad en Paredes", "Retoques de pintura en Fachada, Puertas de Acceso, Etc.", "Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)", "Necesito aplicar veneno para los Sepes", "Remodelación de Vivienda y Oficinas", "Ampliación de Vivienda y Oficinas"];
-            const conteo = {};
-            solicitudes.forEach(s => { const cat = serviciosValidos.includes(s.comentario_solicitud) ? s.comentario_solicitud : "Otros"; conteo[cat] = (conteo[cat] || 0) + 1; });
-            const labels = Object.keys(conteo);
-            const data = Object.values(conteo).map(c => parseFloat(((c / solicitudes.length) * 100).toFixed(1)));
-            const maxVal = Math.max(...data);
-            if (chartIncidencia) chartIncidencia.destroy();
-            chartIncidencia = new Chart(document.getElementById('graficoServicios').getContext('2d'), { type: 'bar', plugins: [ChartDataLabels], data: { labels, datasets: [{ data, backgroundColor: data.map(v => getColor(Number(v), data)) }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', formatter: v => v + '%', padding: 5 } }, scales: { x: { max: maxVal + 15, beginAtZero: true } } } });
-            document.getElementById('tablaIncidencia').innerHTML = labels.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(data[i]), data)}">${data[i]}%</td></tr>`).join('');
-            const finalizados = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado');
-            const cTech = {};
-            finalizados.forEach(s => cTech[s.id_tecnico || 'Sin asignar'] = (cTech[s.id_tecnico || 'Sin asignar'] || 0) + 1);
-            const lTech = Object.keys(cTech);
-            const dTech = Object.values(cTech).map(c => parseFloat(((c / finalizados.length) * 100).toFixed(1)));
-            const maxTech = Math.max(...dTech);
-            if (chartProductividad) chartProductividad.destroy();
-            chartProductividad = new Chart(document.getElementById('graficoProductividad').getContext('2d'), { type: 'bar', plugins: [ChartDataLabels], data: { labels: lTech, datasets: [{ data: dTech, backgroundColor: dTech.map(v => getColor(Number(v), dTech)) }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: v => v + '%' } }, scales: { y: { max: maxTech + 15, beginAtZero: true } } } });
-            document.getElementById('tablaProductividad').innerHTML = lTech.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(dTech[i]), dTech)}">${dTech[i]}%</td></tr>`).join('');
-        }
-        
-        // ... (resto de funciones de edición y borrado sin cambios)
-
-        async function editarElemento() {
-    if (elementoSeleccionado.tipo !== 'movil') return;
-
-    // Pedimos el campo directamente (se puede mejorar para que sea un menú desplegable)
-    const campo = prompt("¿Qué desea editar? Escriba: estado, celular, o id_tecnico");
-    
-    if (!campo || !['estado', 'celular', 'id_tecnico'].includes(campo.toLowerCase())) {
-        alert("Campo no válido. Debe ser: estado, celular o id_tecnico");
-        return;
+    function getColor(v, arr) {
+        const sorted = [...arr].sort((a, b) => b - a);
+        const max = sorted[0];
+        const min = sorted[sorted.length - 1];
+        if (v === max && sorted.length >= 1) return '#0f766e';
+        if (v === sorted[1]) return '#f97316';
+        if (v === sorted[2]) return '#eab308';
+        if (v === min) return '#dc2626';
+        return '#14b8a6';
     }
 
-    const nuevoValor = prompt(`Ingrese el nuevo valor para ${campo.toLowerCase()}:`);
-    if (nuevoValor === null) return;
-
-    const { error } = await client
-        .from('moviles')
-        .update({ [campo.toLowerCase()]: nuevoValor })
-        .eq('movil_id', elementoSeleccionado.id);
-
-    if (error) {
-        alert("Error al actualizar: " + error.message);
-    } else {
-        alert("¡Actualización exitosa!");
-        cargarTodo(); // Refresca la tabla y mantiene el orden
-    }
-}
-
-        async function borrarElemento() {
-            if (elementoSeleccionado.tipo !== 'solicitud') return;
-            if (confirm("¿Borrar solicitud?")) {
-                const { error } = await client.from('solicitudes').delete().eq('solicitud_id', elementoSeleccionado.id);
-                if (error) alert("Error: " + error.message);
-                else cargarTodo();
-            }
+    function seleccionarElemento(id, tipo, event) {
+        elementoSeleccionado = { id, tipo };
+        document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
+        const fila = event.target.closest('tr');
+        if (fila) {
+            fila.classList.add('bg-teal-100');
+            filaSeleccionada = fila;
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            cargarTodo();
-            client.channel('admin_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, cargarTodo).subscribe();
+        const botones = { btnVer: (tipo === 'solicitud'), btnEditar: (tipo === 'movil'), btnBorrar: (tipo === 'solicitud'), btnAsignar: (tipo === 'solicitud'), btnMensaje: (tipo === 'solicitud'), btnFinalizar: (tipo === 'solicitud') };
+        Object.keys(botones).forEach(idBtn => {
+            const btn = document.getElementById(idBtn);
+            if (btn) {
+                btn.disabled = !botones[idBtn];
+                btn.classList.toggle('opacity-50', btn.disabled);
+                btn.classList.toggle('cursor-not-allowed', btn.disabled);
+            }
         });
-    </script>
+    }
+
+    async function cargarTodo() {
+        // Carga de Móviles
+        const { data: moviles } = await client.from('moviles').select('*');
+        if (moviles) {
+            document.getElementById('tablaMoviles').innerHTML = moviles.map(m => `
+                <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${m.movil_id}', 'movil', event)">
+                    <td class="p-2" onclick="marcarCelda('movil_id', '${m.movil_id}', event)">${m.movil_id}</td>
+                    <td class="p-2" onclick="marcarCelda('celular', '${m.movil_id}', event)">${m.celular}</td>
+                    <td class="p-2 font-bold ${m.estado === 'activo' ? 'text-green-600' : 'text-red-600'}" onclick="marcarCelda('estado', '${m.movil_id}', event)">${m.estado}</td>
+                    <td class="p-2" onclick="marcarCelda('id_tecnico', '${m.movil_id}', event)">${m.id_tecnico || 'Libre'}</td>
+                </tr>`).join('');
+        }
+        
+        // Carga de Solicitudes
+        const { data: solicitudes, error } = await client.from('solicitudes').select('*').order('solicitud_id', { ascending: false });
+        if (error) console.error("Error al cargar solicitudes:", error.message);
+        if (solicitudes) {
+            document.getElementById('countPendientes').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'pendiente').length;
+            document.getElementById('countEnCamino').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'aceptado').length;
+            document.getElementById('countFinalizados').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'finalizado').length;
+            document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `
+                <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${s.solicitud_id}', 'solicitud', event)">
+                    <td class="p-3">${s.solicitud_id}</td>
+                    <td class="p-3">${s.nombre_usuario || 'Anónimo'}</td>
+                    <td class="p-3">${s.id_tecnico || 'Sin asignar'}</td>
+                    <td class="p-3 font-bold">${(s.respuesta_solicitud || 'PENDIENTE').toUpperCase()}</td>
+                </tr>`).join('');
+            actualizarGraficos(solicitudes);
+        }
+    }
+
+    function actualizarGraficos(solicitudes) {
+        // ... (Tu lógica de gráficos actual se mantiene igual)
+        const serviciosValidos = ["Fumigación contra El dengue y chikungunya", "Desbrozado de entrada, patios y Jardines", "Problemas de Plomería", "Fuga de Agua", "Tuberías trancadas del drenaje sanitario y de lluvias", "Mi Ducha Eléctrica NO funciona", "Interruptor / Tomacorriente NO funciona", "Requiero Solución definitiva para GOTERAS", "Mantenimiento de AIRE ACONDICIONADO", "Instalación de AIRE ACONDICIONADO", "Servicio control de Humedad en Paredes", "Retoques de pintura en Fachada, Puertas de Acceso, Etc.", "Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)", "Necesito aplicar veneno para los Sepes", "Remodelación de Vivienda y Oficinas", "Ampliación de Vivienda y Oficinas"];
+        const conteo = {};
+        solicitudes.forEach(s => { const cat = serviciosValidos.includes(s.comentario_solicitud) ? s.comentario_solicitud : "Otros"; conteo[cat] = (conteo[cat] || 0) + 1; });
+        const labels = Object.keys(conteo);
+        const data = Object.values(conteo).map(c => parseFloat(((c / solicitudes.length) * 100).toFixed(1)));
+        const maxVal = Math.max(...data);
+        if (chartIncidencia) chartIncidencia.destroy();
+        chartIncidencia = new Chart(document.getElementById('graficoServicios').getContext('2d'), { type: 'bar', plugins: [ChartDataLabels], data: { labels, datasets: [{ data, backgroundColor: data.map(v => getColor(Number(v), data)) }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', formatter: v => v + '%', padding: 5 } }, scales: { x: { max: maxVal + 15, beginAtZero: true } } } });
+        document.getElementById('tablaIncidencia').innerHTML = labels.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(data[i]), data)}">${data[i]}%</td></tr>`).join('');
+        const finalizados = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado');
+        const cTech = {};
+        finalizados.forEach(s => cTech[s.id_tecnico || 'Sin asignar'] = (cTech[s.id_tecnico || 'Sin asignar'] || 0) + 1);
+        const lTech = Object.keys(cTech);
+        const dTech = Object.values(cTech).map(c => parseFloat(((c / finalizados.length) * 100).toFixed(1)));
+        const maxTech = Math.max(...dTech);
+        if (chartProductividad) chartProductividad.destroy();
+        chartProductividad = new Chart(document.getElementById('graficoProductividad').getContext('2d'), { type: 'bar', plugins: [ChartDataLabels], data: { labels: lTech, datasets: [{ data: dTech, backgroundColor: dTech.map(v => getColor(Number(v), dTech)) }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: v => v + '%' } }, scales: { y: { max: maxTech + 15, beginAtZero: true } } } });
+        document.getElementById('tablaProductividad').innerHTML = lTech.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(dTech[i]), dTech)}">${dTech[i]}%</td></tr>`).join('');
+    }
+
+    async function editarElemento() {
+        if (elementoSeleccionado.tipo !== 'movil') return;
+        if (!celdaSeleccionada.campo || celdaSeleccionada.id !== elementoSeleccionado.id) {
+            alert("Por favor, haga clic primero en la celda específica que desea editar.");
+            return;
+        }
+        const campo = celdaSeleccionada.campo;
+        const nuevoValor = prompt(`Ingrese el nuevo valor para [${campo}]:`);
+        if (nuevoValor === null) return;
+        const { error } = await client.from('moviles').update({ [campo]: nuevoValor }).eq('movil_id', celdaSeleccionada.id);
+        if (error) {
+            alert("Error al actualizar: " + error.message);
+        } else {
+            alert("¡Actualización exitosa!");
+            celdaSeleccionada = { campo: null, id: null };
+            cargarTodo();
+        }
+    }
+
+    async function borrarElemento() {
+        if (elementoSeleccionado.tipo !== 'solicitud') return;
+        if (confirm("¿Borrar solicitud?")) {
+            const { error } = await client.from('solicitudes').delete().eq('solicitud_id', elementoSeleccionado.id);
+            if (error) alert("Error: " + error.message);
+            else cargarTodo();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        cargarTodo();
+        client.channel('admin_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, cargarTodo).subscribe();
+    });
+</script>
 </body>
 </html>
