@@ -140,19 +140,23 @@
 async function editarElemento() {
     if (elementoSeleccionado.tipo !== 'movil') return;
     
-    // Aquí puedes abrir un prompt, un modal o redirigir a un formulario de edición
-    const nuevoEstado = prompt("Ingrese el nuevo estado para el móvil (activo/inactivo):");
+    const nuevoEstado = prompt("Ingrese el nuevo estado (activo/inactivo):");
     if (!nuevoEstado) return;
 
-    const { error } = await client
+    console.log("Intentando actualizar ID:", elementoSeleccionado.id, "con estado:", nuevoEstado);
+
+    const { data, error } = await client
         .from('moviles')
         .update({ estado: nuevoEstado })
         .eq('movil_id', elementoSeleccionado.id);
 
-    if (error) alert("Error al actualizar: " + error.message);
-    else {
+    if (error) {
+        console.error("Error de Supabase:", error);
+        alert("Error al actualizar: " + error.message);
+    } else {
+        console.log("Éxito. Respuesta:", data);
         alert("Móvil actualizado exitosamente.");
-        cargarTodo(); // Recargamos para ver los cambios
+        cargarTodo();
     }
 }
 
