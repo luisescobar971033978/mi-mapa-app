@@ -191,21 +191,26 @@ window.onload = () => {
         })
         .subscribe();
 
-    // 3. Suscripción para movimiento del móvil (NUEVA)
-    client.channel('realtime_movil')
-        .on('postgres_changes', { 
-            event: 'UPDATE', 
-            schema: 'public', 
-            table: 'ubicacion_moviles', 
-            filter: `solicitud_id=eq.${solicitudId}` 
-        }, (payload) => {
-            console.log("Movimiento detectado");
-            // Si el marcador existe, lo movemos
-            if (markerMovil) {
-                markerMovil.setLatLng([payload.new.latitud, payload.new.longitud]);
-            }
-        })
-        .subscribe();
+    // 3. Suscripción para movimiento del móvil
+client.channel('realtime_movil')
+    .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'ubicacion_moviles', 
+        filter: `solicitud_id=eq.${solicitudId}` 
+    }, (payload) => {
+        const lat = payload.new.latitud;
+        const lng = payload.new.longitud;
+        
+        // Si el marcador existe, lo movemos
+        if (markerMovil) {
+            markerMovil.setLatLng([lat, lng]);
+        } else {
+            // Si por algún motivo no existía al cargar, lo creamos ahora
+            // (Opcional: podrías re-inicializar el marcador aquí)
+        }
+    })
+    .subscribe();
 };
 </script>
 </body>
