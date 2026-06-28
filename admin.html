@@ -79,13 +79,20 @@
         let elementoSeleccionado = { id: null, tipo: null };
 
         // Función de color restaurada y mejorada
-        function getColor(v, arr) {
-            const max = Math.max(...arr);
-            if (max === 0) return '#9ca3af';
-            if (v >= max * 0.8) return '#0f766e';
-            if (v >= max * 0.4) return '#14b8a6';
-            return '#9ca3af';
-        }
+        
+function getColor(v, arr) {
+    // 1. Identificamos el máximo del conjunto de datos para saber la escala
+    const max = Math.max(...arr);
+    
+    // 2. Si el valor es muy pequeño respecto al máximo (ej. < 10%), lo dejamos gris neutro
+    if (v <= max * 0.1) return '#9ca3af'; 
+    
+    // 3. Si es un valor medio, aplicamos un tono de teal intermedio
+    if (v < max * 0.6) return '#2dd4bf'; 
+    
+    // 4. Si es el valor más alto o cercano al máximo, aplicamos el teal intenso (tu color principal)
+    return '#0f766e'; 
+}
 
         function seleccionarElemento(id, tipo, event) {
             elementoSeleccionado = { id, tipo };
