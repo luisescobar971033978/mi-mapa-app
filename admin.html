@@ -13,72 +13,35 @@
     
     <nav class="bg-teal-900 text-white p-4 text-center shadow-lg">
     <h1 class="text-xl font-bold">MANTENIMIENTO Y SOLUCIONES PARA EL HOGAR Y OFICINA</h1>
-</nav>
-
-<div class="sticky top-0 z-50 bg-gray-50 py-2 px-4 text-right border-b border-gray-200">
-    <button onclick="togglePanel()" class="text-sm bg-teal-800 text-white px-4 py-1 rounded-full shadow hover:bg-teal-900 transition">
-        ↕ Mostrar/Ocultar Herramientas
-    </button>
-</div>
-
-<div id="panelHerramientas" class="bg-white shadow-md border-b border-gray-200 transition-all duration-300">
-    <div id="toolbar" class="p-3 flex flex-wrap gap-2 justify-center text-sm font-semibold">
-        <button onclick="cargarTodo()" class="hover:bg-gray-100 p-2 rounded">🔄 Refresh</button>
-        <button id="btnVer" onclick="verServicio()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👁️ Ver</button>
-        <button id="btnEditar" onclick="editarElemento()" class="transition-opacity duration-300 p-2 rounded" disabled>✏️ Editar</button>
-        <button id="btnBorrar" onclick="borrarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>🗑️ Borrar</button>
-        <button id="btnAsignar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👤 Asignar</button>
-        <button id="btnMensaje" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>💬 Mensaje</button>
-        <button id="btnFinalizar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✅ Finalizar Servicio</button>
-        <div class="border-l border-gray-300 mx-2"></div>
-        <button onclick="window.location.href='index.html'" class="hover:bg-gray-100 p-2 rounded">🚀 Solicitar Servicio</button>
-        <button onclick="window.location.href='tecnico.html'" class="hover:bg-gray-100 p-2 rounded">🛠️ Solicitar Técnico</button>
-        <button onclick="window.location.href='login.html'" class="hover:bg-gray-100 p-2 rounded text-red-600">🚪 Salir</button>
+<div class="fixed top-0 left-0 w-full z-50 bg-gray-50 shadow-md">
+    
+    <div class="py-2 px-4 text-right border-b border-gray-200">
+        <button onclick="togglePanel()" class="text-sm bg-teal-800 text-white px-4 py-1 rounded-full shadow hover:bg-teal-900 transition">
+            ↕ Mostrar/Ocultar Herramientas
+        </button>
     </div>
-</div>
-    <div class="container mx-auto p-4 space-y-8">
-        <section>
-            <h2 class="text-xl font-bold text-teal-900 mb-4">1.- TECNICOS Y MOVILES DISPONIBLES</h2>
-            <div class="bg-white rounded shadow p-4 overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead class="bg-gray-100 border-b">
-                        <tr><th class="p-2">Móvil</th><th class="p-2">Celular</th><th class="p-2">Estado</th><th class="p-2">ID Técnico</th></tr>
-                    </thead>
-                    <tbody id="tablaMoviles"></tbody>
-                </table>
-            </div>
-        </section>
 
-        <section>
-            <h2 class="text-xl font-bold text-teal-900 mb-4">2.- FLUJO GENERAL DE SERVICIOS</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div class="bg-white p-4 rounded shadow border-l-4 border-yellow-500"><p class="text-gray-500 text-sm">Pendientes</p><h2 id="countPendientes" class="text-2xl font-bold">0</h2></div>
-                <div class="bg-white p-4 rounded shadow border-l-4 border-blue-500"><p class="text-gray-500 text-sm">En Camino</p><h2 id="countEnCamino" class="text-2xl font-bold">0</h2></div>
-                <div class="bg-white p-4 rounded shadow border-l-4 border-green-500"><p class="text-gray-500 text-sm">Finalizados</p><h2 id="countFinalizados" class="text-2xl font-bold">0</h2></div>
-            </div>
-            <div class="bg-white rounded shadow overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead class="bg-gray-100 border-b">
-                        <tr><th class="p-3">ID</th><th class="p-3">Cliente</th><th class="p-3">Técnico</th><th class="p-3">Estado</th></tr>
-                    </thead>
-                    <tbody id="tablaSolicitudes"></tbody>
-                </table>
-            </div>
-        </section>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <section class="bg-white p-6 rounded shadow">
-                <h2 class="text-xl font-bold text-teal-900 mb-4">3.- INCIDENCIA POR SERVICIO</h2>
-                <div style="height: 400px;"><canvas id="graficoServicios"></canvas></div>
-                <table class="w-full mt-4 text-sm"><tbody id="tablaIncidencia"></tbody></table>
-            </section>
-            <section class="bg-white p-6 rounded shadow">
-                <h2 class="text-xl font-bold text-teal-900 mb-4">4.- PRODUCTIVIDAD POR TECNICO</h2>
-                <div style="height: 400px;"><canvas id="graficoProductividad"></canvas></div>
-                <table class="w-full mt-4 text-sm"><tbody id="tablaProductividad"></tbody></table>
-            </section>
+    <div id="panelHerramientas" class="bg-white border-b border-gray-200 transition-all duration-300">
+        <div id="toolbar" class="p-3 flex flex-wrap gap-2 justify-center text-sm font-semibold">
+            <button onclick="cargarTodo()" class="hover:bg-gray-100 p-2 rounded">🔄 Refresh</button>
+            <button id="btnVer" onclick="verServicio()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👁️ Ver</button>
+            <button id="btnEditar" onclick="editarElemento()" class="transition-opacity duration-300 p-2 rounded" disabled>✏️ Editar</button>
+            <button id="btnBorrar" onclick="borrarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>🗑️ Borrar</button>
+            <button id="btnAsignar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👤 Asignar</button>
+            <button id="btnMensaje" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>💬 Mensaje</button>
+            <button id="btnFinalizar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✅ Finalizar Servicio</button>
+            <div class="border-l border-gray-300 mx-2"></div>
+            <button onclick="window.location.href='index.html'" class="hover:bg-gray-100 p-2 rounded">🚀 Solicitar Servicio</button>
+            <button onclick="window.location.href='tecnico.html'" class="hover:bg-gray-100 p-2 rounded">🛠️ Solicitar Técnico</button>
+            <button onclick="window.location.href='login.html'" class="hover:bg-gray-100 p-2 rounded text-red-600">🚪 Salir</button>
         </div>
     </div>
+</div>
+
+<div class="pt-32 md:pt-20"> 
+    <div class="container mx-auto p-4 space-y-8">
+        </div>
+</div>
 
     <script>
     const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
