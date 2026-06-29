@@ -1,19 +1,28 @@
 <!DOCTYPE html>
 <html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+</head>
 <body class="bg-gray-50 min-h-screen">
     
     <nav class="bg-teal-900 text-white p-4 text-center shadow-lg">
         <h1 class="text-xl font-bold">MANTENIMIENTO Y SOLUCIONES PARA EL HOGAR Y OFICINA</h1>
     </nav>
 
-    <div id="contenedorControl" class="sticky top-0 z-50 bg-white shadow-md border-b border-gray-200">
-        <div class="px-4 py-2 text-right bg-gray-50">
+    <div id="contenedorPanel" class="sticky top-0 z-50 bg-white shadow-md border-b border-gray-200">
+        <div class="px-4 py-2 text-right bg-gray-50 border-b border-gray-200">
             <button onclick="togglePanel()" class="text-xs bg-teal-800 text-white px-3 py-1 rounded-full shadow hover:bg-teal-900 transition">
-                ↕ Ocultar/Mostrar Panel
+                ↕ Ocultar/Mostrar Barra
             </button>
         </div>
 
-        <div id="panelHerramientas" class="transition-all duration-300 overflow-hidden max-h-screen">
+        <div id="panelHerramientas" class="transition-all duration-300 overflow-hidden" style="max-height: 200px; opacity: 1;">
             <div id="toolbar" class="p-3 flex flex-wrap gap-2 justify-center text-sm font-semibold">
                 <button onclick="cargarTodo()" class="hover:bg-gray-100 p-2 rounded">🔄 Refresh</button>
                 <button id="btnVer" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👁️ Ver</button>
@@ -42,14 +51,43 @@
                 </table>
             </div>
         </section>
-        
+
+        <section>
+            <h2 class="text-xl font-bold text-teal-900 mb-4">2.- FLUJO GENERAL DE SERVICIOS</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="bg-white p-4 rounded shadow border-l-4 border-yellow-500"><p class="text-gray-500 text-sm">Pendientes</p><h2 id="countPendientes" class="text-2xl font-bold">0</h2></div>
+                <div class="bg-white p-4 rounded shadow border-l-4 border-blue-500"><p class="text-gray-500 text-sm">En Camino</p><h2 id="countEnCamino" class="text-2xl font-bold">0</h2></div>
+                <div class="bg-white p-4 rounded shadow border-l-4 border-green-500"><p class="text-gray-500 text-sm">Finalizados</p><h2 id="countFinalizados" class="text-2xl font-bold">0</h2></div>
+            </div>
+            <div class="bg-white rounded shadow overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-100 border-b">
+                        <tr><th class="p-3">ID</th><th class="p-3">Cliente</th><th class="p-3">Técnico</th><th class="p-3">Estado</th></tr>
+                    </thead>
+                    <tbody id="tablaSolicitudes"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section class="bg-white p-6 rounded shadow">
+                <h2 class="text-xl font-bold text-teal-900 mb-4">3.- INCIDENCIA POR SERVICIO</h2>
+                <div style="height: 400px;"><canvas id="graficoServicios"></canvas></div>
+                <table class="w-full mt-4 text-sm"><tbody id="tablaIncidencia"></tbody></table>
+            </section>
+            <section class="bg-white p-6 rounded shadow">
+                <h2 class="text-xl font-bold text-teal-900 mb-4">4.- PRODUCTIVIDAD POR TECNICO</h2>
+                <div style="height: 400px;"><canvas id="graficoProductividad"></canvas></div>
+                <table class="w-full mt-4 text-sm"><tbody id="tablaProductividad"></tbody></table>
+            </section>
         </div>
+    </div>
 
     <script>
         function togglePanel() {
             const panel = document.getElementById('panelHerramientas');
             if (panel.style.maxHeight === '0px') {
-                panel.style.maxHeight = '500px';
+                panel.style.maxHeight = '200px';
                 panel.style.opacity = '1';
             } else {
                 panel.style.maxHeight = '0px';
