@@ -87,15 +87,14 @@
 
     <script>
         function togglePanel() {
-            const panel = document.getElementById('panelHerramientas');
-            if (panel.style.maxHeight === '0px') {
-                panel.style.maxHeight = '200px';
-                panel.style.opacity = '1';
-            } else {
-                panel.style.maxHeight = '0px';
-                panel.style.opacity = '0';
-            }
-        }
+    const panel = document.getElementById('panelHerramientas');
+    // Usamos 'display' para ocultar/mostrar de forma limpia
+    if (panel.style.display === 'none') {
+        panel.style.display = 'flex'; // O 'block' según necesites
+    } else {
+        panel.style.display = 'none';
+    }
+}
     </script>
 </body>
 
