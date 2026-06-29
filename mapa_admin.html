@@ -93,8 +93,10 @@
 
             document.getElementById('infoServicio').innerHTML = `
                 <p><strong>ID Servicio:</strong> ${solicitud.solicitud_id}</p>
+                <p><strong>Usuario:</strong> ${solicitud.nombre_usuario || 'Anónimo'}</p>
+                <p><strong>Técnico Asignado:</strong> ${solicitud.id_tecnico || 'Sin asignar'}</p>
                 <p><strong>Estado:</strong> ${solicitud.respuesta_solicitud || 'PENDIENTE'}</p>
-            `;
+                `;
 
             if (!map && solicitud.latitud) inicializarMapa(solicitud.latitud, solicitud.longitud);
             cargarMensajes(solicitudId);
