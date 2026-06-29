@@ -96,6 +96,7 @@
                 <p><strong>Usuario:</strong> ${solicitud.nombre_usuario || 'Anónimo'}</p>
                 <p><strong>Técnico Asignado:</strong> ${solicitud.id_tecnico || 'Sin asignar'}</p>
                 <p><strong>Estado:</strong> ${solicitud.respuesta_solicitud || 'PENDIENTE'}</p>
+                <p><strong>Solicitud:</strong> ${solicitud.comentario_solicitud || 'Sin comentarios'}</p>
                 `;
 
             if (!map && solicitud.latitud) inicializarMapa(solicitud.latitud, solicitud.longitud);
