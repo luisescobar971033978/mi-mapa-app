@@ -112,7 +112,98 @@
 
         window.onload = () => {
             cargarDatosVisor();
-            // ... (Tus suscripciones de canal se mantienen iguales aquí abajo)
+            
+            // 1. Suscripción para actualizaciones del servicio
+
+    client.channel('realtime_visor_solicitud')
+
+        .on('postgres_changes', { 
+
+            event: 'UPDATE', 
+
+            schema: 'public', 
+
+            table: 'solicitudes', 
+
+            filter: `solicitud_id=eq.${solicitudId}` 
+
+        }, (payload) => {
+
+            console.log("Servicio actualizado");
+
+            cargarDatosVisor();
+
+        })
+
+        .subscribe();
+
+
+
+    // 2. Suscripción para nuevos mensajes
+
+    client.channel('realtime_visor_mensajes')
+
+        .on('postgres_changes', { 
+
+            event: 'INSERT', 
+
+            schema: 'public', 
+
+            table: 'mensajes', 
+
+            filter: `solicitud_id=eq.${solicitudId}` 
+
+        }, (payload) => {
+
+            console.log("Nuevo mensaje recibido");
+
+            cargarMensajes(solicitudId);
+
+        })
+
+        .subscribe();
+
+
+
+    // 3. Suscripción para movimiento del móvil
+
+client.channel('realtime_movil')
+
+    .on('postgres_changes', { 
+
+        event: '*', 
+
+        schema: 'public', 
+
+        table: 'ubicacion_moviles', 
+
+        filter: `solicitud_id=eq.${solicitudId}` 
+
+    }, (payload) => {
+
+        const lat = payload.new.latitud;
+
+        const lng = payload.new.longitud;
+
+        
+
+        // Si el marcador existe, lo movemos
+
+        if (markerMovil) {
+
+            markerMovil.setLatLng([lat, lng]);
+
+        } else {
+
+            // Si por algún motivo no existía al cargar, lo creamos ahora
+
+            // (Opcional: podrías re-inicializar el marcador aquí)
+
+        }
+
+    })
+
+    .subscribe();
         };
     </script>
 </body>
