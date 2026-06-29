@@ -292,18 +292,28 @@ async function abrirChat() {
     
     document.getElementById('modalChat').classList.remove('hidden');
     
-    // Usamos 'emisor' y 'mensaje' tal cual están en tu tabla
     const { data } = await client.from('mensajes')
         .select('*')
         .eq('solicitud_id', elementoSeleccionado.id)
         .order('created_at', { ascending: true });
         
-    document.getElementById('contenedorMensajes').innerHTML = (data || []).map(m => `
-        <div class="p-2 bg-white border rounded text-sm">
-            <b>${m.emisor}:</b> ${m.mensaje}
-            <button onclick="editarMensaje('${m.id}', '${m.mensaje}')" class="ml-2 text-blue-600 text-[10px]">Editar</button>
+    document.getElementById('contenedorMensajes').innerHTML = (data || []).map(m => {
+        // Determinamos si es administrador
+        const esAdmin = m.emisor === 'Administrador';
+        
+        // Clases: Fondo azul claro para admin, blanco para otros
+        // Añadimos 'border-blue-400' y 'shadow-sm' para que el admin destaque
+        const estiloContenedor = esAdmin 
+            ? 'bg-blue-50 border-blue-400 border-l-4' 
+            : 'bg-white border-gray-200';
+
+        return `
+        <div class="p-2 mb-2 border rounded text-sm ${estiloContenedor}">
+            <b class="${esAdmin ? 'text-blue-700' : ''}">${m.emisor}:</b> ${m.mensaje}
+            ${esAdmin ? `<button onclick="editarMensaje('${m.id}', '${m.mensaje.replace(/'/g, "\\'")}')" class="ml-2 text-blue-600 font-bold underline text-[10px]">Editar</button>` : ''}
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Enviar nuevo mensaje
