@@ -8,8 +8,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-
-    <script src="tu-archivo-script.js" defer></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
     
@@ -27,7 +25,7 @@
         <div id="panelHerramientas" class="transition-all duration-300 overflow-hidden" style="max-height: 200px; opacity: 1;">
             <div id="toolbar" class="p-3 flex flex-wrap gap-2 justify-center text-sm font-semibold">
                 <button onclick="cargarTodo()" class="hover:bg-gray-100 p-2 rounded">🔄 Refresh</button>
-                <button id="btnVer" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👁️ Ver</button>
+                <button id="btnVer" onclick="verServicio()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👁️ Ver</button>
                 <button id="btnEditar" onclick="editarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✏️ Editar</button>
                 <button id="btnBorrar" onclick="borrarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>🗑️ Borrar</button>
                 <button id="btnAsignar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👤 Asignar</button>
@@ -86,239 +84,191 @@
     </div>
 
     <script>
+        const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
+        
+        let chartIncidencia, chartProductividad;
+        let elementoSeleccionado = { id: null, tipo: null };
+        let celdaSeleccionada = { campo: null, id: null };
+        
         function togglePanel() {
-    const panel = document.getElementById('panelHerramientas');
-    // Usamos 'display' para ocultar/mostrar de forma limpia
-    if (panel.style.display === 'none') {
-        panel.style.display = 'flex'; // O 'block' según necesites
-    } else {
-        panel.style.display = 'none';
-    }
-}
-    </script>
-</body>
-
-    <script>
-    const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
-    
-    // Variables globales
-    let chartIncidencia, chartProductividad;
-    let elementoSeleccionado = { id: null, tipo: null };
-    let celdaSeleccionada = { campo: null, id: null };
-    let filaSeleccionada = null; 
-        
-    function actualizarEstadoBotones(tipo) {
-        const btnEditar = document.getElementById('btnEditar');
-        if (!btnEditar) return;
-
-        if (tipo === 'movil') {
-            btnEditar.disabled = false;
-            btnEditar.classList.remove('opacity-50', 'cursor-not-allowed');
-            btnEditar.classList.add('hover:bg-gray-100', 'cursor-pointer');
-        } else {
-            btnEditar.disabled = true;
-            btnEditar.classList.add('opacity-50', 'cursor-not-allowed');
-            btnEditar.classList.remove('hover:bg-gray-100', 'cursor-pointer');
+            const panel = document.getElementById('panelHerramientas');
+            panel.classList.toggle('hidden');
         }
-    }
-// 3. Función para alternar visibilidad
-    function togglePanel() {
-        const panel = document.getElementById('panelHerramientas');
-        panel.classList.toggle('hidden'); // Alterna la clase ocultar/mostrar
-    }
-    function marcarCelda(campo, id, event) {
-        celdaSeleccionada = { campo, id };
-        elementoSeleccionado = { id: id, tipo: 'movil' };
-        event.stopPropagation();
-        
-        document.querySelectorAll('td').forEach(td => td.classList.remove('ring', 'ring-teal-500'));
-        event.target.classList.add('ring', 'ring-teal-500');
 
-        actualizarEstadoBotones('movil');
-    }
-
-    function getColor(v, arr) {
-        const sorted = [...arr].sort((a, b) => b - a);
-        const max = sorted[0];
-        const min = sorted[sorted.length - 1];
-        if (v === max && sorted.length >= 1) return '#0f766e';
-        if (v === sorted[1]) return '#f97316';
-        if (v === sorted[2]) return '#eab308';
-        if (v === min) return '#dc2626';
-        return '#14b8a6';
-    }
-
-    function seleccionarElemento(id, tipo, event) {
-    elementoSeleccionado = { id, tipo };
-    
-    document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
-    const fila = event.target.closest('tr');
-    if (fila) fila.classList.add('bg-teal-100');
-
-    // Extraemos el estado de la fila si es una solicitud (asumiendo que el estado es la 4ta columna)
-    let esAceptado = false;
-    if (tipo === 'solicitud' && fila) {
-        const estadoTexto = fila.cells[3]?.innerText.toLowerCase() || '';
-        esAceptado = estadoTexto === 'aceptado';
-    }
-
-    // Lógica unificada de botones
-    const botones = {
-        btnVer: (tipo === 'solicitud' && esAceptado), // Condición actualizada
-        btnEditar: (tipo === 'movil'),
-        btnBorrar: (tipo === 'solicitud'),
-        btnAsignar: (tipo === 'solicitud'),
-        btnMensaje: (tipo === 'solicitud'),
-        btnFinalizar: (tipo === 'solicitud')
-    };
-
-    Object.keys(botones).forEach(idBtn => {
-        const btn = document.getElementById(idBtn);
-        if (btn) {
-            btn.disabled = !botones[idBtn];
-            if (btn.disabled) {
-                btn.classList.add('opacity-50', 'cursor-not-allowed');
-                btn.classList.remove('cursor-pointer');
+        function actualizarEstadoBotones(tipo) {
+            const btnEditar = document.getElementById('btnEditar');
+            if (!btnEditar) return;
+            if (tipo === 'movil') {
+                btnEditar.disabled = false;
+                btnEditar.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnEditar.classList.add('hover:bg-gray-100', 'cursor-pointer');
             } else {
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                btn.classList.add('cursor-pointer');
+                btnEditar.disabled = true;
+                btnEditar.classList.add('opacity-50', 'cursor-not-allowed');
+                btnEditar.classList.remove('hover:bg-gray-100', 'cursor-pointer');
             }
         }
-    });
-}
-function verServicio() {
-    // Si el botón está deshabilitado, no hacemos nada (el usuario no debería poder ni hacer clic)
-    const btnVer = document.getElementById('btnVer');
-    if (btnVer && btnVer.disabled) return;
 
-    if (!elementoSeleccionado.id || elementoSeleccionado.tipo !== 'solicitud') {
-        alert("Selecciona un servicio en curso (Aceptado) para visualizar.");
-        return;
-    }
-    
-    // Abrimos el visor enviando el ID de la solicitud por parámetro URL
-    window.open(`mapa_admin.html?id=${elementoSeleccionado.id}`, '_blank', 'width=1000,height=700');
-}
-    async function cargarTodo() {
-        const { data: moviles } = await client.from('moviles').select('*');
-        if (moviles) {
-            document.getElementById('tablaMoviles').innerHTML = moviles.map(m => `
-                <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${m.movil_id}', 'movil', event)">
-                    <td class="p-2" onclick="marcarCelda('movil_id', '${m.movil_id}', event)">${m.movil_id}</td>
-                    <td class="p-2" onclick="marcarCelda('celular', '${m.movil_id}', event)">${m.celular}</td>
-                    <td class="p-2 font-bold ${m.estado === 'activo' ? 'text-green-600' : 'text-red-600'}" onclick="marcarCelda('estado', '${m.movil_id}', event)">${m.estado}</td>
-                    <td class="p-2" onclick="marcarCelda('id_tecnico', '${m.movil_id}', event)">${m.id_tecnico || 'Libre'}</td>
-                </tr>`).join('');
-        }
-        
-        const { data: solicitudes, error } = await client.from('solicitudes').select('*').order('solicitud_id', { ascending: false });
-        if (error) console.error("Error:", error.message);
-        if (solicitudes) {
-            document.getElementById('countPendientes').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'pendiente').length;
-            document.getElementById('countEnCamino').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'aceptado').length;
-            document.getElementById('countFinalizados').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'finalizado').length;
-            document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `
-                <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${s.solicitud_id}', 'solicitud', event)">
-                    <td class="p-3">${s.solicitud_id}</td>
-                    <td class="p-3">${s.nombre_usuario || 'Anónimo'}</td>
-                    <td class="p-3">${s.id_tecnico || 'Sin asignar'}</td>
-                    <td class="p-3 font-bold">${(s.respuesta_solicitud || 'PENDIENTE').toUpperCase()}</td>
-                </tr>`).join('');
-            actualizarGraficos(solicitudes);
-        }
-    }
-
-    function actualizarGraficos(solicitudes) {
-    // 1. Verificación de seguridad: ¿Existen los elementos en el HTML?
-    const canvasIncidencia = document.getElementById('graficoServicios');
-    const canvasProductividad = document.getElementById('graficoProductividad');
-    
-    if (!canvasIncidencia || !canvasProductividad) {
-        console.warn("Los elementos canvas no existen aún en el DOM");
-        return;
-    }
-
-    const serviciosValidos = ["Fumigación contra El dengue y chikungunya", "Desbrozado de entrada, patios y Jardines", "Problemas de Plomería", "Fuga de Agua", "Tuberías trancadas del drenaje sanitario y de lluvias", "Mi Ducha Eléctrica NO funciona", "Interruptor / Tomacorriente NO funciona", "Requiero Solución definitiva para GOTERAS", "Mantenimiento de AIRE ACONDICIONADO", "Instalación de AIRE ACONDICIONADO", "Servicio control de Humedad en Paredes", "Retoques de pintura en Fachada, Puertas de Acceso, Etc.", "Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)", "Necesito aplicar veneno para los Sepes", "Remodelación de Vivienda y Oficinas", "Ampliación de Vivienda y Oficinas"];
-    
-    const conteo = {};
-    solicitudes.forEach(s => { 
-        const cat = serviciosValidos.includes(s.comentario_solicitud) ? s.comentario_solicitud : "Otros"; 
-        conteo[cat] = (conteo[cat] || 0) + 1; 
-    });
-    
-    const labels = Object.keys(conteo);
-    const data = Object.values(conteo).map(c => parseFloat(((c / solicitudes.length) * 100).toFixed(1)));
-    const maxVal = data.length > 0 ? Math.max(...data) : 0; // Evita error si está vacío
-
-    // Destrucción segura
-    if (chartIncidencia) chartIncidencia.destroy();
-    
-    // Gráfico de Incidencia
-    chartIncidencia = new Chart(canvasIncidencia.getContext('2d'), { 
-        type: 'bar', 
-        plugins: [ChartDataLabels], 
-        data: { labels, datasets: [{ data, backgroundColor: data.map(v => getColor(Number(v), data)) }] }, 
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', formatter: v => v + '%', padding: 5 } }, scales: { x: { max: maxVal + 15, beginAtZero: true } } } 
-    });
-    
-    document.getElementById('tablaIncidencia').innerHTML = labels.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(data[i]), data)}">${data[i]}%</td></tr>`).join('');
-    
-    // Gráfico de Productividad
-    const finalizados = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado');
-    const cTech = {};
-    finalizados.forEach(s => cTech[s.id_tecnico || 'Sin asignar'] = (cTech[s.id_tecnico || 'Sin asignar'] || 0) + 1);
-    
-    const lTech = Object.keys(cTech);
-    const dTech = finalizados.length > 0 ? Object.values(cTech).map(c => parseFloat(((c / finalizados.length) * 100).toFixed(1))) : [];
-    const maxTech = dTech.length > 0 ? Math.max(...dTech) : 0;
-    
-    if (chartProductividad) chartProductividad.destroy();
-    chartProductividad = new Chart(canvasProductividad.getContext('2d'), { 
-        type: 'bar', 
-        plugins: [ChartDataLabels], 
-        data: { labels: lTech, datasets: [{ data: dTech, backgroundColor: dTech.map(v => getColor(Number(v), dTech)) }] }, 
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: v => v + '%' } }, scales: { y: { max: maxTech + 15, beginAtZero: true } } } 
-    });
-    
-    document.getElementById('tablaProductividad').innerHTML = lTech.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(dTech[i]), dTech)}">${dTech[i]}%</td></tr>`).join('');
-}
-
-    async function editarElemento() {
-        if (!celdaSeleccionada.campo || elementoSeleccionado.tipo !== 'movil') {
-            alert("Selecciona primero una celda del Bloque 1.");
-            return;
+        function marcarCelda(campo, id, event) {
+            celdaSeleccionada = { campo, id };
+            elementoSeleccionado = { id: id, tipo: 'movil' };
+            event.stopPropagation();
+            document.querySelectorAll('td').forEach(td => td.classList.remove('ring', 'ring-teal-500'));
+            event.target.classList.add('ring', 'ring-teal-500');
+            actualizarEstadoBotones('movil');
         }
 
-        const nuevoValor = prompt(`Ingrese el nuevo valor para ${celdaSeleccionada.campo}:`);
-        if (nuevoValor === null) return;
-
-        const { error } = await client
-            .from('moviles')
-            .update({ [celdaSeleccionada.campo]: nuevoValor })
-            .eq('movil_id', celdaSeleccionada.id);
-
-        if (error) {
-            alert("Error: " + error.message);
-        } else {
-            alert("¡Actualizado!");
-            celdaSeleccionada = { campo: null, id: null };
-            cargarTodo();
+        function getColor(v, arr) {
+            const sorted = [...arr].sort((a, b) => b - a);
+            const max = sorted[0];
+            const min = sorted[sorted.length - 1];
+            if (v === max && sorted.length >= 1) return '#0f766e';
+            if (v === sorted[1]) return '#f97316';
+            if (v === sorted[2]) return '#eab308';
+            if (v === min) return '#dc2626';
+            return '#14b8a6';
         }
-    }
 
-    async function borrarElemento() {
-        if (elementoSeleccionado.tipo !== 'solicitud') return;
-        if (confirm("¿Borrar solicitud?")) {
-            const { error } = await client.from('solicitudes').delete().eq('solicitud_id', elementoSeleccionado.id);
+        function seleccionarElemento(id, tipo, event) {
+            elementoSeleccionado = { id, tipo };
+            document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
+            const fila = event.target.closest('tr');
+            if (fila) fila.classList.add('bg-teal-100');
+
+            // Validación robusta: .trim().toLowerCase() elimina errores por espacios accidentales
+            let esAceptado = false;
+            if (tipo === 'solicitud' && fila) {
+                const estadoTexto = fila.cells[3]?.innerText.trim().toLowerCase() || '';
+                esAceptado = (estadoTexto === 'aceptado');
+            }
+
+            const botones = {
+                btnVer: (tipo === 'solicitud' && esAceptado),
+                btnEditar: (tipo === 'movil'),
+                btnBorrar: (tipo === 'solicitud'),
+                btnAsignar: (tipo === 'solicitud'),
+                btnMensaje: (tipo === 'solicitud'),
+                btnFinalizar: (tipo === 'solicitud')
+            };
+
+            Object.keys(botones).forEach(idBtn => {
+                const btn = document.getElementById(idBtn);
+                if (btn) {
+                    btn.disabled = !botones[idBtn];
+                    if (btn.disabled) {
+                        btn.classList.add('opacity-50', 'cursor-not-allowed');
+                        btn.classList.remove('cursor-pointer');
+                    } else {
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        btn.classList.add('cursor-pointer');
+                    }
+                }
+            });
+        }
+
+        function verServicio() {
+            const btnVer = document.getElementById('btnVer');
+            if (btnVer.disabled) return;
+            window.open(`mapa_admin.html?id=${elementoSeleccionado.id}`, '_blank', 'width=1000,height=700');
+        }
+
+        async function cargarTodo() {
+            const { data: moviles } = await client.from('moviles').select('*');
+            if (moviles) {
+                document.getElementById('tablaMoviles').innerHTML = moviles.map(m => `
+                    <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${m.movil_id}', 'movil', event)">
+                        <td class="p-2" onclick="marcarCelda('movil_id', '${m.movil_id}', event)">${m.movil_id}</td>
+                        <td class="p-2" onclick="marcarCelda('celular', '${m.movil_id}', event)">${m.celular}</td>
+                        <td class="p-2 font-bold ${m.estado === 'activo' ? 'text-green-600' : 'text-red-600'}" onclick="marcarCelda('estado', '${m.movil_id}', event)">${m.estado}</td>
+                        <td class="p-2" onclick="marcarCelda('id_tecnico', '${m.movil_id}', event)">${m.id_tecnico || 'Libre'}</td>
+                    </tr>`).join('');
+            }
+            
+            const { data: solicitudes, error } = await client.from('solicitudes').select('*').order('solicitud_id', { ascending: false });
+            if (solicitudes) {
+                document.getElementById('countPendientes').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'pendiente').length;
+                document.getElementById('countEnCamino').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'aceptado').length;
+                document.getElementById('countFinalizados').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'finalizado').length;
+                document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `
+                    <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${s.solicitud_id}', 'solicitud', event)">
+                        <td class="p-3">${s.solicitud_id}</td>
+                        <td class="p-3">${s.nombre_usuario || 'Anónimo'}</td>
+                        <td class="p-3">${s.id_tecnico || 'Sin asignar'}</td>
+                        <td class="p-3 font-bold">${(s.respuesta_solicitud || 'PENDIENTE').toUpperCase()}</td>
+                    </tr>`).join('');
+                actualizarGraficos(solicitudes);
+            }
+        }
+
+        function actualizarGraficos(solicitudes) {
+            const canvasIncidencia = document.getElementById('graficoServicios');
+            const canvasProductividad = document.getElementById('graficoProductividad');
+            if (!canvasIncidencia || !canvasProductividad) return;
+
+            const serviciosValidos = ["Fumigación contra El dengue y chikungunya", "Desbrozado de entrada, patios y Jardines", "Problemas de Plomería", "Fuga de Agua", "Tuberías trancadas del drenaje sanitario y de lluvias", "Mi Ducha Eléctrica NO funciona", "Interruptor / Tomacorriente NO funciona", "Requiero Solución definitiva para GOTERAS", "Mantenimiento de AIRE ACONDICIONADO", "Instalación de AIRE ACONDICIONADO", "Servicio control de Humedad en Paredes", "Retoques de pintura en Fachada, Puertas de Acceso, Etc.", "Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)", "Necesito aplicar veneno para los Sepes", "Remodelación de Vivienda y Oficinas", "Ampliación de Vivienda y Oficinas"];
+            
+            const conteo = {};
+            solicitudes.forEach(s => { 
+                const cat = serviciosValidos.includes(s.comentario_solicitud) ? s.comentario_solicitud : "Otros"; 
+                conteo[cat] = (conteo[cat] || 0) + 1; 
+            });
+            
+            const labels = Object.keys(conteo);
+            const data = Object.values(conteo).map(c => parseFloat(((c / solicitudes.length) * 100).toFixed(1)));
+            const maxVal = data.length > 0 ? Math.max(...data) : 0;
+
+            if (chartIncidencia) chartIncidencia.destroy();
+            chartIncidencia = new Chart(canvasIncidencia.getContext('2d'), { 
+                type: 'bar', plugins: [ChartDataLabels], 
+                data: { labels, datasets: [{ data, backgroundColor: data.map(v => getColor(Number(v), data)) }] }, 
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', formatter: v => v + '%', padding: 5 } }, scales: { x: { max: maxVal + 15, beginAtZero: true } } } 
+            });
+            
+            document.getElementById('tablaIncidencia').innerHTML = labels.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(data[i]), data)}">${data[i]}%</td></tr>`).join('');
+            
+            const finalizados = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado');
+            const cTech = {};
+            finalizados.forEach(s => cTech[s.id_tecnico || 'Sin asignar'] = (cTech[s.id_tecnico || 'Sin asignar'] || 0) + 1);
+            
+            const lTech = Object.keys(cTech);
+            const dTech = finalizados.length > 0 ? Object.values(cTech).map(c => parseFloat(((c / finalizados.length) * 100).toFixed(1))) : [];
+            const maxTech = dTech.length > 0 ? Math.max(...dTech) : 0;
+            
+            if (chartProductividad) chartProductividad.destroy();
+            chartProductividad = new Chart(canvasProductividad.getContext('2d'), { 
+                type: 'bar', plugins: [ChartDataLabels], 
+                data: { labels: lTech, datasets: [{ data: dTech, backgroundColor: dTech.map(v => getColor(Number(v), dTech)) }] }, 
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: v => v + '%' } }, scales: { y: { max: maxTech + 15, beginAtZero: true } } } 
+            });
+            
+            document.getElementById('tablaProductividad').innerHTML = lTech.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(dTech[i]), dTech)}">${dTech[i]}%</td></tr>`).join('');
+        }
+
+        async function editarElemento() {
+            if (!celdaSeleccionada.campo || elementoSeleccionado.tipo !== 'movil') {
+                alert("Selecciona primero una celda del Bloque 1.");
+                return;
+            }
+            const nuevoValor = prompt(`Ingrese el nuevo valor para ${celdaSeleccionada.campo}:`);
+            if (nuevoValor === null) return;
+            const { error } = await client.from('moviles').update({ [celdaSeleccionada.campo]: nuevoValor }).eq('movil_id', celdaSeleccionada.id);
             if (error) alert("Error: " + error.message);
-            else cargarTodo();
+            else { alert("¡Actualizado!"); celdaSeleccionada = { campo: null, id: null }; cargarTodo(); }
         }
-    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        cargarTodo();
-        client.channel('admin_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, cargarTodo).subscribe();
-    });
-</script>
+        async function borrarElemento() {
+            if (elementoSeleccionado.tipo !== 'solicitud') return;
+            if (confirm("¿Borrar solicitud?")) {
+                const { error } = await client.from('solicitudes').delete().eq('solicitud_id', elementoSeleccionado.id);
+                if (error) alert("Error: " + error.message);
+                else cargarTodo();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarTodo();
+            client.channel('admin_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, cargarTodo).subscribe();
+        });
+    </script>
 </body>
 </html>
