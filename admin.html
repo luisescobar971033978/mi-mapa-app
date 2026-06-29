@@ -29,7 +29,7 @@
                 <button id="btnEditar" onclick="editarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✏️ Editar</button>
                 <button id="btnBorrar" onclick="borrarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>🗑️ Borrar</button>
                 <button id="btnAsignar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👤 Asignar</button>
-                <button id="btnMensaje" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>💬 Mensaje</button>
+                <button id="btnMensaje" onclick="abrirChat()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>💬 Mensaje</button>
                 <button id="btnFinalizar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✅ Finalizar</button>
                 <div class="border-l border-gray-300 mx-2"></div>
                 <button onclick="window.location.href='index.html'" class="hover:bg-gray-100 p-2 rounded">🚀 Solicitar Servicio</button>
@@ -82,6 +82,17 @@
             </section>
         </div>
     </div>
+    <div id="modalChat" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center">
+    <div class="bg-white w-full max-w-lg p-6 rounded-lg shadow-xl">
+        <h2 class="text-lg font-bold mb-4" id="tituloChat">Chat del Servicio</h2>
+        <div id="contenedorMensajes" class="h-64 overflow-y-auto border p-3 mb-4 space-y-2 bg-gray-50"></div>
+        <div class="flex gap-2">
+            <input type="text" id="inputMensaje" class="flex-1 border p-2 rounded" placeholder="Escribe un mensaje...">
+            <button onclick="enviarMensaje()" class="bg-teal-700 text-white px-4 py-2 rounded">Enviar</button>
+        </div>
+        <button onclick="document.getElementById('modalChat').classList.add('hidden')" class="mt-4 text-sm text-gray-500 underline">Cerrar</button>
+    </div>
+</div>
 
     <script>
         const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
@@ -274,6 +285,45 @@
             cargarTodo();
             client.channel('admin_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, cargarTodo).subscribe();
         });
+        // Abrir chat y cargar mensajes
+async function abrirChat() {
+    const btn = document.getElementById('btnMensaje');
+    if (btn.disabled) return;
+    
+    document.getElementById('modalChat').classList.remove('hidden');
+    const { data } = await client.from('mensajes')
+        .select('*')
+        .eq('solicitud_id', elementoSeleccionado.id)
+        .order('created_at', { ascending: true });
+        
+    document.getElementById('contenedorMensajes').innerHTML = (data || []).map(m => `
+        <div class="p-2 bg-white border rounded text-sm">
+            <b>${m.remitente}:</b> ${m.contenido}
+            <button onclick="editarMensaje('${m.id}', '${m.contenido}')" class="ml-2 text-blue-600 text-[10px]">Editar</button>
+        </div>
+    `).join('');
+}
+
+// Enviar nuevo mensaje
+async function enviarMensaje() {
+    const input = document.getElementById('inputMensaje');
+    await client.from('mensajes').insert([{
+        solicitud_id: elementoSeleccionado.id,
+        contenido: input.value,
+        remitente: 'Administrador'
+    }]);
+    input.value = '';
+    abrirChat(); // Refrescar
+}
+
+// Editar mensaje existente
+async function editarMensaje(id, contenidoActual) {
+    const nuevo = prompt("Edita tu mensaje:", contenidoActual);
+    if (nuevo) {
+        await client.from('mensajes').update({ contenido: nuevo }).eq('id', id);
+        abrirChat();
+    }
+}
     </script>
 </body>
 </html>
