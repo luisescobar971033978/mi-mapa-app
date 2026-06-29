@@ -52,6 +52,7 @@
         // --- FUNCIONES DE LÓGICA ---
 
         async function manejarSalida() {
+            // 1. Obtener estado actual desde la tabla solicitudes
             const { data: solicitud } = await client
                 .from('solicitudes')
                 .select('respuesta_solicitud')
@@ -59,11 +60,15 @@
                 .single();
 
             if (solicitud && solicitud.respuesta_solicitud === 'finalizado') {
+                // 2. Ejecutar limpieza si está finalizado
+                // Limpiar mensajes
                 await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
+                // Limpiar ubicación móvil
                 await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
                 console.log("Limpieza ejecutada.");
             }
-            window.location.href = 'index.html'; 
+            // 3. Redirección al panel del administrador
+            window.location.href = 'admin.html'; 
         }
 
         async function inicializarMapa(latServicio, lngServicio) {
