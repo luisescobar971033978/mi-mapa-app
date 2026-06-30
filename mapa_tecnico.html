@@ -133,9 +133,23 @@
     function renderizarMensaje(msg) {
         const chatBox = document.getElementById('chatBox');
         const esTecnico = msg.emisor === 'tecnico';
+        const esAdmin = msg.emisor === 'Administrador';
+        
         const div = document.createElement('div');
         div.className = `mb-2 ${esTecnico ? 'text-right' : 'text-left'}`;
-        div.innerHTML = `<span class="inline-block p-2 rounded ${esTecnico ? 'bg-teal-100' : 'bg-gray-200'} text-sm">${msg.mensaje}</span>`;
+        
+        // Lógica de colores:
+        // Si es Admin: azul claro (bg-blue-200) con texto oscuro para resaltar
+        // Si es Técnico: verde claro (bg-teal-100)
+        // Si es otro (Cliente): gris (bg-gray-200)
+        let colorClase = esAdmin ? 'bg-blue-200 font-bold border border-blue-300' : (esTecnico ? 'bg-teal-100' : 'bg-gray-200');
+
+        div.innerHTML = `
+            <span class="inline-block p-2 rounded ${colorClase} text-sm">
+                ${esAdmin ? '<span class="block text-[9px] uppercase opacity-75">Administrador</span>' : ''}
+                ${msg.mensaje}
+            </span>
+        `;
         chatBox.appendChild(div);
         setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 100);
     }
