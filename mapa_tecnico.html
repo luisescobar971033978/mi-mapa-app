@@ -190,6 +190,26 @@ HTML
             alert("Error al finalizar el servicio. Por favor, intenta de nuevo.");
         }
     }
+        // --- NUEVO: Lógica de Reconexión de Estado ---
+    document.addEventListener("visibilitychange", async () => {
+        if (document.visibilityState === "visible") {
+            console.log("App en primer plano, sincronizando...");
+            
+            // 1. Refrescamos la información visual básica
+            cargarInfo(); 
+            
+            // 2. Intentamos recuperar el Wake Lock si se perdió
+            if ('wakeLock' in navigator && wakeLock === null) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log("Wake Lock recuperado");
+                } catch (err) {
+                    console.log("No se pudo recuperar el Wake Lock automáticamente.");
+                }
+            }
+        }
+    });
+
 
     // Ejecutar al cargar
     window.onload = () => { 
