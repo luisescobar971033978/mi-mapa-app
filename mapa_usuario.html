@@ -153,8 +153,27 @@
     function renderizarMensaje(msg) {
         const chatBox = document.getElementById('chatBox');
         const div = document.createElement('div');
-        div.className = `mb-2 ${msg.emisor === 'tecnico' ? 'text-left' : 'text-right'}`;
-        div.innerHTML = `<span class="inline-block p-2 rounded ${msg.emisor === 'tecnico' ? 'bg-teal-100' : 'bg-blue-100'} text-sm">${msg.mensaje}</span>`;
+        
+        // Identificadores de emisor
+        const esAdmin = msg.emisor === 'Administrador';
+        const esTecnico = msg.emisor === 'tecnico';
+        
+        // Definimos alineación y clase de estilo
+        div.className = `mb-2 ${esTecnico ? 'text-left' : 'text-right'}`;
+        
+        // Estilos condicionales:
+        // Admin: Azul fuerte (bg-blue-600 text-white) para máxima visibilidad
+        // Técnico: Verde claro (bg-teal-100)
+        // Cliente (Yo): Azul suave (bg-blue-100)
+        let claseEstilo = esAdmin ? 'bg-blue-600 text-white font-bold' : (esTecnico ? 'bg-teal-100' : 'bg-blue-100');
+
+        div.innerHTML = `
+            <span class="inline-block p-2 rounded ${claseEstilo} text-sm">
+                ${esAdmin ? '<div class="text-[9px] uppercase opacity-75 mb-1">Administrador</div>' : ''}
+                ${msg.mensaje}
+            </span>
+        `;
+        
         chatBox.appendChild(div);
         chatBox.scrollTop = chatBox.scrollHeight;
     }
