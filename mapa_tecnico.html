@@ -1,3 +1,4 @@
+HTML
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -10,6 +11,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="bg-gray-100 h-screen flex flex-col">
+
+    <script>let wakeLock = null;</script>
 
     <div id="infoBar" class="bg-teal-900 text-white p-2 text-xs flex justify-between px-4 z-[1000]">
         <span id="infoCliente">Cargando...</span>
@@ -50,7 +53,6 @@
     const solicitudId = urlParams.get('id');
     const sonidoAlerta = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
 
-    // Inicializamos el canal de broadcast aquí mismo
     const canalSeguimiento = client.channel(`solicitud_${solicitudId}`);
     canalSeguimiento.subscribe();
 
@@ -61,6 +63,16 @@
     map.on('mousedown touchstart zoom drag', () => usuarioHaInteractuado = true);
 
     let coordsCliente = null, coordsMovil = null, marcadorCliente = null, marcadorMovil = null;
+
+    // Función para activar Wake Lock inmediatamente
+    async function activarWakeLock() {
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log("Wake Lock forzado al cargar.");
+        } catch (err) {
+            console.log("El navegador requiere interacción previa para Wake Lock.");
+        }
+    }
 
     function ajustarVista() {
         if (!usuarioHaInteractuado && coordsCliente && coordsMovil) {
@@ -88,7 +100,6 @@
         navigator.geolocation.watchPosition(async (pos) => {
             coordsMovil = [pos.coords.latitude, pos.coords.longitude];
             
-            // Actualizar mapa local
             if (!marcadorMovil) {
                 marcadorMovil = L.marker(coordsMovil, { icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) }).addTo(map);
             } else {
@@ -96,7 +107,6 @@
             }
             ajustarVista();
 
-            // 1. Guardar en Base de Datos (Seguridad)
             await client.from('ubicacion_moviles').upsert({ 
                 solicitud_id: solicitudId, 
                 movil_id: localStorage.getItem('tecnico'),
@@ -105,7 +115,6 @@
                 ultima_actualizacion: new Date().toISOString() 
             });
 
-            // 2. Transmitir vía Broadcast (Velocidad instantánea al usuario)
             canalSeguimiento.send({
                 type: 'broadcast',
                 event: 'ubicacion_actualizada',
@@ -115,7 +124,6 @@
         }, null, { enableHighAccuracy: true });
     }
 
-    // Canal de mensajes
     client.channel('mensajes_channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
           renderizarMensaje(payload.new);
@@ -138,10 +146,6 @@
         const div = document.createElement('div');
         div.className = `mb-2 ${esTecnico ? 'text-right' : 'text-left'}`;
         
-        // Lógica de colores:
-        // Si es Admin: azul claro (bg-blue-200) con texto oscuro para resaltar
-        // Si es Técnico: verde claro (bg-teal-100)
-        // Si es otro (Cliente): gris (bg-gray-200)
         let colorClase = esAdmin ? 'bg-blue-200 font-bold border border-blue-300' : (esTecnico ? 'bg-teal-100' : 'bg-gray-200');
 
         div.innerHTML = `
@@ -162,32 +166,37 @@
     function cerrarModal() { document.getElementById('customModal').classList.add('hidden'); }
 
     async function finalizarServicio(id) {
-    try {
-        // 1. Actualizamos el estado a 'finalizado'
-        const { error } = await client
-            .from('solicitudes')
-            .update({ respuesta_solicitud: 'finalizado' })
-            .eq('solicitud_id', id);
+        try {
+            if (wakeLock !== null) {
+                await wakeLock.release();
+                wakeLock = null;
+            }
 
-        if (error) throw error;
+            const { error } = await client
+                .from('solicitudes')
+                .update({ respuesta_solicitud: 'finalizado' })
+                .eq('solicitud_id', id);
 
-        // 2. LIMPIEZA DE DATOS TEMPORALES (Funcionalidad recuperada)
-        // Eliminamos los mensajes y la ubicación asociada a este servicio
-        await client.from('mensajes').delete().eq('solicitud_id', id);
-        await client.from('ubicacion_moviles').delete().eq('solicitud_id', id);
+            if (error) throw error;
 
-        // 3. LIMPIEZA CRÍTICA: Eliminamos el ID activo para permitir que el técnico vuelva a la lista
-        localStorage.removeItem('solicitudId_activo');
-        
-        // 4. Redirigimos al panel principal
-        window.location.href = 'tecnico.html';
-        
-    } catch (err) {
-        console.error("Error al finalizar:", err);
-        alert("Error al finalizar el servicio. Por favor, intenta de nuevo.");
+            await client.from('mensajes').delete().eq('solicitud_id', id);
+            await client.from('ubicacion_moviles').delete().eq('solicitud_id', id);
+
+            localStorage.removeItem('solicitudId_activo');
+            
+            window.location.href = 'tecnico.html';
+        } catch (err) {
+            console.error("Error al finalizar:", err);
+            alert("Error al finalizar el servicio. Por favor, intenta de nuevo.");
+        }
     }
-}
-    window.onload = () => { cargarInfo(); iniciarTracking(); };
+
+    // Ejecutar al cargar
+    window.onload = () => { 
+        cargarInfo(); 
+        iniciarTracking(); 
+        activarWakeLock(); 
+    };
     </script>
 </body>
 </html>
