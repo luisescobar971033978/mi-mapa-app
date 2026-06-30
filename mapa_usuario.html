@@ -62,6 +62,14 @@
 
     let marcadorCliente = null, marcadorMovil = null;
 
+    // Mejora: Evento para reconectar al encender pantalla
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            console.log("Pantalla encendida, sincronizando...");
+            cargarInfo();
+        }
+    });
+
     function crearIcono(emoji) {
         return L.divIcon({
             html: `<div class="icon-wrapper" style="font-size:30px;">${emoji}</div>`,
@@ -71,7 +79,6 @@
         });
     }
 
-    // Función para centrar ambos marcadores
     function centrarMapa() {
         if (marcadorCliente && marcadorMovil) {
             const grupo = L.featureGroup([marcadorCliente, marcadorMovil]);
@@ -100,7 +107,9 @@
         
         if (data && data.latitud) {
             document.getElementById('infoCliente').innerText = `Servicio: ${data.comentario_solicitud || 'En curso'}`;
-            marcadorCliente = L.marker([data.latitud, data.longitud], { icon: crearIcono('🏠') }).addTo(map);
+            if (!marcadorCliente) {
+                marcadorCliente = L.marker([data.latitud, data.longitud], { icon: crearIcono('🏠') }).addTo(map);
+            }
         }
         cargarMensajesPrevios();
         inicializarCanales();
@@ -110,7 +119,11 @@
         const { data: ubicacion } = await client.from('ubicacion_moviles').select('*').eq('solicitud_id', solicitudId).maybeSingle();
             
         if (ubicacion) {
-            marcadorMovil = L.marker([ubicacion.latitud, ubicacion.longitud], { icon: crearIcono('🚐') }).addTo(map);
+            if (!marcadorMovil) {
+                marcadorMovil = L.marker([ubicacion.latitud, ubicacion.longitud], { icon: crearIcono('🚐') }).addTo(map);
+            } else {
+                marcadorMovil.setLatLng([ubicacion.latitud, ubicacion.longitud]);
+            }
             centrarMapa();
         }
 
@@ -123,7 +136,6 @@
             }
         }).subscribe();
 
-        // Canal de estado y mensajes (sin cambios)
         client.channel('status_channel').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitudes', filter: `solicitud_id=eq.${solicitudId}` }, async (payload) => { 
             if (payload.new.respuesta_solicitud === 'finalizado') {
                 await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
@@ -154,17 +166,11 @@
         const chatBox = document.getElementById('chatBox');
         const div = document.createElement('div');
         
-        // Identificadores de emisor
         const esAdmin = msg.emisor === 'Administrador';
         const esTecnico = msg.emisor === 'tecnico';
         
-        // Definimos alineación y clase de estilo
         div.className = `mb-2 ${esTecnico ? 'text-left' : 'text-right'}`;
         
-        // Estilos condicionales:
-        // Admin: Azul fuerte (bg-blue-600 text-white) para máxima visibilidad
-        // Técnico: Verde claro (bg-teal-100)
-        // Cliente (Yo): Azul suave (bg-blue-100)
         let claseEstilo = esAdmin ? 'bg-blue-600 text-white font-bold' : (esTecnico ? 'bg-teal-100' : 'bg-blue-100');
 
         div.innerHTML = `
@@ -180,7 +186,11 @@
 
     async function cargarMensajesPrevios() {
         const { data } = await client.from('mensajes').select('*').eq('solicitud_id', solicitudId).order('created_at', { ascending: true });
-        if (data) data.forEach(msg => renderizarMensaje(msg));
+        if (data) {
+            const chatBox = document.getElementById('chatBox');
+            chatBox.innerHTML = '';
+            data.forEach(msg => renderizarMensaje(msg));
+        }
     }
 
     window.onload = cargarInfo;
