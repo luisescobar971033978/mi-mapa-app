@@ -67,8 +67,8 @@
                 await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
                 console.log("Limpieza ejecutada.");
             }
-            // 3. Redirección al panel del administrador
-            window.location.href = 'admin.html'; 
+            // 3. Cerrar la ventana en lugar de redirigir
+            window.close();; 
         }
 
         async function inicializarMapa(latServicio, lngServicio) {
