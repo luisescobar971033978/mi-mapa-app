@@ -20,6 +20,11 @@
 </head>
 <body class="bg-gray-100 h-screen flex flex-col">
 
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-white z-[5000] flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-teal-900 mb-4"></div>
+        <p class="text-teal-900 font-bold">Actualizando datos...</p>
+    </div>
+
     <div id="modalCustom" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[4000] flex items-center justify-center">
         <div class="bg-white p-6 rounded-lg w-80 text-center shadow-xl">
             <h3 id="modalTitle" class="font-bold text-lg mb-2 text-teal-900">Mensaje</h3>
@@ -62,11 +67,30 @@
 
     let marcadorCliente = null, marcadorMovil = null;
 
-    // --- MEJORA: Lógica de reconexión sin alterar estructura ---
-    document.addEventListener("visibilitychange", () => {
+    // --- Lógica de Refresco Total Agresivo ---
+    async function refrescoTotal() {
+        console.log("REFRESCO AGRESIVO: Sincronizando usuario...");
+        document.getElementById('chatBox').innerHTML = '';
+        await cargarInfo();
+        
+        // Limpiamos y recreamos canales para asegurar Realtime fresco
+        // Nota: inicializarCanales maneja las suscripciones
+        if (typeof map !== 'undefined') {
+            map.invalidateSize(true);
+            centrarMapa();
+        }
+    }
+
+    document.addEventListener("visibilitychange", async () => {
         if (document.visibilityState === "visible") {
-            console.log("Pantalla encendida, sincronizando...");
-            cargarInfo();
+            const loader = document.getElementById('loadingOverlay');
+            loader.classList.remove('hidden');
+
+            await refrescoTotal();
+
+            setTimeout(() => {
+                loader.classList.add('hidden');
+            }, 800);
         }
     });
 
