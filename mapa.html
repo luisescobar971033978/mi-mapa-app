@@ -39,9 +39,9 @@
         maxZoom: 19
     }).addTo(map);
 
-    // Capa 2: Etiquetas de Barrios y Calles (Híbrido)
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Reference_Overlay/MapServer/tile/{z}/{y}/{x}', {
-        opacity: 0.7,
+    // Capa 2: Etiquetas de Avenidas y Barrios (Esta es la que vas a cambiar)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+        opacity: 0.8, // Un poco más de opacidad para que resalten más
         maxZoom: 19
     }).addTo(map);
 
