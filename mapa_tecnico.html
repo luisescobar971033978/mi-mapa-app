@@ -44,6 +44,12 @@
         </div>
     </div>
 
+    <!-- Mensaje de actualización -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-white z-[3000] flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-teal-900 mb-4"></div>
+        <p class="text-teal-900 font-bold">Actualizando datos...</p>
+    </div>
+
     <script>
     const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
@@ -63,7 +69,6 @@
 
     let coordsCliente = null, coordsMovil = null, marcadorCliente = null, marcadorMovil = null;
 
-    // Función para activar Wake Lock inmediatamente
     async function activarWakeLock() {
         try {
             wakeLock = await navigator.wakeLock.request('screen');
@@ -190,27 +195,37 @@
         }
     }
 
-    // --- Lógica de Reconexión de Estado (Integrada sin alterar tu estructura) ---
+    async function refrescoTotal() {
+        console.log("Forzando actualización completa del sistema...");
+        document.getElementById('chatBox').innerHTML = '';
+        await cargarInfo(); 
+        if (canalSeguimiento) {
+            canalSeguimiento.unsubscribe();
+            canalSeguimiento.subscribe();
+        }
+        if (typeof map !== 'undefined') {
+            map.invalidateSize(true);
+            ajustarVista();
+        }
+    }
+
     document.addEventListener("visibilitychange", async () => {
         if (document.visibilityState === "visible") {
-            console.log("App en primer plano, sincronizando...");
-            
-            // 1. Refrescamos la información visual básica
-            cargarInfo(); 
-            
-            // 2. Intentamos recuperar el Wake Lock si se perdió
-            if ('wakeLock' in navigator && wakeLock === null) {
-                try {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    console.log("Wake Lock recuperado");
-                } catch (err) {
-                    console.log("No se pudo recuperar el Wake Lock automáticamente.");
-                }
+            const loader = document.getElementById('loadingOverlay');
+            loader.classList.remove('hidden');
+
+            await refrescoTotal();
+
+            if ('wakeLock' in navigator && (wakeLock === null || wakeLock.released)) {
+                activarWakeLock();
             }
+
+            setTimeout(() => {
+                loader.classList.add('hidden');
+            }, 800);
         }
     });
 
-    // Ejecutar al cargar
     window.onload = () => { 
         cargarInfo(); 
         iniciarTracking(); 
