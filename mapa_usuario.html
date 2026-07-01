@@ -62,7 +62,7 @@
 
     let marcadorCliente = null, marcadorMovil = null;
 
-    // Mejora: Evento para reconectar al encender pantalla
+    // --- MEJORA: Lógica de reconexión sin alterar estructura ---
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
             console.log("Pantalla encendida, sincronizando...");
@@ -127,6 +127,7 @@
             centrarMapa();
         }
 
+        // Suscripciones
         client.channel(`solicitud_${solicitudId}`).on('broadcast', { event: 'ubicacion_actualizada' }, (payload) => {
             if (!marcadorMovil) {
                 marcadorMovil = L.marker([payload.payload.latitud, payload.payload.longitud], { icon: crearIcono('🚐') }).addTo(map);
