@@ -28,50 +28,64 @@
     const idSolicitud = localStorage.getItem('id_solicitud');
     console.log("ESPERANDO ID:", idSolicitud);
 
-    // Función de resguardo: Verifica si el servicio ya terminó mientras el usuario estaba fuera
-    window.onload = async function() {
-        if (!idSolicitud) {
-            window.location.href = 'index.html';
-            return;
-        }
-
+    // --- MEJORA: Verificación de estado activa al volver a primer plano ---
+    async function verificarEstadoActual() {
+        if (!idSolicitud) return;
+        
         const { data } = await client
             .from('solicitudes')
             .select('respuesta_solicitud')
             .eq('solicitud_id', parseInt(idSolicitud))
             .maybeSingle();
 
-        if (data && data.respuesta_solicitud === 'finalizado') {
-            localStorage.setItem('servicio_finalizado', 'true');
-            localStorage.removeItem('id_solicitud');
-            window.location.href = 'index.html';
-        }
-    };
-
-    client.channel('any_channel')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitudes' }, (payload) => {
-        console.log("EVENTO RECIBIDO:", payload.new);
-        
-        // Convertimos ambos a string para asegurar que la comparación funcione
-        const idBD = String(payload.new.solicitud_id);
-        const idEsperado = String(idSolicitud);
-        
-        if (idBD === idEsperado) {
-            console.log("ID COINCIDE, ESTADO:", payload.new.respuesta_solicitud);
-            
-            // Redirección si el técnico acepta el servicio
-            if (payload.new.respuesta_solicitud === 'aceptado') {
+        if (data) {
+            if (data.respuesta_solicitud === 'aceptado') {
                 window.location.href = `mapa_usuario.html?id=${idSolicitud}`;
-            }
-            
-            // Redirección si el técnico finaliza el servicio
-            if (payload.new.respuesta_solicitud === 'finalizado') {
+            } else if (data.respuesta_solicitud === 'finalizado') {
                 localStorage.setItem('servicio_finalizado', 'true');
                 localStorage.removeItem('id_solicitud');
                 window.location.href = 'index.html';
             }
         }
-      }).subscribe();
+    }
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            console.log("App en primer plano, verificando estado de solicitud...");
+            verificarEstadoActual();
+        }
+    });
+
+    window.onload = async function() {
+        if (!idSolicitud) {
+            window.location.href = 'index.html';
+            return;
+        }
+
+        // Verificación inicial al cargar
+        verificarEstadoActual();
+
+        // Mantenemos tu suscripción original intacta
+        client.channel('any_channel')
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitudes' }, (payload) => {
+            console.log("EVENTO RECIBIDO:", payload.new);
+            
+            const idBD = String(payload.new.solicitud_id);
+            const idEsperado = String(idSolicitud);
+            
+            if (idBD === idEsperado) {
+                if (payload.new.respuesta_solicitud === 'aceptado') {
+                    window.location.href = `mapa_usuario.html?id=${idSolicitud}`;
+                }
+                
+                if (payload.new.respuesta_solicitud === 'finalizado') {
+                    localStorage.setItem('servicio_finalizado', 'true');
+                    localStorage.removeItem('id_solicitud');
+                    window.location.href = 'index.html';
+                }
+            }
+          }).subscribe();
+    };
 </script>
 </body>
 </html>
