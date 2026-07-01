@@ -30,23 +30,26 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     
-    // Inicialización del mapa
-    var map = L.map('map').setView([-17.7833, -63.1821], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    // Inicialización del mapa con capa satelital ArcGIS y zoom 18
+    var map = L.map('map').setView([-17.7833, -63.1821], 18);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri',
+        maxZoom: 19
+    }).addTo(map);
 
     // Intento de geolocalización optimizado
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (pos) => {
-                map.setView([pos.coords.latitude, pos.coords.longitude], 15);
+                map.setView([pos.coords.latitude, pos.coords.longitude], 18);
             },
             (err) => {
                 console.log("Ubicación no disponible, usando centro por defecto.");
             },
             { 
-                enableHighAccuracy: true, // Solicita el GPS real del dispositivo
-                timeout: 5000,           // Espera hasta 5 segundos para obtener la ubicación
-                maximumAge: 0            // Obliga a buscar una posición fresca, no guardada
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
             }
         );
     }
