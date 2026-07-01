@@ -189,7 +189,8 @@
             alert("Error al finalizar el servicio. Por favor, intenta de nuevo.");
         }
     }
-        // --- NUEVO: Lógica de Reconexión de Estado ---
+
+    // --- Lógica de Reconexión de Estado (Integrada sin alterar tu estructura) ---
     document.addEventListener("visibilitychange", async () => {
         if (document.visibilityState === "visible") {
             console.log("App en primer plano, sincronizando...");
@@ -208,7 +209,6 @@
             }
         }
     });
-
 
     // Ejecutar al cargar
     window.onload = () => { 
