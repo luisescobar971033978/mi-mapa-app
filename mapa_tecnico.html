@@ -198,11 +198,23 @@
     async function refrescoTotal() {
         console.log("Forzando actualización completa del sistema...");
         document.getElementById('chatBox').innerHTML = '';
+        
+        // 1. Cargamos la info
         await cargarInfo(); 
-        if (canalSeguimiento) {
-            canalSeguimiento.unsubscribe();
-            canalSeguimiento.subscribe();
+
+        // 2. Manejo seguro del canal: en lugar de intentar suscribir el mismo objeto, 
+        // simplemente verificamos si está activo.
+        try {
+            if (canalSeguimiento) {
+                // Solo nos aseguramos de que los mensajes se sigan cargando
+                // No necesitamos re-suscribir el canal de broadcast si ya está creado globalmente
+                console.log("Canal de seguimiento activo");
+            }
+        } catch (e) {
+            console.error("Error en el canal:", e);
         }
+
+        // 3. Forzar mapa
         if (typeof map !== 'undefined') {
             map.invalidateSize(true);
             ajustarVista();
