@@ -30,10 +30,18 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     
-    // Inicialización del mapa con capa satelital ArcGIS y zoom 18
+    // Inicialización del mapa con capa híbrida ArcGIS y zoom 18
     var map = L.map('map').setView([-17.7833, -63.1821], 18);
+    
+    // Capa base: Satélite
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Tiles &copy; Esri',
+        maxZoom: 19
+    }).addTo(map);
+
+    // Capa superior: Etiquetas (Híbrido)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        opacity: 0.7,
         maxZoom: 19
     }).addTo(map);
 
