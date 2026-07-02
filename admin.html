@@ -27,7 +27,7 @@
                 <button onclick="cargarTodo()" class="hover:bg-gray-100 p-2 rounded">🔄 Refresh</button>
                 <button id="btnVer" onclick="verServicio()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👁️ Ver</button>
                 <button id="btnEditar" onclick="editarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✏️ Editar</button>
-                <button id="btnBorrar" onclick="borrarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>🗑️ Borrar</button>
+                <button id="btnBorrar" onclick="eliminarSolicitud()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>🗑️ Borrar</button>
                 <button id="btnAsignar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👤 Asignar</button>
                 <button id="btnMensaje" onclick="abrirChat()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>💬 Mensaje</button>
                 <button id="btnFinalizar" onclick="finalizarServicioAdmin()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✅ Finalizar Servicio</button>
@@ -325,7 +325,19 @@
         document.getElementById('modalChat').classList.add('hidden');
         location.reload();
     }
-
+async function eliminarSolicitud() {
+    if (elementoSeleccionado.tipo !== 'solicitud') return;
+    
+    // Aquí iría tu lógica para borrar en Supabase
+    const { error } = await client.from('solicitudes')
+        .delete()
+        .eq('solicitud_id', elementoSeleccionado.id);
+        
+    if (!error) {
+        alert("Solicitud eliminada");
+        cargarTodo(); // Recarga la tabla
+    }
+}
     async function finalizarServicioAdmin() {
         if (elementoSeleccionado.tipo !== 'solicitud' || !elementoSeleccionado.id) {
             alert("Selecciona una solicitud de la lista para finalizarla.");
