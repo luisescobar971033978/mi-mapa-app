@@ -90,7 +90,7 @@
             <input type="text" id="inputMensaje" class="flex-1 border p-2 rounded" placeholder="Escribe un mensaje...">
             <button onclick="enviarMensaje()" class="bg-teal-700 text-white px-4 py-2 rounded">Enviar</button>
         </div>
-        <button onclick="document.getElementById('modalChat').classList.add('hidden')" class="mt-4 text-sm text-gray-500 underline">Cerrar</button>
+        <button onclick="cerrarChatYVerificar()" class="mt-4 text-sm text-gray-500 underline">Cerrar</button>
     </div>
 </div>
 
@@ -353,6 +353,26 @@ async function editarMensaje(id, mensajeActual) {
         await client.from('mensajes').update({ mensaje: nuevo }).eq('id', id);
         abrirChat();
     }
+}
+        // Función para verificar estado y limpiar antes de cerrar
+async function cerrarChatYVerificar() {
+    const solicitudId = elementoSeleccionado.id;
+    
+    // Inspección del estado
+    const { data } = await client.from('solicitudes')
+        .select('respuesta_solicitud')
+        .eq('solicitud_id', solicitudId)
+        .single();
+
+    // Verificación y limpieza si es 'finalizado'
+    if (data && data.respuesta_solicitud === 'finalizado') {
+        await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
+        await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
+    }
+
+    // Salida: cierra el modal y recarga la página
+    document.getElementById('modalChat').classList.add('hidden');
+    location.reload();
 }
     </script>
 </body>
