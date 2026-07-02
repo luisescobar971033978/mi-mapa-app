@@ -415,10 +415,12 @@
     }
 
     function cerrarSesionYSalir() {
-        localStorage.removeItem('admin_autenticado');
-        window.close();
-        window.location.href = "about:blank";
-    }
+    // 1. Borramos la marca de sesión para que al volver a abrir pida contraseña
+    localStorage.removeItem('admin_autenticado');
+    
+    // 2. Cerramos la ventana actual
+    window.close();
+}
 
     document.addEventListener('DOMContentLoaded', () => {
         const estaAutenticado = localStorage.getItem('admin_autenticado');
