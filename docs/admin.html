@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    
+    <nav class="bg-teal-900 text-white p-4 text-center shadow-lg">
+        <h1 class="text-xl font-bold">MANTENIMIENTO Y SOLUCIONES PARA EL HOGAR Y OFICINA</h1>
+    </nav>
+
+    <div id="contenedorPanel" class="sticky top-0 z-50 bg-white shadow-md border-b border-gray-200">
+        <div class="px-4 py-2 text-right bg-gray-50 border-b border-gray-200">
+            <button onclick="togglePanel()" class="text-xs bg-teal-800 text-white px-3 py-1 rounded-full shadow hover:bg-teal-900 transition">
+                ↕ Ocultar/Mostrar Barra
+            </button>
+        </div>
+
+        <div id="panelHerramientas" class="transition-all duration-300 overflow-y-auto" style="max-height: 100px; opacity: 1;">
+            <div id="toolbar" class="p-3 flex flex-wrap gap-2 justify-center text-sm font-semibold">
+                <button id="btnRefresh" onclick="refrescarPanel()" class="hover:bg-gray-100 p-2 rounded">🔄 Refresh</button>
+                <button id="btnVer" onclick="verServicio()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👁️ Ver</button>
+                <button id="btnEditar" onclick="editarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✏️ Editar</button>
+                <button id="btnBorrar" onclick="eliminarSolicitud()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>🗑️ Borrar</button>
+                <button id="btnAsignar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👤 Asignar</button>
+                <button id="btnMensaje" onclick="abrirChat()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>💬 Mensaje</button>
+                <button id="btnFinalizar" onclick="finalizarServicioAdmin()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✅ Finalizar Servicio</button>
+                <div class="border-l border-gray-300 mx-2"></div>
+                <button onclick="window.location.href='index.html'" class="hover:bg-gray-100 p-2 rounded">🚀 Solicitar Servicio</button>
+                <button onclick="window.location.href='tecnico.html'" class="hover:bg-gray-100 p-2 rounded">🛠️ Solicitar Técnico</button>
+                <button onclick="window.location.href='login.html'" class="hover:bg-gray-100 p-2 rounded text-red-600">🚪 Salir</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 space-y-8">
+        <section>
+            <h2 class="text-xl font-bold text-teal-900 mb-4">1.- TECNICOS Y MOVILES DISPONIBLES</h2>
+            <div class="bg-white rounded shadow p-4 overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-100 border-b">
+                        <tr><th class="p-2">Móvil</th><th class="p-2">Celular</th><th class="p-2">Estado</th><th class="p-2">ID Técnico</th></tr>
+                    </thead>
+                    <tbody id="tablaMoviles"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="text-xl font-bold text-teal-900 mb-4">2.- FLUJO GENERAL DE SERVICIOS</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="bg-white p-4 rounded shadow border-l-4 border-yellow-500"><p class="text-gray-500 text-sm">Pendientes</p><h2 id="countPendientes" class="text-2xl font-bold">0</h2></div>
+                <div class="bg-white p-4 rounded shadow border-l-4 border-blue-500"><p class="text-gray-500 text-sm">En Camino</p><h2 id="countEnCamino" class="text-2xl font-bold">0</h2></div>
+                <div class="bg-white p-4 rounded shadow border-l-4 border-green-500"><p class="text-gray-500 text-sm">Finalizados</p><h2 id="countFinalizados" class="text-2xl font-bold">0</h2></div>
+            </div>
+            <div class="bg-white rounded shadow overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-100 border-b">
+                        <tr><th class="p-3">ID</th><th class="p-3">Cliente</th><th class="p-3">Técnico</th><th class="p-3">Estado</th></tr>
+                    </thead>
+                    <tbody id="tablaSolicitudes"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section class="bg-white p-6 rounded shadow">
+                <h2 class="text-xl font-bold text-teal-900 mb-4">3.- INCIDENCIA POR SERVICIO</h2>
+                <div style="height: 400px;"><canvas id="graficoServicios"></canvas></div>
+                <table class="w-full mt-4 text-sm"><tbody id="tablaIncidencia"></tbody></table>
+            </section>
+            <section class="bg-white p-6 rounded shadow">
+                <h2 class="text-xl font-bold text-teal-900 mb-4">4.- PRODUCTIVIDAD POR TECNICO</h2>
+                <div style="height: 400px;"><canvas id="graficoProductividad"></canvas></div>
+                <table class="w-full mt-4 text-sm"><tbody id="tablaProductividad"></tbody></table>
+            </section>
+        </div>
+    </div>
+    <div id="modalChat" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center">
+    <div class="bg-white w-full max-w-lg p-6 rounded-lg shadow-xl">
+        <h2 class="text-lg font-bold mb-4" id="tituloChat">Chat del Servicio</h2>
+        <div id="contenedorMensajes" class="h-64 overflow-y-auto border p-3 mb-4 space-y-2 bg-gray-50"></div>
+        <div class="flex gap-2">
+            <input type="text" id="inputMensaje" class="flex-1 border p-2 rounded" placeholder="Escribe un mensaje...">
+            <button onclick="enviarMensaje()" class="bg-teal-700 text-white px-4 py-2 rounded">Enviar</button>
+        </div>
+        <button onclick="cerrarChatYVerificar()" class="mt-4 text-sm text-gray-500 underline">Cerrar</button>
+    </div>
+</div>
+
+    <script>
+    const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
+    
+    let chartIncidencia, chartProductividad;
+    let elementoSeleccionado = { id: null, tipo: null };
+    let celdaSeleccionada = { campo: null, id: null };
+    
+    function togglePanel() {
+        const panel = document.getElementById('panelHerramientas');
+        panel.classList.toggle('hidden');
+    }
+
+    function actualizarEstadoBotones(tipo) {
+        const btnEditar = document.getElementById('btnEditar');
+        if (!btnEditar) return;
+        if (tipo === 'movil') {
+            btnEditar.disabled = false;
+            btnEditar.classList.remove('opacity-50', 'cursor-not-allowed');
+            btnEditar.classList.add('hover:bg-gray-100', 'cursor-pointer');
+        } else {
+            btnEditar.disabled = true;
+            btnEditar.classList.add('opacity-50', 'cursor-not-allowed');
+            btnEditar.classList.remove('hover:bg-gray-100', 'cursor-pointer');
+        }
+    }
+
+    function marcarCelda(campo, id, event) {
+        celdaSeleccionada = { campo, id };
+        elementoSeleccionado = { id: id, tipo: 'movil' };
+        event.stopPropagation();
+        document.querySelectorAll('td').forEach(td => td.classList.remove('ring', 'ring-teal-500'));
+        event.target.classList.add('ring', 'ring-teal-500');
+        actualizarEstadoBotones('movil');
+    }
+
+    function getColor(v, arr) {
+        const sorted = [...new Set(arr)].sort((a, b) => b - a);
+        const max = sorted[0];
+        const min = sorted[sorted.length - 1];
+        if (v === max && sorted.length >= 1) return '#0f766e';
+        if (v === sorted[1]) return '#f97316';
+        if (v === sorted[2]) return '#eab308';
+        if (v === min && sorted.length > 3) return '#dc2626';
+        return '#14b8a6';
+    }
+
+    function seleccionarElemento(id, tipo, event) {
+        elementoSeleccionado = { id, tipo };
+        
+        // Resaltado visual
+        document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
+        const fila = event.target.closest('tr');
+        if (fila) fila.classList.add('bg-teal-100');
+
+        // Obtenemos el texto del estado de la columna correspondiente (index 3)
+        const estadoTexto = fila.cells[3]?.innerText.trim().toLowerCase() || '';
+        
+        // Definir estados booleanos
+        const esAceptado = (estadoTexto === 'aceptado');
+        const esEnCamino = (estadoTexto === 'en camino');
+        const esFinalizado = (estadoTexto === 'finalizado');
+
+        // Lógica de habilitación de botones
+        const botones = {
+            btnVer: (tipo === 'solicitud' && esAceptado),
+            btnEditar: (tipo === 'movil'),
+            btnBorrar: (tipo === 'solicitud' && esFinalizado),
+            btnAsignar: (tipo === 'solicitud'),
+            btnMensaje: (tipo === 'solicitud' && (esAceptado || esEnCamino)),
+            btnFinalizar: (tipo === 'solicitud')
+        };
+
+        Object.keys(botones).forEach(idBtn => {
+            const btn = document.getElementById(idBtn);
+            if (btn) {
+                btn.disabled = !botones[idBtn];
+                if (btn.disabled) {
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    btn.classList.remove('cursor-pointer');
+                } else {
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.classList.add('cursor-pointer');
+                }
+            }
+        });
+    }
+
+    function verServicio() {
+        const btnVer = document.getElementById('btnVer');
+        if (btnVer.disabled) return;
+        window.open(`mapa_admin.html?id=${elementoSeleccionado.id}`, '_blank', 'width=1000,height=700');
+    }
+
+    async function cargarTodo() {
+        const { data: moviles } = await client.from('moviles').select('*');
+        if (moviles) {
+            document.getElementById('tablaMoviles').innerHTML = moviles.map(m => `
+                <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${m.movil_id}', 'movil', event)">
+                    <td class="p-2" onclick="marcarCelda('movil_id', '${m.movil_id}', event)">${m.movil_id}</td>
+                    <td class="p-2" onclick="marcarCelda('celular', '${m.movil_id}', event)">${m.celular}</td>
+                    <td class="p-2 font-bold ${m.estado === 'activo' ? 'text-green-600' : 'text-red-600'}" onclick="marcarCelda('estado', '${m.movil_id}', event)">${m.estado}</td>
+                    <td class="p-2" onclick="marcarCelda('id_tecnico', '${m.movil_id}', event)">${m.id_tecnico || 'Libre'}</td>
+                </tr>`).join('');
+        }
+        
+        const { data: solicitudes, error } = await client.from('solicitudes').select('*').order('solicitud_id', { ascending: false });
+        if (solicitudes) {
+            document.getElementById('countPendientes').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'pendiente').length;
+            document.getElementById('countEnCamino').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'aceptado').length;
+            document.getElementById('countFinalizados').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'finalizado').length;
+            document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `
+                <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${s.solicitud_id}', 'solicitud', event)">
+                    <td class="p-3">${s.solicitud_id}</td>
+                    <td class="p-3">${s.nombre_usuario || 'Anónimo'}</td>
+                    <td class="p-3">${s.id_tecnico || 'Sin asignar'}</td>
+                    <td class="p-3 font-bold">${(s.respuesta_solicitud || 'PENDIENTE').toUpperCase()}</td>
+                </tr>`).join('');
+            actualizarGraficos(solicitudes);
+        }
+    }
+
+    function actualizarGraficos(solicitudes) {
+        const canvasIncidencia = document.getElementById('graficoServicios');
+        const canvasProductividad = document.getElementById('graficoProductividad');
+        if (!canvasIncidencia || !canvasProductividad) return;
+
+        const serviciosValidos = ["Fumigación contra El dengue y chikungunya", "Desbrozado de entrada, patios y Jardines", "Problemas de Plomería", "Fuga de Agua", "Tuberías trancadas del drenaje sanitario y de lluvias", "Mi Ducha Eléctrica NO funciona", "Interruptor / Tomacorriente NO funciona", "Requiero Solución definitiva para GOTERAS", "Mantenimiento de AIRE ACONDICIONADO", "Instalación de AIRE ACONDICIONADO", "Servicio control de Humedad en Paredes", "Retoques de pintura en Fachada, Puertas de Acceso, Etc.", "Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)", "Necesito aplicar veneno para los Sepes", "Remodelación de Vivienda y Oficinas", "Ampliación de Vivienda y Oficinas"];
+        
+        const conteo = {};
+        solicitudes.forEach(s => { 
+            const cat = serviciosValidos.includes(s.comentario_solicitud) ? s.comentario_solicitud : "Otros"; 
+            conteo[cat] = (conteo[cat] || 0) + 1; 
+        });
+        
+        const labels = Object.keys(conteo);
+        const data = Object.values(conteo).map(c => parseFloat(((c / solicitudes.length) * 100).toFixed(1)));
+        const maxVal = data.length > 0 ? Math.max(...data) : 0;
+
+        if (chartIncidencia) chartIncidencia.destroy();
+        chartIncidencia = new Chart(canvasIncidencia.getContext('2d'), { 
+            type: 'bar', plugins: [ChartDataLabels], 
+            data: { labels, datasets: [{ data, backgroundColor: data.map(v => getColor(Number(v), data)) }] }, 
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', formatter: v => v + '%', padding: 5 } }, scales: { x: { max: maxVal + 15, beginAtZero: true } } } 
+        });
+        
+        document.getElementById('tablaIncidencia').innerHTML = labels.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(data[i]), data)}">${data[i]}%</td></tr>`).join('');
+        
+        const finalizados = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado');
+        const cTech = {};
+        finalizados.forEach(s => cTech[s.id_tecnico || 'Sin asignar'] = (cTech[s.id_tecnico || 'Sin asignar'] || 0) + 1);
+        
+        const lTech = Object.keys(cTech);
+        const dTech = finalizados.length > 0 ? Object.values(cTech).map(c => parseFloat(((c / finalizados.length) * 100).toFixed(1))) : [];
+        const maxTech = dTech.length > 0 ? Math.max(...dTech) : 0;
+        
+        if (chartProductividad) chartProductividad.destroy();
+        chartProductividad = new Chart(canvasProductividad.getContext('2d'), { 
+            type: 'bar', plugins: [ChartDataLabels], 
+            data: { labels: lTech, datasets: [{ data: dTech, backgroundColor: dTech.map(v => getColor(Number(v), dTech)) }] }, 
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: v => v + '%' } }, scales: { y: { max: maxTech + 15, beginAtZero: true } } } 
+        });
+        
+        document.getElementById('tablaProductividad').innerHTML = lTech.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(dTech[i]), dTech)}">${dTech[i]}%</td></tr>`).join('');
+    }
+
+    async function editarElemento() {
+        if (!celdaSeleccionada.campo || elementoSeleccionado.tipo !== 'movil') {
+            alert("Selecciona primero una celda del Bloque 1.");
+            return;
+        }
+        const nuevoValor = prompt(`Ingrese el nuevo valor para ${celdaSeleccionada.campo}:`);
+        if (nuevoValor === null) return;
+        const { error } = await client.from('moviles').update({ [celdaSeleccionada.campo]: nuevoValor }).eq('movil_id', celdaSeleccionada.id);
+        if (error) alert("Error: " + error.message);
+        else { alert("¡Actualizado!"); celdaSeleccionada = { campo: null, id: null }; cargarTodo(); }
+    }
+
+    async function abrirChat() {
+        const btn = document.getElementById('btnMensaje');
+        if (btn.disabled) return;
+        document.getElementById('modalChat').classList.remove('hidden');
+        
+        const { data } = await client.from('mensajes')
+            .select('*')
+            .eq('solicitud_id', elementoSeleccionado.id)
+            .order('created_at', { ascending: true });
+            
+        document.getElementById('contenedorMensajes').innerHTML = (data || []).map(m => {
+            const esAdmin = m.emisor === 'Administrador';
+            const esTecnico = m.emisor === 'tecnico';
+            let clases = "p-3 mb-3 rounded-lg text-sm border-l-4 ";
+            if (esAdmin) clases += "bg-blue-50 border-blue-600 text-blue-900 shadow-sm";
+            else if (esTecnico) clases += "bg-green-50 border-green-500 text-green-900";
+            else clases += "bg-gray-100 border-gray-400 text-gray-800";
+            return `
+            <div class="${clases}">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-[9px] font-bold uppercase opacity-70">${m.emisor}</span>
+                    <button onclick="editarMensaje('${m.id}', '${m.mensaje.replace(/'/g, "\\'")}')" class="text-[9px] font-bold underline text-gray-500 hover:text-black">EDITAR</button>
+                </div>
+                <div class="font-medium">${m.mensaje}</div>
+            </div>`;
+        }).join('');
+    }
+
+    async function enviarMensaje() {
+        const input = document.getElementById('inputMensaje');
+        if (!input.value.trim()) return;
+        await client.from('mensajes').insert([{ solicitud_id: elementoSeleccionado.id, mensaje: input.value, emisor: 'Administrador' }]);
+        input.value = '';
+        abrirChat();
+    }
+
+    async function editarMensaje(id, mensajeActual) {
+        const nuevo = prompt("Edita tu mensaje:", mensajeActual);
+        if (nuevo) {
+            await client.from('mensajes').update({ mensaje: nuevo }).eq('id', id);
+            abrirChat();
+        }
+    }
+
+    async function cerrarChatYVerificar() {
+        const solicitudId = elementoSeleccionado.id;
+        const { data } = await client.from('solicitudes').select('respuesta_solicitud').eq('solicitud_id', solicitudId).single();
+        if (data && data.respuesta_solicitud === 'finalizado') {
+            await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
+            await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
+        }
+        document.getElementById('modalChat').classList.add('hidden');
+        location.reload();
+    }
+async function eliminarSolicitud() {
+    // 1. Verificación básica
+    if (elementoSeleccionado.tipo !== 'solicitud' || !elementoSeleccionado.id) {
+        alert("Selecciona una solicitud válida de la lista.");
+        return;
+    }
+
+    if (!confirm("¿Estás seguro de eliminar este registro?")) return;
+
+    try {
+        // 2. Operación de borrado en Supabase
+        const { error } = await client
+            .from('solicitudes')
+            .delete()
+            .eq('solicitud_id', elementoSeleccionado.id);
+
+        if (error) throw error;
+
+        // 3. Éxito: notificar y recargar
+        alert("Solicitud eliminada correctamente.");
+        
+        // Limpiar selección y refrescar la tabla
+        elementoSeleccionado = { id: null, tipo: null };
+        await cargarTodo(); 
+        
+    } catch (err) {
+        console.error("Error al eliminar:", err);
+        alert("Error al eliminar: " + err.message);
+    }
+}
+    async function finalizarServicioAdmin() {
+        if (elementoSeleccionado.tipo !== 'solicitud' || !elementoSeleccionado.id) {
+            alert("Selecciona una solicitud de la lista para finalizarla.");
+            return;
+        }
+        if (!confirm(`¿Confirmas que deseas finalizar la solicitud ID: ${elementoSeleccionado.id}?`)) return;
+        try {
+            const id = elementoSeleccionado.id;
+            const { error: updateError } = await client.from('solicitudes').update({ respuesta_solicitud: 'finalizado' }).eq('solicitud_id', id);
+            if (updateError) throw updateError;
+            await client.from('mensajes').delete().eq('solicitud_id', id);
+            await client.from('ubicacion_moviles').delete().eq('solicitud_id', id);
+            await cargarTodo();
+            alert("Servicio finalizado y registros limpios correctamente.");
+        } catch (err) {
+            console.error("Error:", err);
+            alert("Ocurrió un error.");
+        }
+    }
+async function refrescarPanel() {
+    const btn = document.getElementById('btnRefresh'); // Ahora busca por ID, es más estable
+    btn.innerText = "🔄 Cargando...";
+    btn.disabled = true;
+
+    await cargarTodo();
+
+    btn.innerText = "🔄 Refresh";
+    btn.disabled = false;
+}
+    document.addEventListener('DOMContentLoaded', () => {
+        cargarTodo();
+    });
+</script>
+</body>
+</html>
