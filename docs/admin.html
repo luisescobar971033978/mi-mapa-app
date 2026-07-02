@@ -418,13 +418,10 @@
     // 1. Borramos la sesión
     localStorage.removeItem('admin_autenticado');
 
-    // 2. Intentamos cerrar (si el navegador lo permite)
-    window.close();
-
-    // 3. Si no se cerró (el navegador lo bloqueó), forzamos una redirección 
-    // a una página vacía o a una página de "Sesión Cerrada" externa.
-    // Esto limpia la pantalla visualmente y elimina el acceso.
-    window.location.replace("about:blank");
+    // 2. En lugar de intentar cerrar la ventana (lo que causa el error), 
+    // redirigimos a una página "limpia" de salida que tú mismo crees
+    // O simplemente a Google para sacar al usuario del sitio.
+    window.location.href = "https://www.google.com"; 
 }
 
     document.addEventListener('DOMContentLoaded', () => {
