@@ -415,10 +415,13 @@
     }
 
     function cerrarSesionYSalir() {
-    // 1. Borramos la marca de sesión para que al volver a abrir pida contraseña
+    // 1. Borramos la marca de sesión
     localStorage.removeItem('admin_autenticado');
     
-    // 2. Cerramos la ventana actual
+    // 2. Ocultamos todo el contenido del body para que la pantalla quede vacía
+    document.body.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif;">Sesión cerrada correctamente. Puede cerrar esta pestaña.</div>';
+    
+    // 3. (Opcional) Intentamos cerrar por si el navegador lo permite
     window.close();
 }
 
