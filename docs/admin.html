@@ -97,7 +97,9 @@
     <div class="bg-white w-full max-w-sm p-6 rounded-lg shadow-xl text-center">
         <h2 class="text-xl font-bold mb-4 text-teal-900">Acceso Restringido</h2>
         <p class="text-sm text-gray-600 mb-4">Se requiere autenticación para continuar:</p>
-        <input type="password" id="inputPass" class="w-full border p-2 rounded mb-4 focus:ring-2 focus:ring-teal-500 outline-none" placeholder="Ingrese su contraseña">
+        <input type="password" id="inputPass" class="w-full border p-2 rounded mb-2 focus:ring-2 focus:ring-teal-500 outline-none" placeholder="Ingrese su contraseña">
+        
+        <p id="msgError" class="text-red-500 text-xs mb-4 h-4 opacity-0">Contraseña incorrecta</p>
         
         <div class="flex gap-2">
             <button onclick="cancelarAcceso()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded hover:bg-gray-300">Cancelar</button>
@@ -396,28 +398,41 @@ async function refrescarPanel() {
     btn.disabled = false;
 }
         async function verificarPassword() {
-            const passIngresada = document.getElementById('inputPass').value;
-            const modal = document.getElementById('modalPassword');
-            try {
-                const { data, error } = await client
-                    .from('administrador')
-                    .select('pasword')
-                    .eq('pasword', passIngresada)
-                    .maybeSingle();
-                if (data) {
-                    modal.classList.add('hidden');
-                } else {
-                    alert("Contraseña incorrecta.");
-                    document.getElementById('inputPass').value = '';
-                }
-            } catch (e) {
-                alert("Error de conexión.");
-            }
-        }
+    const inputPass = document.getElementById('inputPass');
+    const msgError = document.getElementById('msgError');
+    const modal = document.getElementById('modalPassword');
+    
+    // Ocultar mensaje de error previo
+    msgError.classList.add('opacity-0');
+    
+    try {
+        const { data, error } = await client
+            .from('administrador')
+            .select('pasword')
+            .eq('pasword', inputPass.value)
+            .maybeSingle();
 
-        function cancelarAcceso() {
-            window.location.href = 'login.html'; 
+        if (data) {
+            // Acceso correcto: ocultar modal y limpiar mensaje
+            modal.classList.add('hidden');
+            msgError.classList.add('opacity-0');
+            inputPass.value = '';
+        } else {
+            // Acceso denegado: mostrar mensaje visual sin alert()
+            msgError.innerText = "Contraseña incorrecta";
+            msgError.classList.remove('opacity-0');
+            inputPass.value = '';
         }
+    } catch (e) {
+        // Error de conexión
+        msgError.innerText = "Error de conexión con el servidor";
+        msgError.classList.remove('opacity-0');
+    }
+}
+
+function cancelarAcceso() {
+    window.location.href = 'login.html'; 
+}
     document.addEventListener('DOMContentLoaded', () => {
         cargarTodo();
     });
