@@ -275,19 +275,31 @@
         }
 
        async function borrarElemento() {
-    if (elementoSeleccionado.tipo !== 'solicitud' || !elementoSeleccionado.id) return;
+    console.log("Intentando borrar. Estado actual:", elementoSeleccionado);
+
+    // Validación visual para depurar
+    if (elementoSeleccionado.tipo !== 'solicitud') {
+        console.warn("La validación falló: tipo no es 'solicitud'. Tipo actual:", elementoSeleccionado.tipo);
+        return;
+    }
+    
+    if (!elementoSeleccionado.id) {
+        console.warn("La validación falló: no hay ID seleccionado.");
+        return;
+    }
 
     if (confirm("¿Borrar esta solicitud?")) {
-        const idABorrar = elementoSeleccionado.id; // Guardamos el ID en una variable local
+        const idABorrar = elementoSeleccionado.id;
+        console.log("Procediendo a borrar el ID:", idABorrar);
         
         const { error } = await client.from('solicitudes').delete().eq('solicitud_id', idABorrar);
         
         if (error) {
+            console.error("Error desde Supabase:", error);
             alert("Error: " + error.message);
         } else {
-            // Éxito: Limpiamos la selección visual
+            console.log("Borrado exitoso");
             elementoSeleccionado = { id: null, tipo: null };
-            // El 'postgres_changes' se encargará de refrescar la pantalla automáticamente
         }
     }
 }
