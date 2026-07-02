@@ -34,7 +34,7 @@
                 <div class="border-l border-gray-300 mx-2"></div>
                 <button onclick="window.location.href='index.html'" class="hover:bg-gray-100 p-2 rounded">🚀 Solicitar Servicio</button>
                 <button onclick="window.location.href='tecnico.html'" class="hover:bg-gray-100 p-2 rounded">🛠️ Solicitar Técnico</button>
-                <button onclick="window.location.href='login.html'" class="hover:bg-gray-100 p-2 rounded text-red-600">🚪 Salir</button>
+                <button onclick="cerrarSesionYSalir()" class="hover:bg-gray-100 p-2 rounded text-red-600">🚪 Salir</button>
             </div>
         </div>
     </div>
@@ -102,7 +102,7 @@
         <p id="msgError" class="text-red-500 text-xs mb-4 h-4 opacity-0">Contraseña incorrecta</p>
         
         <div class="flex gap-2">
-            <button onclick="cancelarAcceso()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded hover:bg-gray-300">Cancelar</button>
+            <button onclick="cerrarSesionYSalir()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded hover:bg-gray-300">Cancelar</button>
             <button onclick="verificarPassword()" class="flex-1 bg-teal-700 text-white py-2 rounded hover:bg-teal-800">Ingresar</button>
         </div>
     </div>
@@ -338,36 +338,25 @@
         document.getElementById('modalChat').classList.add('hidden');
         location.reload();
     }
-async function eliminarSolicitud() {
-    // 1. Verificación básica
-    if (elementoSeleccionado.tipo !== 'solicitud' || !elementoSeleccionado.id) {
-        alert("Selecciona una solicitud válida de la lista.");
-        return;
+
+    async function eliminarSolicitud() {
+        if (elementoSeleccionado.tipo !== 'solicitud' || !elementoSeleccionado.id) {
+            alert("Selecciona una solicitud válida de la lista.");
+            return;
+        }
+        if (!confirm("¿Estás seguro de eliminar este registro?")) return;
+        try {
+            const { error } = await client.from('solicitudes').delete().eq('solicitud_id', elementoSeleccionado.id);
+            if (error) throw error;
+            alert("Solicitud eliminada correctamente.");
+            elementoSeleccionado = { id: null, tipo: null };
+            await cargarTodo(); 
+        } catch (err) {
+            console.error("Error al eliminar:", err);
+            alert("Error al eliminar: " + err.message);
+        }
     }
 
-    if (!confirm("¿Estás seguro de eliminar este registro?")) return;
-
-    try {
-        // 2. Operación de borrado en Supabase
-        const { error } = await client
-            .from('solicitudes')
-            .delete()
-            .eq('solicitud_id', elementoSeleccionado.id);
-
-        if (error) throw error;
-
-        // 3. Éxito: notificar y recargar
-        alert("Solicitud eliminada correctamente.");
-        
-        // Limpiar selección y refrescar la tabla
-        elementoSeleccionado = { id: null, tipo: null };
-        await cargarTodo(); 
-        
-    } catch (err) {
-        console.error("Error al eliminar:", err);
-        alert("Error al eliminar: " + err.message);
-    }
-}
     async function finalizarServicioAdmin() {
         if (elementoSeleccionado.tipo !== 'solicitud' || !elementoSeleccionado.id) {
             alert("Selecciona una solicitud de la lista para finalizarla.");
@@ -387,53 +376,57 @@ async function eliminarSolicitud() {
             alert("Ocurrió un error.");
         }
     }
-async function refrescarPanel() {
-    const btn = document.getElementById('btnRefresh'); // Ahora busca por ID, es más estable
-    btn.innerText = "🔄 Cargando...";
-    btn.disabled = true;
 
-    await cargarTodo();
-
-    btn.innerText = "🔄 Refresh";
-    btn.disabled = false;
-}
-        async function verificarPassword() {
-    const inputPass = document.getElementById('inputPass');
-    const msgError = document.getElementById('msgError');
-    const modal = document.getElementById('modalPassword');
-    
-    // Ocultar mensaje de error previo
-    msgError.classList.add('opacity-0');
-    
-    try {
-        const { data, error } = await client
-            .from('administrador')
-            .select('pasword')
-            .eq('pasword', inputPass.value)
-            .maybeSingle();
-
-        if (data) {
-            // Acceso correcto: ocultar modal y limpiar mensaje
-            modal.classList.add('hidden');
-            msgError.classList.add('opacity-0');
-            inputPass.value = '';
-        } else {
-            // Acceso denegado: mostrar mensaje visual sin alert()
-            msgError.innerText = "Contraseña incorrecta";
-            msgError.classList.remove('opacity-0');
-            inputPass.value = '';
-        }
-    } catch (e) {
-        // Error de conexión
-        msgError.innerText = "Error de conexión con el servidor";
-        msgError.classList.remove('opacity-0');
+    async function refrescarPanel() {
+        const btn = document.getElementById('btnRefresh');
+        btn.innerText = "🔄 Cargando...";
+        btn.disabled = true;
+        await cargarTodo();
+        btn.innerText = "🔄 Refresh";
+        btn.disabled = false;
     }
-}
 
-function cancelarAcceso() {
-    window.location.href = 'login.html'; 
-}
+    async function verificarPassword() {
+        const inputPass = document.getElementById('inputPass');
+        const msgError = document.getElementById('msgError');
+        const modal = document.getElementById('modalPassword');
+        msgError.classList.add('opacity-0');
+        
+        try {
+            const { data } = await client
+                .from('administrador')
+                .select('pasword')
+                .eq('pasword', inputPass.value)
+                .maybeSingle();
+
+            if (data) {
+                localStorage.setItem('admin_autenticado', 'true');
+                modal.classList.add('hidden');
+                inputPass.value = '';
+            } else {
+                msgError.innerText = "Contraseña incorrecta";
+                msgError.classList.remove('opacity-0');
+                inputPass.value = '';
+            }
+        } catch (e) {
+            msgError.innerText = "Error de conexión";
+            msgError.classList.remove('opacity-0');
+        }
+    }
+
+    function cerrarSesionYSalir() {
+        localStorage.removeItem('admin_autenticado');
+        window.close();
+        window.location.href = "about:blank";
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
+        const estaAutenticado = localStorage.getItem('admin_autenticado');
+        if (estaAutenticado !== 'true') {
+            document.getElementById('modalPassword').classList.remove('hidden');
+        } else {
+            document.getElementById('modalPassword').classList.add('hidden');
+        }
         cargarTodo();
     });
 </script>
