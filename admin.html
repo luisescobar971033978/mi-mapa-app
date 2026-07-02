@@ -275,14 +275,35 @@
         }
 
        async function borrarElemento() {
-    if (elementoSeleccionado.tipo !== 'solicitud') return;
-    if (confirm("¿Borrar solicitud?")) {
-        const { error } = await client.from('solicitudes').delete().eq('solicitud_id', elementoSeleccionado.id);
-        if (error) {
-            alert("Error: " + error.message);
-        } else {
-            // Se agregó await para asegurar que las estadísticas se actualicen tras la eliminación
+    if (elementoSeleccionado.tipo !== 'solicitud' || !elementoSeleccionado.id) {
+        alert("Selecciona una solicitud finalizada.");
+        return;
+    }
+
+    if (confirm("¿Borrar esta solicitud definitivamente?")) {
+        try {
+            // 1. Ejecutar el borrado
+            const { error } = await client
+                .from('solicitudes')
+                .delete()
+                .eq('solicitud_id', elementoSeleccionado.id);
+
+            if (error) throw error;
+
+            // 2. Limpiar selección para evitar errores de referencia
+            elementoSeleccionado = { id: null, tipo: null };
+            document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
+
+            // 3. Recargar con una pequeña pausa para asegurar que Supabase procesó el cambio
+            await new Promise(resolve => setTimeout(resolve, 300));
             await cargarTodo();
+            
+            alert("Servicio eliminado y flujo actualizado.");
+        } catch (err) {
+            console.error("Error al borrar:", err);
+            alert("Error al intentar borrar: " + err.message);
+            // Intentar recuperar el flujo incluso si hubo error
+            cargarTodo();
         }
     }
 }
