@@ -24,7 +24,7 @@
 
         <div id="panelHerramientas" class="transition-all duration-300 overflow-y-auto" style="max-height: 100px; opacity: 1;">
             <div id="toolbar" class="p-3 flex flex-wrap gap-2 justify-center text-sm font-semibold">
-                <button onclick="cargarTodo()" class="hover:bg-gray-100 p-2 rounded">🔄 Refresh</button>
+                <button id="btnRefresh" onclick="refrescarPanel()" class="hover:bg-gray-100 p-2 rounded">🔄 Refresh</button>
                 <button id="btnVer" onclick="verServicio()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👁️ Ver</button>
                 <button id="btnEditar" onclick="editarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✏️ Editar</button>
                 <button id="btnBorrar" onclick="eliminarSolicitud()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>🗑️ Borrar</button>
@@ -374,7 +374,16 @@ async function eliminarSolicitud() {
             alert("Ocurrió un error.");
         }
     }
+async function refrescarPanel() {
+    const btn = document.getElementById('btnRefresh'); // Ahora busca por ID, es más estable
+    btn.innerText = "🔄 Cargando...";
+    btn.disabled = true;
 
+    await cargarTodo();
+
+    btn.innerText = "🔄 Refresh";
+    btn.disabled = false;
+}
     document.addEventListener('DOMContentLoaded', () => {
         cargarTodo();
     });
