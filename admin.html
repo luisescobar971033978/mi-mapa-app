@@ -275,34 +275,19 @@
         }
 
        async function borrarElemento() {
-    if (elementoSeleccionado.tipo !== 'solicitud' || !elementoSeleccionado.id) {
-        alert("Selecciona una solicitud finalizada.");
-        return;
-    }
+    if (elementoSeleccionado.tipo !== 'solicitud' || !elementoSeleccionado.id) return;
 
-    if (confirm("¿Borrar esta solicitud definitivamente?")) {
-        try {
-            // Limpiamos la selección visual ANTES de borrar para que no quede residuo
+    if (confirm("¿Borrar esta solicitud?")) {
+        const idABorrar = elementoSeleccionado.id; // Guardamos el ID en una variable local
+        
+        const { error } = await client.from('solicitudes').delete().eq('solicitud_id', idABorrar);
+        
+        if (error) {
+            alert("Error: " + error.message);
+        } else {
+            // Éxito: Limpiamos la selección visual
             elementoSeleccionado = { id: null, tipo: null };
-            document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
-
-            // 1. Ejecutar el borrado
-            const { error } = await client
-                .from('solicitudes')
-                .delete()
-                .eq('solicitud_id', elementoSeleccionado.id); // ¡Cuidado! Asegúrate de tener el ID capturado antes
-
-            if (error) throw error;
-
-            // NO llamamos a cargarTodo() aquí. 
-            // Dejamos que el listener (que ya tienes configurado) detecte el borrado y lo haga.
-            
-            alert("Servicio eliminado. La tabla se actualizará automáticamente.");
-        } catch (err) {
-            console.error("Error al borrar:", err);
-            alert("Error al intentar borrar: " + err.message);
-            // Solo si falla, forzamos la carga
-            cargarTodo();
+            // El 'postgres_changes' se encargará de refrescar la pantalla automáticamente
         }
     }
 }
