@@ -142,21 +142,34 @@
 
         function seleccionarElemento(id, tipo, event) {
     elementoSeleccionado = { id, tipo };
+    
+    // Resaltado visual
     document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
     const fila = event.target.closest('tr');
     if (fila) fila.classList.add('bg-teal-100');
 
-    // Determinamos el estado para las validaciones
-    let esAceptado = false;
-    let esEnCamino = false;
-    let esFinalizado = false;
+    // Obtenemos el texto del estado de la columna correspondiente
+    // Asegúrate de que la columna de estado sea la correcta (index 3 en tu caso)
+    const estadoTexto = fila.cells[3]?.innerText.trim().toLowerCase() || '';
     
-    if (tipo === 'solicitud' && fila) {
-        const estadoTexto = fila.cells[3]?.innerText.trim().toLowerCase() || '';
-        esAceptado = (estadoTexto === 'aceptado');
-        esEnCamino = (estadoTexto === 'en camino');
-        esFinalizado = (estadoTexto === 'finalizado');
+    console.log("ID seleccionado:", id, "Estado detectado:", estadoTexto); // DEBUG
+
+    // Habilitación de botones
+    const btnBorrar = document.getElementById('btnBorrar');
+    if (btnBorrar) {
+        // Habilitar solo si es solicitud Y el estado es exactamente 'finalizado'
+        const habilitarBorrar = (tipo === 'solicitud' && estadoTexto === 'finalizado');
+        
+        btnBorrar.disabled = !habilitarBorrar;
+        if (habilitarBorrar) {
+            btnBorrar.classList.remove('opacity-50', 'cursor-not-allowed');
+            btnBorrar.classList.add('cursor-pointer');
+        } else {
+            btnBorrar.classList.add('opacity-50', 'cursor-not-allowed');
+            btnBorrar.classList.remove('cursor-pointer');
+        }
     }
+}
 
     // Lógica de habilitación de botones
     const botones = {
@@ -274,35 +287,47 @@
             else { alert("¡Actualizado!"); celdaSeleccionada = { campo: null, id: null }; cargarTodo(); }
         }
 
-       async function borrarElemento() {
-    console.log("Intentando borrar. Estado actual:", elementoSeleccionado);
+       function seleccionarElemento(id, tipo, event) {
+            elementoSeleccionado = { id, tipo };
+            
+            // Resaltado visual
+            document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
+            const fila = event.target.closest('tr');
+            if (fila) fila.classList.add('bg-teal-100');
 
-    // Validación visual para depurar
-    if (elementoSeleccionado.tipo !== 'solicitud') {
-        console.warn("La validación falló: tipo no es 'solicitud'. Tipo actual:", elementoSeleccionado.tipo);
-        return;
-    }
-    
-    if (!elementoSeleccionado.id) {
-        console.warn("La validación falló: no hay ID seleccionado.");
-        return;
-    }
+            // Obtenemos el texto del estado de la columna correspondiente (index 3)
+            const estadoTexto = fila.cells[3]?.innerText.trim().toLowerCase() || '';
+            console.log("ID seleccionado:", id, "Estado detectado:", estadoTexto); 
 
-    if (confirm("¿Borrar esta solicitud?")) {
-        const idABorrar = elementoSeleccionado.id;
-        console.log("Procediendo a borrar el ID:", idABorrar);
-        
-        const { error } = await client.from('solicitudes').delete().eq('solicitud_id', idABorrar);
-        
-        if (error) {
-            console.error("Error desde Supabase:", error);
-            alert("Error: " + error.message);
-        } else {
-            console.log("Borrado exitoso");
-            elementoSeleccionado = { id: null, tipo: null };
+            // Definir estados booleanos
+            const esAceptado = (estadoTexto === 'aceptado');
+            const esEnCamino = (estadoTexto === 'en camino');
+            const esFinalizado = (estadoTexto === 'finalizado');
+
+            // Lógica de habilitación de botones
+            const botones = {
+                btnVer: (tipo === 'solicitud' && esAceptado),
+                btnEditar: (tipo === 'movil'),
+                btnBorrar: (tipo === 'solicitud' && esFinalizado),
+                btnAsignar: (tipo === 'solicitud'),
+                btnMensaje: (tipo === 'solicitud' && (esAceptado || esEnCamino)),
+                btnFinalizar: (tipo === 'solicitud')
+            };
+
+            Object.keys(botones).forEach(idBtn => {
+                const btn = document.getElementById(idBtn);
+                if (btn) {
+                    btn.disabled = !botones[idBtn];
+                    if (btn.disabled) {
+                        btn.classList.add('opacity-50', 'cursor-not-allowed');
+                        btn.classList.remove('cursor-pointer');
+                    } else {
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        btn.classList.add('cursor-pointer');
+                    }
+                }
+            });
         }
-    }
-}
         // Abrir chat y cargar mensajes
 async function abrirChat() {
     const btn = document.getElementById('btnMensaje');
@@ -427,6 +452,10 @@ async function finalizarServicioAdmin() {
         alert("Ocurrió un error al intentar finalizar el servicio. Revisa la conexión.");
     }
 }
+        // Cargar datos al abrir la página
+document.addEventListener('DOMContentLoaded', () => {
+    cargarTodo();
+});
     </script>
 </body>
 </html>
