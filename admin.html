@@ -149,18 +149,20 @@
     // Determinamos el estado para las validaciones
     let esAceptado = false;
     let esEnCamino = false;
+    let esFinalizado = false;
     
     if (tipo === 'solicitud' && fila) {
         const estadoTexto = fila.cells[3]?.innerText.trim().toLowerCase() || '';
         esAceptado = (estadoTexto === 'aceptado');
         esEnCamino = (estadoTexto === 'en camino');
+        esFinalizado = (estadoTexto === 'finalizado');
     }
 
     // Lógica de habilitación de botones
     const botones = {
         btnVer: (tipo === 'solicitud' && esAceptado),
         btnEditar: (tipo === 'movil'),
-        btnBorrar: (tipo === 'solicitud'),
+        btnBorrar: (tipo === 'solicitud' && esFinalizado), // Solo se habilita si es finalizado
         btnAsignar: (tipo === 'solicitud'),
         // El botón mensaje se habilita solo si es solicitud y el estado es aceptado o en camino
         btnMensaje: (tipo === 'solicitud' && (esAceptado || esEnCamino)),
@@ -272,19 +274,18 @@
             else { alert("¡Actualizado!"); celdaSeleccionada = { campo: null, id: null }; cargarTodo(); }
         }
 
-        async function borrarElemento() {
-            if (elementoSeleccionado.tipo !== 'solicitud') return;
-            if (confirm("¿Borrar solicitud?")) {
-                const { error } = await client.from('solicitudes').delete().eq('solicitud_id', elementoSeleccionado.id);
-                if (error) alert("Error: " + error.message);
-                else cargarTodo();
-            }
+       async function borrarElemento() {
+    if (elementoSeleccionado.tipo !== 'solicitud') return;
+    if (confirm("¿Borrar solicitud?")) {
+        const { error } = await client.from('solicitudes').delete().eq('solicitud_id', elementoSeleccionado.id);
+        if (error) {
+            alert("Error: " + error.message);
+        } else {
+            // Se agregó await para asegurar que las estadísticas se actualicen tras la eliminación
+            await cargarTodo();
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            cargarTodo();
-            client.channel('admin_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, cargarTodo).subscribe();
-        });
+    }
+}
         // Abrir chat y cargar mensajes
 async function abrirChat() {
     const btn = document.getElementById('btnMensaje');
