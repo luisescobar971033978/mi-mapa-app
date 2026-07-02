@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servicio en Curso</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col">
+
+    <script>let wakeLock = null;</script>
+
+    <div id="infoBar" class="bg-teal-900 text-white p-2 text-xs flex justify-between px-4 z-[1000]">
+        <span id="infoCliente">Cargando...</span>
+        <span id="infoTecnico" class="font-bold"></span>
+    </div>
+
+    <div id="map" class="flex-grow w-full h-1/2 relative">
+        <button onclick="abrirGoogleMaps()" class="absolute bottom-4 left-4 z-[1000] bg-blue-600 text-white p-2 rounded-full shadow-lg font-bold">
+            📍 GPS
+        </button>
+    </div>
+
+    <div class="h-1/2 bg-white p-4 shadow-lg flex flex-col">
+        <h3 class="font-bold text-teal-900 mb-2">CHAT DEL SERVICIO</h3>
+        <div id="chatBox" class="flex-grow overflow-y-auto border p-2 mb-2 bg-gray-50 rounded"></div>
+        <div class="flex gap-2">
+            <input type="text" id="inputMensaje" class="flex-grow p-2 border rounded" placeholder="Escribe un mensaje...">
+            <button onclick="enviarMensaje()" class="bg-teal-800 text-white px-4 py-2 rounded font-bold">Enviar</button>
+        </div>
+        <button onclick="mostrarConfirmacion()" class="mt-4 w-full bg-red-600 text-white p-2 rounded font-bold">FINALIZAR SERVICIO</button>
+    </div>
+
+    <div id="customModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[2000] flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg w-80 text-center">
+            <h3 class="font-bold text-lg mb-4">¿Finalizar Servicio?</h3>
+            <div class="flex gap-4">
+                <button onclick="finalizarServicio(solicitudId)" class="bg-red-600 text-white p-4 rounded font-bold w-full">FINALIZAR SERVICIO </button>
+                <button onclick="cerrarModal()" class="flex-1 bg-gray-300 py-2 rounded">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mensaje de actualización -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-white z-[3000] flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-teal-900 mb-4"></div>
+        <p class="text-teal-900 font-bold">Actualizando datos...</p>
+    </div>
+
+    <script>
+    const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+    const urlParams = new URLSearchParams(window.location.search);
+    const solicitudId = urlParams.get('id');
+    const sonidoAlerta = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+
+    const canalSeguimiento = client.channel(`solicitud_${solicitudId}`);
+    canalSeguimiento.subscribe();
+
+    const map = L.map('map').setView([-17.7833, -63.1821], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+
+    let usuarioHaInteractuado = false;
+    map.on('mousedown touchstart zoom drag', () => usuarioHaInteractuado = true);
+
+    let coordsCliente = null, coordsMovil = null, marcadorCliente = null, marcadorMovil = null;
+
+    async function activarWakeLock() {
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log("Wake Lock forzado al cargar.");
+        } catch (err) {
+            console.log("El navegador requiere interacción previa para Wake Lock.");
+        }
+    }
+
+    function ajustarVista() {
+        if (!usuarioHaInteractuado && coordsCliente && coordsMovil) {
+            map.fitBounds(L.latLngBounds([coordsCliente, coordsMovil]), { padding: [50, 50] });
+        }
+    }
+
+    async function cargarInfo() {
+        const { data } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
+        if (data) {
+            document.getElementById('infoCliente').innerText = `${data.nombre_usuario || 'Cliente'}: ${data.comentario_solicitud || ''}`;
+            document.getElementById('infoTecnico').innerText = `ID: ${localStorage.getItem('tecnico')}`;
+            coordsCliente = [data.latitud, data.longitud];
+            marcadorCliente = L.marker(coordsCliente, { icon: L.divIcon({ html: '<div style="font-size:30px;">🏠</div>', className: '' }) }).addTo(map);
+            cargarMensajesPrevios();
+        }
+    }
+
+    async function cargarMensajesPrevios() {
+        const { data } = await client.from('mensajes').select('*').eq('solicitud_id', solicitudId).order('created_at', { ascending: true });
+        if (data) data.forEach(msg => renderizarMensaje(msg));
+    }
+
+    function iniciarTracking() {
+        navigator.geolocation.watchPosition(async (pos) => {
+            coordsMovil = [pos.coords.latitude, pos.coords.longitude];
+            
+            if (!marcadorMovil) {
+                marcadorMovil = L.marker(coordsMovil, { icon: L.divIcon({ html: '<div style="font-size:30px;">🚐</div>', className: '' }) }).addTo(map);
+            } else {
+                marcadorMovil.setLatLng(coordsMovil);
+            }
+            ajustarVista();
+
+            await client.from('ubicacion_moviles').upsert({ 
+                solicitud_id: solicitudId, 
+                movil_id: localStorage.getItem('tecnico'),
+                latitud: coordsMovil[0], 
+                longitud: coordsMovil[1], 
+                ultima_actualizacion: new Date().toISOString() 
+            });
+
+            canalSeguimiento.send({
+                type: 'broadcast',
+                event: 'ubicacion_actualizada',
+                payload: { latitud: coordsMovil[0], longitud: coordsMovil[1] }
+            });
+
+        }, null, { enableHighAccuracy: true });
+    }
+
+    client.channel('mensajes_channel')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `solicitud_id=eq.${solicitudId}` }, (payload) => {
+          renderizarMensaje(payload.new);
+          sonidoAlerta.play().catch(e => console.log("Audio silenciado"));
+      }).subscribe();
+
+    async function enviarMensaje() {
+        const input = document.getElementById('inputMensaje');
+        const texto = input.value.trim();
+        if (!texto) return;
+        input.value = "";
+        await client.from('mensajes').insert({ solicitud_id: solicitudId, emisor: 'tecnico', mensaje: texto });
+    }
+
+    function renderizarMensaje(msg) {
+        const chatBox = document.getElementById('chatBox');
+        const esTecnico = msg.emisor === 'tecnico';
+        const esAdmin = msg.emisor === 'Administrador';
+        
+        const div = document.createElement('div');
+        div.className = `mb-2 ${esTecnico ? 'text-right' : 'text-left'}`;
+        
+        let colorClase = esAdmin ? 'bg-blue-200 font-bold border border-blue-300' : (esTecnico ? 'bg-teal-100' : 'bg-gray-200');
+
+        div.innerHTML = `
+            <span class="inline-block p-2 rounded ${colorClase} text-sm">
+                ${esAdmin ? '<span class="block text-[9px] uppercase opacity-75">Administrador</span>' : ''}
+                ${msg.mensaje}
+            </span>
+        `;
+        chatBox.appendChild(div);
+        setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 100);
+    }
+
+    function abrirGoogleMaps() {
+        if(coordsCliente) window.open(`https://www.google.com/maps/dir/?api=1&destination=${coordsCliente[0]},${coordsCliente[1]}`, '_blank');
+    }
+
+    function mostrarConfirmacion() { document.getElementById('customModal').classList.remove('hidden'); }
+    function cerrarModal() { document.getElementById('customModal').classList.add('hidden'); }
+
+    async function finalizarServicio(id) {
+        try {
+            if (wakeLock !== null) {
+                await wakeLock.release();
+                wakeLock = null;
+            }
+
+            const { error } = await client
+                .from('solicitudes')
+                .update({ respuesta_solicitud: 'finalizado' })
+                .eq('solicitud_id', id);
+
+            if (error) throw error;
+
+            await client.from('mensajes').delete().eq('solicitud_id', id);
+            await client.from('ubicacion_moviles').delete().eq('solicitud_id', id);
+
+            localStorage.removeItem('solicitudId_activo');
+            
+            window.location.href = 'tecnico.html';
+        } catch (err) {
+            console.error("Error al finalizar:", err);
+            alert("Error al finalizar el servicio. Por favor, intenta de nuevo.");
+        }
+    }
+
+    async function refrescoTotal() {
+        console.log("Forzando actualización completa del sistema...");
+        document.getElementById('chatBox').innerHTML = '';
+        
+        // 1. Cargamos la info
+        await cargarInfo(); 
+
+        // 2. Manejo seguro del canal: en lugar de intentar suscribir el mismo objeto, 
+        // simplemente verificamos si está activo.
+        try {
+            if (canalSeguimiento) {
+                // Solo nos aseguramos de que los mensajes se sigan cargando
+                // No necesitamos re-suscribir el canal de broadcast si ya está creado globalmente
+                console.log("Canal de seguimiento activo");
+            }
+        } catch (e) {
+            console.error("Error en el canal:", e);
+        }
+
+        // 3. Forzar mapa
+        if (typeof map !== 'undefined') {
+            map.invalidateSize(true);
+            ajustarVista();
+        }
+    }
+
+    document.addEventListener("visibilitychange", async () => {
+        if (document.visibilityState === "visible") {
+            const loader = document.getElementById('loadingOverlay');
+            loader.classList.remove('hidden');
+
+            await refrescoTotal();
+
+            if ('wakeLock' in navigator && (wakeLock === null || wakeLock.released)) {
+                activarWakeLock();
+            }
+
+            setTimeout(() => {
+                loader.classList.add('hidden');
+            }, 400);
+        }
+    });
+
+    window.onload = () => { 
+        cargarInfo(); 
+        iniciarTracking(); 
+        activarWakeLock(); 
+    };
+    </script>
+</body>
+</html>
