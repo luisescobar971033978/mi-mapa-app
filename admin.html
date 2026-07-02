@@ -95,367 +95,260 @@
 </div>
 
     <script>
-        const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
-        
-        let chartIncidencia, chartProductividad;
-        let elementoSeleccionado = { id: null, tipo: null };
-        let celdaSeleccionada = { campo: null, id: null };
-        
-        function togglePanel() {
-            const panel = document.getElementById('panelHerramientas');
-            panel.classList.toggle('hidden');
-        }
-
-        function actualizarEstadoBotones(tipo) {
-            const btnEditar = document.getElementById('btnEditar');
-            if (!btnEditar) return;
-            if (tipo === 'movil') {
-                btnEditar.disabled = false;
-                btnEditar.classList.remove('opacity-50', 'cursor-not-allowed');
-                btnEditar.classList.add('hover:bg-gray-100', 'cursor-pointer');
-            } else {
-                btnEditar.disabled = true;
-                btnEditar.classList.add('opacity-50', 'cursor-not-allowed');
-                btnEditar.classList.remove('hover:bg-gray-100', 'cursor-pointer');
-            }
-        }
-
-        function marcarCelda(campo, id, event) {
-            celdaSeleccionada = { campo, id };
-            elementoSeleccionado = { id: id, tipo: 'movil' };
-            event.stopPropagation();
-            document.querySelectorAll('td').forEach(td => td.classList.remove('ring', 'ring-teal-500'));
-            event.target.classList.add('ring', 'ring-teal-500');
-            actualizarEstadoBotones('movil');
-        }
-
-        function getColor(v, arr) {
-            const sorted = [...new Set(arr)].sort((a, b) => b - a);
-            const max = sorted[0];
-            const min = sorted[sorted.length - 1];
-            if (v === max && sorted.length >= 1) return '#0f766e';
-            if (v === sorted[1]) return '#f97316';
-            if (v === sorted[2]) return '#eab308';
-            if (v === min && sorted.length > 3) return '#dc2626';
-            return '#14b8a6';
-        }
-
-        function seleccionarElemento(id, tipo, event) {
-    elementoSeleccionado = { id, tipo };
+    const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
     
-    // Resaltado visual
-    document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
-    const fila = event.target.closest('tr');
-    if (fila) fila.classList.add('bg-teal-100');
-
-    // Obtenemos el texto del estado de la columna correspondiente
-    // Asegúrate de que la columna de estado sea la correcta (index 3 en tu caso)
-    const estadoTexto = fila.cells[3]?.innerText.trim().toLowerCase() || '';
+    let chartIncidencia, chartProductividad;
+    let elementoSeleccionado = { id: null, tipo: null };
+    let celdaSeleccionada = { campo: null, id: null };
     
-    console.log("ID seleccionado:", id, "Estado detectado:", estadoTexto); // DEBUG
+    function togglePanel() {
+        const panel = document.getElementById('panelHerramientas');
+        panel.classList.toggle('hidden');
+    }
 
-    // Habilitación de botones
-    const btnBorrar = document.getElementById('btnBorrar');
-    if (btnBorrar) {
-        // Habilitar solo si es solicitud Y el estado es exactamente 'finalizado'
-        const habilitarBorrar = (tipo === 'solicitud' && estadoTexto === 'finalizado');
-        
-        btnBorrar.disabled = !habilitarBorrar;
-        if (habilitarBorrar) {
-            btnBorrar.classList.remove('opacity-50', 'cursor-not-allowed');
-            btnBorrar.classList.add('cursor-pointer');
+    function actualizarEstadoBotones(tipo) {
+        const btnEditar = document.getElementById('btnEditar');
+        if (!btnEditar) return;
+        if (tipo === 'movil') {
+            btnEditar.disabled = false;
+            btnEditar.classList.remove('opacity-50', 'cursor-not-allowed');
+            btnEditar.classList.add('hover:bg-gray-100', 'cursor-pointer');
         } else {
-            btnBorrar.classList.add('opacity-50', 'cursor-not-allowed');
-            btnBorrar.classList.remove('cursor-pointer');
+            btnEditar.disabled = true;
+            btnEditar.classList.add('opacity-50', 'cursor-not-allowed');
+            btnEditar.classList.remove('hover:bg-gray-100', 'cursor-pointer');
         }
     }
-}
 
-    // Lógica de habilitación de botones
-    const botones = {
-        btnVer: (tipo === 'solicitud' && esAceptado),
-        btnEditar: (tipo === 'movil'),
-        btnBorrar: (tipo === 'solicitud' && esFinalizado), // Solo se habilita si es finalizado
-        btnAsignar: (tipo === 'solicitud'),
-        // El botón mensaje se habilita solo si es solicitud y el estado es aceptado o en camino
-        btnMensaje: (tipo === 'solicitud' && (esAceptado || esEnCamino)),
-        btnFinalizar: (tipo === 'solicitud')
-    };
+    function marcarCelda(campo, id, event) {
+        celdaSeleccionada = { campo, id };
+        elementoSeleccionado = { id: id, tipo: 'movil' };
+        event.stopPropagation();
+        document.querySelectorAll('td').forEach(td => td.classList.remove('ring', 'ring-teal-500'));
+        event.target.classList.add('ring', 'ring-teal-500');
+        actualizarEstadoBotones('movil');
+    }
 
-    Object.keys(botones).forEach(idBtn => {
-        const btn = document.getElementById(idBtn);
-        if (btn) {
-            btn.disabled = !botones[idBtn];
-            if (btn.disabled) {
-                btn.classList.add('opacity-50', 'cursor-not-allowed');
-                btn.classList.remove('cursor-pointer');
-            } else {
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                btn.classList.add('cursor-pointer');
-            }
-        }
-    });
-}
+    function getColor(v, arr) {
+        const sorted = [...new Set(arr)].sort((a, b) => b - a);
+        const max = sorted[0];
+        const min = sorted[sorted.length - 1];
+        if (v === max && sorted.length >= 1) return '#0f766e';
+        if (v === sorted[1]) return '#f97316';
+        if (v === sorted[2]) return '#eab308';
+        if (v === min && sorted.length > 3) return '#dc2626';
+        return '#14b8a6';
+    }
 
-        function verServicio() {
-            const btnVer = document.getElementById('btnVer');
-            if (btnVer.disabled) return;
-            window.open(`mapa_admin.html?id=${elementoSeleccionado.id}`, '_blank', 'width=1000,height=700');
-        }
+    function seleccionarElemento(id, tipo, event) {
+        elementoSeleccionado = { id, tipo };
+        
+        // Resaltado visual
+        document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
+        const fila = event.target.closest('tr');
+        if (fila) fila.classList.add('bg-teal-100');
 
-        async function cargarTodo() {
-            const { data: moviles } = await client.from('moviles').select('*');
-            if (moviles) {
-                document.getElementById('tablaMoviles').innerHTML = moviles.map(m => `
-                    <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${m.movil_id}', 'movil', event)">
-                        <td class="p-2" onclick="marcarCelda('movil_id', '${m.movil_id}', event)">${m.movil_id}</td>
-                        <td class="p-2" onclick="marcarCelda('celular', '${m.movil_id}', event)">${m.celular}</td>
-                        <td class="p-2 font-bold ${m.estado === 'activo' ? 'text-green-600' : 'text-red-600'}" onclick="marcarCelda('estado', '${m.movil_id}', event)">${m.estado}</td>
-                        <td class="p-2" onclick="marcarCelda('id_tecnico', '${m.movil_id}', event)">${m.id_tecnico || 'Libre'}</td>
-                    </tr>`).join('');
-            }
-            
-            const { data: solicitudes, error } = await client.from('solicitudes').select('*').order('solicitud_id', { ascending: false });
-            if (solicitudes) {
-                document.getElementById('countPendientes').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'pendiente').length;
-                document.getElementById('countEnCamino').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'aceptado').length;
-                document.getElementById('countFinalizados').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'finalizado').length;
-                document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `
-                    <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${s.solicitud_id}', 'solicitud', event)">
-                        <td class="p-3">${s.solicitud_id}</td>
-                        <td class="p-3">${s.nombre_usuario || 'Anónimo'}</td>
-                        <td class="p-3">${s.id_tecnico || 'Sin asignar'}</td>
-                        <td class="p-3 font-bold">${(s.respuesta_solicitud || 'PENDIENTE').toUpperCase()}</td>
-                    </tr>`).join('');
-                actualizarGraficos(solicitudes);
-            }
-        }
+        // Obtenemos el texto del estado de la columna correspondiente (index 3)
+        const estadoTexto = fila.cells[3]?.innerText.trim().toLowerCase() || '';
+        
+        // Definir estados booleanos
+        const esAceptado = (estadoTexto === 'aceptado');
+        const esEnCamino = (estadoTexto === 'en camino');
+        const esFinalizado = (estadoTexto === 'finalizado');
 
-        function actualizarGraficos(solicitudes) {
-            const canvasIncidencia = document.getElementById('graficoServicios');
-            const canvasProductividad = document.getElementById('graficoProductividad');
-            if (!canvasIncidencia || !canvasProductividad) return;
+        // Lógica de habilitación de botones
+        const botones = {
+            btnVer: (tipo === 'solicitud' && esAceptado),
+            btnEditar: (tipo === 'movil'),
+            btnBorrar: (tipo === 'solicitud' && esFinalizado),
+            btnAsignar: (tipo === 'solicitud'),
+            btnMensaje: (tipo === 'solicitud' && (esAceptado || esEnCamino)),
+            btnFinalizar: (tipo === 'solicitud')
+        };
 
-            const serviciosValidos = ["Fumigación contra El dengue y chikungunya", "Desbrozado de entrada, patios y Jardines", "Problemas de Plomería", "Fuga de Agua", "Tuberías trancadas del drenaje sanitario y de lluvias", "Mi Ducha Eléctrica NO funciona", "Interruptor / Tomacorriente NO funciona", "Requiero Solución definitiva para GOTERAS", "Mantenimiento de AIRE ACONDICIONADO", "Instalación de AIRE ACONDICIONADO", "Servicio control de Humedad en Paredes", "Retoques de pintura en Fachada, Puertas de Acceso, Etc.", "Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)", "Necesito aplicar veneno para los Sepes", "Remodelación de Vivienda y Oficinas", "Ampliación de Vivienda y Oficinas"];
-            
-            const conteo = {};
-            solicitudes.forEach(s => { 
-                const cat = serviciosValidos.includes(s.comentario_solicitud) ? s.comentario_solicitud : "Otros"; 
-                conteo[cat] = (conteo[cat] || 0) + 1; 
-            });
-            
-            const labels = Object.keys(conteo);
-            const data = Object.values(conteo).map(c => parseFloat(((c / solicitudes.length) * 100).toFixed(1)));
-            const maxVal = data.length > 0 ? Math.max(...data) : 0;
-
-            if (chartIncidencia) chartIncidencia.destroy();
-            chartIncidencia = new Chart(canvasIncidencia.getContext('2d'), { 
-                type: 'bar', plugins: [ChartDataLabels], 
-                data: { labels, datasets: [{ data, backgroundColor: data.map(v => getColor(Number(v), data)) }] }, 
-                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', formatter: v => v + '%', padding: 5 } }, scales: { x: { max: maxVal + 15, beginAtZero: true } } } 
-            });
-            
-            document.getElementById('tablaIncidencia').innerHTML = labels.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(data[i]), data)}">${data[i]}%</td></tr>`).join('');
-            
-            const finalizados = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado');
-            const cTech = {};
-            finalizados.forEach(s => cTech[s.id_tecnico || 'Sin asignar'] = (cTech[s.id_tecnico || 'Sin asignar'] || 0) + 1);
-            
-            const lTech = Object.keys(cTech);
-            const dTech = finalizados.length > 0 ? Object.values(cTech).map(c => parseFloat(((c / finalizados.length) * 100).toFixed(1))) : [];
-            const maxTech = dTech.length > 0 ? Math.max(...dTech) : 0;
-            
-            if (chartProductividad) chartProductividad.destroy();
-            chartProductividad = new Chart(canvasProductividad.getContext('2d'), { 
-                type: 'bar', plugins: [ChartDataLabels], 
-                data: { labels: lTech, datasets: [{ data: dTech, backgroundColor: dTech.map(v => getColor(Number(v), dTech)) }] }, 
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: v => v + '%' } }, scales: { y: { max: maxTech + 15, beginAtZero: true } } } 
-            });
-            
-            document.getElementById('tablaProductividad').innerHTML = lTech.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(dTech[i]), dTech)}">${dTech[i]}%</td></tr>`).join('');
-        }
-
-        async function editarElemento() {
-            if (!celdaSeleccionada.campo || elementoSeleccionado.tipo !== 'movil') {
-                alert("Selecciona primero una celda del Bloque 1.");
-                return;
-            }
-            const nuevoValor = prompt(`Ingrese el nuevo valor para ${celdaSeleccionada.campo}:`);
-            if (nuevoValor === null) return;
-            const { error } = await client.from('moviles').update({ [celdaSeleccionada.campo]: nuevoValor }).eq('movil_id', celdaSeleccionada.id);
-            if (error) alert("Error: " + error.message);
-            else { alert("¡Actualizado!"); celdaSeleccionada = { campo: null, id: null }; cargarTodo(); }
-        }
-
-       function seleccionarElemento(id, tipo, event) {
-            elementoSeleccionado = { id, tipo };
-            
-            // Resaltado visual
-            document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
-            const fila = event.target.closest('tr');
-            if (fila) fila.classList.add('bg-teal-100');
-
-            // Obtenemos el texto del estado de la columna correspondiente (index 3)
-            const estadoTexto = fila.cells[3]?.innerText.trim().toLowerCase() || '';
-            console.log("ID seleccionado:", id, "Estado detectado:", estadoTexto); 
-
-            // Definir estados booleanos
-            const esAceptado = (estadoTexto === 'aceptado');
-            const esEnCamino = (estadoTexto === 'en camino');
-            const esFinalizado = (estadoTexto === 'finalizado');
-
-            // Lógica de habilitación de botones
-            const botones = {
-                btnVer: (tipo === 'solicitud' && esAceptado),
-                btnEditar: (tipo === 'movil'),
-                btnBorrar: (tipo === 'solicitud' && esFinalizado),
-                btnAsignar: (tipo === 'solicitud'),
-                btnMensaje: (tipo === 'solicitud' && (esAceptado || esEnCamino)),
-                btnFinalizar: (tipo === 'solicitud')
-            };
-
-            Object.keys(botones).forEach(idBtn => {
-                const btn = document.getElementById(idBtn);
-                if (btn) {
-                    btn.disabled = !botones[idBtn];
-                    if (btn.disabled) {
-                        btn.classList.add('opacity-50', 'cursor-not-allowed');
-                        btn.classList.remove('cursor-pointer');
-                    } else {
-                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                        btn.classList.add('cursor-pointer');
-                    }
+        Object.keys(botones).forEach(idBtn => {
+            const btn = document.getElementById(idBtn);
+            if (btn) {
+                btn.disabled = !botones[idBtn];
+                if (btn.disabled) {
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    btn.classList.remove('cursor-pointer');
+                } else {
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.classList.add('cursor-pointer');
                 }
-            });
+            }
+        });
+    }
+
+    function verServicio() {
+        const btnVer = document.getElementById('btnVer');
+        if (btnVer.disabled) return;
+        window.open(`mapa_admin.html?id=${elementoSeleccionado.id}`, '_blank', 'width=1000,height=700');
+    }
+
+    async function cargarTodo() {
+        const { data: moviles } = await client.from('moviles').select('*');
+        if (moviles) {
+            document.getElementById('tablaMoviles').innerHTML = moviles.map(m => `
+                <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${m.movil_id}', 'movil', event)">
+                    <td class="p-2" onclick="marcarCelda('movil_id', '${m.movil_id}', event)">${m.movil_id}</td>
+                    <td class="p-2" onclick="marcarCelda('celular', '${m.movil_id}', event)">${m.celular}</td>
+                    <td class="p-2 font-bold ${m.estado === 'activo' ? 'text-green-600' : 'text-red-600'}" onclick="marcarCelda('estado', '${m.movil_id}', event)">${m.estado}</td>
+                    <td class="p-2" onclick="marcarCelda('id_tecnico', '${m.movil_id}', event)">${m.id_tecnico || 'Libre'}</td>
+                </tr>`).join('');
         }
-        // Abrir chat y cargar mensajes
-async function abrirChat() {
-    const btn = document.getElementById('btnMensaje');
-    if (btn.disabled) return;
-    
-    document.getElementById('modalChat').classList.remove('hidden');
-    
-    const { data } = await client.from('mensajes')
-        .select('*')
-        .eq('solicitud_id', elementoSeleccionado.id)
-        .order('created_at', { ascending: true });
         
-    document.getElementById('contenedorMensajes').innerHTML = (data || []).map(m => {
-        // Lógica de colores basada en el campo 'emisor' de tu tabla
-        // Estos colores se verán IGUAL en todos los dispositivos
-        const esAdmin = m.emisor === 'Administrador';
-        const esTecnico = m.emisor === 'tecnico';
-        
-        let clases = "p-3 mb-3 rounded-lg text-sm border-l-4 ";
-        
-        if (esAdmin) {
-            // Estilo específico para el Administrador (Resaltado)
-            clases += "bg-blue-50 border-blue-600 text-blue-900 shadow-sm";
-        } else if (esTecnico) {
-            // Estilo para el Técnico
-            clases += "bg-green-50 border-green-500 text-green-900";
-        } else {
-            // Estilo para el Cliente
-            clases += "bg-gray-100 border-gray-400 text-gray-800";
+        const { data: solicitudes, error } = await client.from('solicitudes').select('*').order('solicitud_id', { ascending: false });
+        if (solicitudes) {
+            document.getElementById('countPendientes').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'pendiente').length;
+            document.getElementById('countEnCamino').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'aceptado').length;
+            document.getElementById('countFinalizados').innerText = solicitudes.filter(s => (s.respuesta_solicitud || '').toLowerCase() === 'finalizado').length;
+            document.getElementById('tablaSolicitudes').innerHTML = solicitudes.map(s => `
+                <tr class="cursor-pointer hover:bg-gray-100 transition-colors" onclick="seleccionarElemento('${s.solicitud_id}', 'solicitud', event)">
+                    <td class="p-3">${s.solicitud_id}</td>
+                    <td class="p-3">${s.nombre_usuario || 'Anónimo'}</td>
+                    <td class="p-3">${s.id_tecnico || 'Sin asignar'}</td>
+                    <td class="p-3 font-bold">${(s.respuesta_solicitud || 'PENDIENTE').toUpperCase()}</td>
+                </tr>`).join('');
+            actualizarGraficos(solicitudes);
         }
+    }
 
-        return `
-        <div class="${clases}">
-            <div class="flex justify-between items-center mb-1">
-                <span class="text-[9px] font-bold uppercase opacity-70">${m.emisor}</span>
-                <button onclick="editarMensaje('${m.id}', '${m.mensaje.replace(/'/g, "\\'")}')" 
-                        class="text-[9px] font-bold underline text-gray-500 hover:text-black">
-                    EDITAR
-                </button>
-            </div>
-            <div class="font-medium">${m.mensaje}</div>
-        </div>
-        `;
-    }).join('');
-}
+    function actualizarGraficos(solicitudes) {
+        const canvasIncidencia = document.getElementById('graficoServicios');
+        const canvasProductividad = document.getElementById('graficoProductividad');
+        if (!canvasIncidencia || !canvasProductividad) return;
 
-// Enviar nuevo mensaje
-async function enviarMensaje() {
-    const input = document.getElementById('inputMensaje');
-    if (!input.value.trim()) return; // Evita enviar vacíos
+        const serviciosValidos = ["Fumigación contra El dengue y chikungunya", "Desbrozado de entrada, patios y Jardines", "Problemas de Plomería", "Fuga de Agua", "Tuberías trancadas del drenaje sanitario y de lluvias", "Mi Ducha Eléctrica NO funciona", "Interruptor / Tomacorriente NO funciona", "Requiero Solución definitiva para GOTERAS", "Mantenimiento de AIRE ACONDICIONADO", "Instalación de AIRE ACONDICIONADO", "Servicio control de Humedad en Paredes", "Retoques de pintura en Fachada, Puertas de Acceso, Etc.", "Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)", "Necesito aplicar veneno para los Sepes", "Remodelación de Vivienda y Oficinas", "Ampliación de Vivienda y Oficinas"];
+        
+        const conteo = {};
+        solicitudes.forEach(s => { 
+            const cat = serviciosValidos.includes(s.comentario_solicitud) ? s.comentario_solicitud : "Otros"; 
+            conteo[cat] = (conteo[cat] || 0) + 1; 
+        });
+        
+        const labels = Object.keys(conteo);
+        const data = Object.values(conteo).map(c => parseFloat(((c / solicitudes.length) * 100).toFixed(1)));
+        const maxVal = data.length > 0 ? Math.max(...data) : 0;
 
-    await client.from('mensajes').insert([{
-        solicitud_id: elementoSeleccionado.id,
-        mensaje: input.value, // Usamos 'mensaje'
-        emisor: 'Administrador' // Registramos como Administrador
-    }]);
-    input.value = '';
-    abrirChat(); // Refrescar
-}
+        if (chartIncidencia) chartIncidencia.destroy();
+        chartIncidencia = new Chart(canvasIncidencia.getContext('2d'), { 
+            type: 'bar', plugins: [ChartDataLabels], 
+            data: { labels, datasets: [{ data, backgroundColor: data.map(v => getColor(Number(v), data)) }] }, 
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'right', formatter: v => v + '%', padding: 5 } }, scales: { x: { max: maxVal + 15, beginAtZero: true } } } 
+        });
+        
+        document.getElementById('tablaIncidencia').innerHTML = labels.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(data[i]), data)}">${data[i]}%</td></tr>`).join('');
+        
+        const finalizados = solicitudes.filter(s => s.respuesta_solicitud === 'finalizado');
+        const cTech = {};
+        finalizados.forEach(s => cTech[s.id_tecnico || 'Sin asignar'] = (cTech[s.id_tecnico || 'Sin asignar'] || 0) + 1);
+        
+        const lTech = Object.keys(cTech);
+        const dTech = finalizados.length > 0 ? Object.values(cTech).map(c => parseFloat(((c / finalizados.length) * 100).toFixed(1))) : [];
+        const maxTech = dTech.length > 0 ? Math.max(...dTech) : 0;
+        
+        if (chartProductividad) chartProductividad.destroy();
+        chartProductividad = new Chart(canvasProductividad.getContext('2d'), { 
+            type: 'bar', plugins: [ChartDataLabels], 
+            data: { labels: lTech, datasets: [{ data: dTech, backgroundColor: dTech.map(v => getColor(Number(v), dTech)) }] }, 
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: v => v + '%' } }, scales: { y: { max: maxTech + 15, beginAtZero: true } } } 
+        });
+        
+        document.getElementById('tablaProductividad').innerHTML = lTech.map((l, i) => `<tr><td class="p-2">${l}</td><td class="p-2 text-right font-bold" style="color:${getColor(Number(dTech[i]), dTech)}">${dTech[i]}%</td></tr>`).join('');
+    }
 
-// Editar mensaje existente
-async function editarMensaje(id, mensajeActual) {
-    const nuevo = prompt("Edita tu mensaje:", mensajeActual);
-    if (nuevo) {
-        // Usamos 'mensaje' para el update
-        await client.from('mensajes').update({ mensaje: nuevo }).eq('id', id);
+    async function editarElemento() {
+        if (!celdaSeleccionada.campo || elementoSeleccionado.tipo !== 'movil') {
+            alert("Selecciona primero una celda del Bloque 1.");
+            return;
+        }
+        const nuevoValor = prompt(`Ingrese el nuevo valor para ${celdaSeleccionada.campo}:`);
+        if (nuevoValor === null) return;
+        const { error } = await client.from('moviles').update({ [celdaSeleccionada.campo]: nuevoValor }).eq('movil_id', celdaSeleccionada.id);
+        if (error) alert("Error: " + error.message);
+        else { alert("¡Actualizado!"); celdaSeleccionada = { campo: null, id: null }; cargarTodo(); }
+    }
+
+    async function abrirChat() {
+        const btn = document.getElementById('btnMensaje');
+        if (btn.disabled) return;
+        document.getElementById('modalChat').classList.remove('hidden');
+        
+        const { data } = await client.from('mensajes')
+            .select('*')
+            .eq('solicitud_id', elementoSeleccionado.id)
+            .order('created_at', { ascending: true });
+            
+        document.getElementById('contenedorMensajes').innerHTML = (data || []).map(m => {
+            const esAdmin = m.emisor === 'Administrador';
+            const esTecnico = m.emisor === 'tecnico';
+            let clases = "p-3 mb-3 rounded-lg text-sm border-l-4 ";
+            if (esAdmin) clases += "bg-blue-50 border-blue-600 text-blue-900 shadow-sm";
+            else if (esTecnico) clases += "bg-green-50 border-green-500 text-green-900";
+            else clases += "bg-gray-100 border-gray-400 text-gray-800";
+            return `
+            <div class="${clases}">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-[9px] font-bold uppercase opacity-70">${m.emisor}</span>
+                    <button onclick="editarMensaje('${m.id}', '${m.mensaje.replace(/'/g, "\\'")}')" class="text-[9px] font-bold underline text-gray-500 hover:text-black">EDITAR</button>
+                </div>
+                <div class="font-medium">${m.mensaje}</div>
+            </div>`;
+        }).join('');
+    }
+
+    async function enviarMensaje() {
+        const input = document.getElementById('inputMensaje');
+        if (!input.value.trim()) return;
+        await client.from('mensajes').insert([{ solicitud_id: elementoSeleccionado.id, mensaje: input.value, emisor: 'Administrador' }]);
+        input.value = '';
         abrirChat();
     }
-}
-        // Función para verificar estado y limpiar antes de cerrar
-async function cerrarChatYVerificar() {
-    const solicitudId = elementoSeleccionado.id;
-    
-    // Inspección del estado
-    const { data } = await client.from('solicitudes')
-        .select('respuesta_solicitud')
-        .eq('solicitud_id', solicitudId)
-        .single();
 
-    // Verificación y limpieza si es 'finalizado'
-    if (data && data.respuesta_solicitud === 'finalizado') {
-        await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
-        await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
+    async function editarMensaje(id, mensajeActual) {
+        const nuevo = prompt("Edita tu mensaje:", mensajeActual);
+        if (nuevo) {
+            await client.from('mensajes').update({ mensaje: nuevo }).eq('id', id);
+            abrirChat();
+        }
     }
 
-    // Salida: cierra el modal y recarga la página
-    document.getElementById('modalChat').classList.add('hidden');
-    location.reload();
-}
-        // Función de moderación: Finaliza cualquier servicio y limpia registros
-async function finalizarServicioAdmin() {
-    if (elementoSeleccionado.tipo !== 'solicitud' || !elementoSeleccionado.id) {
-        alert("Selecciona una solicitud de la lista para finalizarla.");
-        return;
+    async function cerrarChatYVerificar() {
+        const solicitudId = elementoSeleccionado.id;
+        const { data } = await client.from('solicitudes').select('respuesta_solicitud').eq('solicitud_id', solicitudId).single();
+        if (data && data.respuesta_solicitud === 'finalizado') {
+            await client.from('mensajes').delete().eq('solicitud_id', solicitudId);
+            await client.from('ubicacion_moviles').delete().eq('solicitud_id', solicitudId);
+        }
+        document.getElementById('modalChat').classList.add('hidden');
+        location.reload();
     }
 
-    if (!confirm(`¿Confirmas que deseas finalizar la solicitud ID: ${elementoSeleccionado.id}? Esta acción moderará el estado del servicio y limpiará los datos asociados.`)) {
-        return;
+    async function finalizarServicioAdmin() {
+        if (elementoSeleccionado.tipo !== 'solicitud' || !elementoSeleccionado.id) {
+            alert("Selecciona una solicitud de la lista para finalizarla.");
+            return;
+        }
+        if (!confirm(`¿Confirmas que deseas finalizar la solicitud ID: ${elementoSeleccionado.id}?`)) return;
+        try {
+            const id = elementoSeleccionado.id;
+            const { error: updateError } = await client.from('solicitudes').update({ respuesta_solicitud: 'finalizado' }).eq('solicitud_id', id);
+            if (updateError) throw updateError;
+            await client.from('mensajes').delete().eq('solicitud_id', id);
+            await client.from('ubicacion_moviles').delete().eq('solicitud_id', id);
+            await cargarTodo();
+            alert("Servicio finalizado y registros limpios correctamente.");
+        } catch (err) {
+            console.error("Error:", err);
+            alert("Ocurrió un error.");
+        }
     }
 
-    try {
-        const id = elementoSeleccionado.id;
-
-        // 1. Actualizar estado a finalizado
-        const { error: updateError } = await client
-            .from('solicitudes')
-            .update({ respuesta_solicitud: 'finalizado' })
-            .eq('solicitud_id', id);
-
-        if (updateError) throw updateError;
-
-        // 2. Limpieza forzada de registros asociados (Moderación)
-        await client.from('mensajes').delete().eq('solicitud_id', id);
-        await client.from('ubicacion_moviles').delete().eq('solicitud_id', id);
-
-        // 3. Recargar datos para actualizar la interfaz, estadísticas y gráficos
-        await cargarTodo();
-        
-        alert("Servicio finalizado y registros limpios correctamente.");
-    } catch (err) {
-        console.error("Error en moderación de servicio:", err);
-        alert("Ocurrió un error al intentar finalizar el servicio. Revisa la conexión.");
-    }
-}
-        // Cargar datos al abrir la página
-document.addEventListener('DOMContentLoaded', () => {
-    cargarTodo();
-});
-    </script>
+    document.addEventListener('DOMContentLoaded', () => {
+        cargarTodo();
+    });
+</script>
 </body>
 </html>
