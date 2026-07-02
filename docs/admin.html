@@ -93,7 +93,18 @@
         <button onclick="cerrarChatYVerificar()" class="mt-4 text-sm text-gray-500 underline">Cerrar</button>
     </div>
 </div>
-
+<div id="modalPassword" class="fixed inset-0 bg-black bg-opacity-90 z-[200] flex items-center justify-center">
+    <div class="bg-white w-full max-w-sm p-6 rounded-lg shadow-xl text-center">
+        <h2 class="text-xl font-bold mb-4 text-teal-900">Acceso Restringido</h2>
+        <p class="text-sm text-gray-600 mb-4">Se requiere autenticación para continuar:</p>
+        <input type="password" id="inputPass" class="w-full border p-2 rounded mb-4 focus:ring-2 focus:ring-teal-500 outline-none" placeholder="Ingrese su contraseña">
+        
+        <div class="flex gap-2">
+            <button onclick="cancelarAcceso()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded hover:bg-gray-300">Cancelar</button>
+            <button onclick="verificarPassword()" class="flex-1 bg-teal-700 text-white py-2 rounded hover:bg-teal-800">Ingresar</button>
+        </div>
+    </div>
+</div>
     <script>
     const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
     
@@ -384,6 +395,29 @@ async function refrescarPanel() {
     btn.innerText = "🔄 Refresh";
     btn.disabled = false;
 }
+        async function verificarPassword() {
+            const passIngresada = document.getElementById('inputPass').value;
+            const modal = document.getElementById('modalPassword');
+            try {
+                const { data, error } = await client
+                    .from('administrador')
+                    .select('pasword')
+                    .eq('pasword', passIngresada)
+                    .maybeSingle();
+                if (data) {
+                    modal.classList.add('hidden');
+                } else {
+                    alert("Contraseña incorrecta.");
+                    document.getElementById('inputPass').value = '';
+                }
+            } catch (e) {
+                alert("Error de conexión.");
+            }
+        }
+
+        function cancelarAcceso() {
+            window.location.href = 'login.html'; 
+        }
     document.addEventListener('DOMContentLoaded', () => {
         cargarTodo();
     });
