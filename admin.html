@@ -282,27 +282,26 @@
 
     if (confirm("¿Borrar esta solicitud definitivamente?")) {
         try {
+            // Limpiamos la selección visual ANTES de borrar para que no quede residuo
+            elementoSeleccionado = { id: null, tipo: null };
+            document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
+
             // 1. Ejecutar el borrado
             const { error } = await client
                 .from('solicitudes')
                 .delete()
-                .eq('solicitud_id', elementoSeleccionado.id);
+                .eq('solicitud_id', elementoSeleccionado.id); // ¡Cuidado! Asegúrate de tener el ID capturado antes
 
             if (error) throw error;
 
-            // 2. Limpiar selección para evitar errores de referencia
-            elementoSeleccionado = { id: null, tipo: null };
-            document.querySelectorAll('tr').forEach(tr => tr.classList.remove('bg-teal-100'));
-
-            // 3. Recargar con una pequeña pausa para asegurar que Supabase procesó el cambio
-            await new Promise(resolve => setTimeout(resolve, 300));
-            await cargarTodo();
+            // NO llamamos a cargarTodo() aquí. 
+            // Dejamos que el listener (que ya tienes configurado) detecte el borrado y lo haga.
             
-            alert("Servicio eliminado y flujo actualizado.");
+            alert("Servicio eliminado. La tabla se actualizará automáticamente.");
         } catch (err) {
             console.error("Error al borrar:", err);
             alert("Error al intentar borrar: " + err.message);
-            // Intentar recuperar el flujo incluso si hubo error
+            // Solo si falla, forzamos la carga
             cargarTodo();
         }
     }
