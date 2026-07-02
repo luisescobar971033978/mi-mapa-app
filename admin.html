@@ -326,16 +326,33 @@
         location.reload();
     }
 async function eliminarSolicitud() {
-    if (elementoSeleccionado.tipo !== 'solicitud') return;
-    
-    // Aquí iría tu lógica para borrar en Supabase
-    const { error } = await client.from('solicitudes')
-        .delete()
-        .eq('solicitud_id', elementoSeleccionado.id);
+    // 1. Verificación básica
+    if (elementoSeleccionado.tipo !== 'solicitud' || !elementoSeleccionado.id) {
+        alert("Selecciona una solicitud válida de la lista.");
+        return;
+    }
+
+    if (!confirm("¿Estás seguro de eliminar este registro?")) return;
+
+    try {
+        // 2. Operación de borrado en Supabase
+        const { error } = await client
+            .from('solicitudes')
+            .delete()
+            .eq('solicitud_id', elementoSeleccionado.id);
+
+        if (error) throw error;
+
+        // 3. Éxito: notificar y recargar
+        alert("Solicitud eliminada correctamente.");
         
-    if (!error) {
-        alert("Solicitud eliminada");
-        cargarTodo(); // Recarga la tabla
+        // Limpiar selección y refrescar la tabla
+        elementoSeleccionado = { id: null, tipo: null };
+        await cargarTodo(); 
+        
+    } catch (err) {
+        console.error("Error al eliminar:", err);
+        alert("Error al eliminar: " + err.message);
     }
 }
     async function finalizarServicioAdmin() {
