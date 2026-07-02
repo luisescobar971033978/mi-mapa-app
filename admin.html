@@ -30,7 +30,7 @@
                 <button id="btnBorrar" onclick="borrarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>🗑️ Borrar</button>
                 <button id="btnAsignar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👤 Asignar</button>
                 <button id="btnMensaje" onclick="abrirChat()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>💬 Mensaje</button>
-                <button id="btnFinalizar" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✅ Finalizar</button>
+                <button id="btnFinalizar" onclick="finalizarServicioAdmin()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✅ Finalizar Servicio</button>
                 <div class="border-l border-gray-300 mx-2"></div>
                 <button onclick="window.location.href='index.html'" class="hover:bg-gray-100 p-2 rounded">🚀 Solicitar Servicio</button>
                 <button onclick="window.location.href='tecnico.html'" class="hover:bg-gray-100 p-2 rounded">🛠️ Solicitar Técnico</button>
@@ -373,6 +373,41 @@ async function cerrarChatYVerificar() {
     // Salida: cierra el modal y recarga la página
     document.getElementById('modalChat').classList.add('hidden');
     location.reload();
+}
+        // Función de moderación: Finaliza cualquier servicio y limpia registros
+async function finalizarServicioAdmin() {
+    if (elementoSeleccionado.tipo !== 'solicitud' || !elementoSeleccionado.id) {
+        alert("Selecciona una solicitud de la lista para finalizarla.");
+        return;
+    }
+
+    if (!confirm(`¿Confirmas que deseas finalizar la solicitud ID: ${elementoSeleccionado.id}? Esta acción moderará el estado del servicio y limpiará los datos asociados.`)) {
+        return;
+    }
+
+    try {
+        const id = elementoSeleccionado.id;
+
+        // 1. Actualizar estado a finalizado
+        const { error: updateError } = await client
+            .from('solicitudes')
+            .update({ respuesta_solicitud: 'finalizado' })
+            .eq('solicitud_id', id);
+
+        if (updateError) throw updateError;
+
+        // 2. Limpieza forzada de registros asociados (Moderación)
+        await client.from('mensajes').delete().eq('solicitud_id', id);
+        await client.from('ubicacion_moviles').delete().eq('solicitud_id', id);
+
+        // 3. Recargar datos para actualizar la interfaz, estadísticas y gráficos
+        await cargarTodo();
+        
+        alert("Servicio finalizado y registros limpios correctamente.");
+    } catch (err) {
+        console.error("Error en moderación de servicio:", err);
+        alert("Ocurrió un error al intentar finalizar el servicio. Revisa la conexión.");
+    }
 }
     </script>
 </body>
