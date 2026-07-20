@@ -54,11 +54,26 @@
                 
                 <!-- Contenedor del Calendario -->
                 <div class="mt-4 mb-6">
-                    <label class="block text-sm font-bold text-teal-900 mb-2">SELECCIONE FECHA Y HORA:</label>
-                    <input type="date" id="fecha_seleccion" class="w-full p-3 border rounded-lg mb-2" required>
-                    <div id="gridHorarios" class="grid grid-cols-2 gap-2"></div>
-                    <input type="hidden" id="hora_seleccionada" required>
-                </div>
+    <label class="block text-sm font-bold text-teal-900 mb-2">SELECCIONE FECHA Y HORA:</label>
+    <div class="overflow-x-auto">
+        <table class="w-full text-xs text-center border-collapse border border-gray-300" id="tablaAgenda">
+            <thead class="bg-teal-100">
+                <tr>
+                    <th class="p-2 border">Hora</th>
+                    <th class="p-2 border">LUN</th><th class="p-2 border">MAR</th>
+                    <th class="p-2 border">MIÉ</th><th class="p-2 border">JUE</th>
+                    <th class="p-2 border">VIE</th><th class="p-2 border">SÁB</th>
+                    <th class="p-2 border">DOM</th>
+                </tr>
+            </thead>
+            <tbody id="cuerpoAgenda">
+                <!-- Las filas y celdas se generarán o se llenarán aquí -->
+            </tbody>
+        </table>
+    </div>
+    <input type="hidden" id="fecha_seleccion" required>
+    <input type="hidden" id="hora_seleccionada" required>
+</div>
 
                 <button type="submit" id="btnSolicitar" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold">SOLICITAR SERVICIO</button>
             </form>
@@ -85,7 +100,7 @@
     const client = supabase.createClient(supabaseUrl, supabaseKey);
 
     // Inicializar agenda
-    inicializarAgenda(client, 'gridHorarios', 'fecha_seleccion', 'hora_seleccionada', 'btnSolicitar');
+    inicializarAgenda(client, 'tablaAgenda', 'fecha_seleccion', 'hora_seleccionada', 'btnSolicitar');
 
     function cerrarSesion() {
         localStorage.clear();
