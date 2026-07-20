@@ -53,6 +53,13 @@
                 <div id="otroCampo" class="hidden"><textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg"></textarea></div>
                 
                 <button type="submit" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold">SOLICITAR SERVICIO</button>
+                <!-- vista del calendario semanal en formulario de acceso ... -->
+                <div class="mt-4 mb-6">
+                    <label class="block text-sm font-bold text-teal-900 mb-2">SELECCIONE FECHA Y HORA:</label>
+                    <input type="date" id="fecha_seleccion" class="w-full p-3 border rounded-lg mb-2" required>
+                    <div id="gridHorarios" class="grid grid-cols-2 gap-2"></div>
+                    <input type="hidden" id="hora_seleccionada" required>
+                </div>
             </form>
 
             <a href="https://wa.me/59173694080?text=Hola,%20deseo%20solicitar%20una%20cotización%20o%20inspección%20para%20un%20servicio%20en%20mi%20hogar." 
