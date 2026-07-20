@@ -27,7 +27,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
 
     tableBody.innerHTML = '';
     // Horarios reestructurados con intervalos de 01:30
-    const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30", "19:30", "19:45", "19:50" , "19:57"];
+    const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30", "19:30", "19:45", "19:50" , "20:05" ; "20:15";"20:25" ];
 
     horasDisponibles.forEach(horaStr => {
         const row = document.createElement('tr');
@@ -71,21 +71,26 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     });
 
     
-    // --- MONITOREO INTEGRADO (Modo Test) ---
-setInterval(async () => {
-    const id = localStorage.getItem('id_solicitud');
-    if (!id) return;
+   // --- MONITOREO INTEGRADO (Modo Test) ---
+    setInterval(async () => {
+        const id = localStorage.getItem('id_solicitud');
+        if (!id) return;
 
-    const { data } = await client.from('solicitudes')
-        .select('fecha_solicitud, hora_solicitud, respuesta_solicitud')
-        .eq('solicitud_id', parseInt(id)).maybeSingle();
+        const { data, error } = await client.from('solicitudes')
+            .select('fecha_solicitud, hora_solicitud, respuesta_solicitud')
+            .eq('solicitud_id', parseInt(id))
+            .maybeSingle();
 
-    if (data?.respuesta_solicitud === 'iniciando') {
+        if (error || !data) return;
+
+        // Si la hora programada existe, procedemos a calcular
         const horaProgramada = new Date(`${data.fecha_solicitud}T${data.hora_solicitud}`);
         const ahoraMonitoreo = new Date();
         const faltanMinutos = (horaProgramada - ahoraMonitoreo) / (1000 * 60);
 
-        // PRUEBA A: Cambiamos el límite de 30 a 2 minutos
+        console.log(`Monitoreando ID ${id} - Faltan minutos: ${faltanMinutos.toFixed(2)}`);
+
+        // Si faltan 2 minutos o menos (y la cita es en el futuro cercano)
         if (faltanMinutos > 0 && faltanMinutos <= 2) {
             if (Notification.permission !== "denied") {
                 Notification.requestPermission();
@@ -94,8 +99,11 @@ setInterval(async () => {
                     icon: "logo_1.jpeg"
                 });
             }
-            window.location.href = 'espera.html';
+            
+            // Evitar bucle si ya estamos en espera.html
+            if (!window.location.pathname.includes('espera.html')) {
+                window.location.href = 'espera.html';
+            }
         }
-    }
-}, 5000); // PRUEBA A: Revisión cada 5 segundos en lugar de 1 minuto para respuesta inmediata; 
+    }, 5000);; 
 };
