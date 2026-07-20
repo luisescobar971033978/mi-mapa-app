@@ -27,7 +27,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
 
     tableBody.innerHTML = '';
     // Horarios reestructurados con intervalos de 01:30
-    const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30", "19:30"];
+    const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30", "19:30", "19:45", "19:50" , "19:57"];
 
     horasDisponibles.forEach(horaStr => {
         const row = document.createElement('tr');
