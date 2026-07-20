@@ -52,14 +52,15 @@
                 </select>
                 <div id="otroCampo" class="hidden"><textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg"></textarea></div>
                 
-                <button type="submit" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold">SOLICITAR SERVICIO</button>
-                <!-- vista del calendario semanal en formulario de acceso ... -->
+                <!-- Contenedor del Calendario -->
                 <div class="mt-4 mb-6">
                     <label class="block text-sm font-bold text-teal-900 mb-2">SELECCIONE FECHA Y HORA:</label>
                     <input type="date" id="fecha_seleccion" class="w-full p-3 border rounded-lg mb-2" required>
                     <div id="gridHorarios" class="grid grid-cols-2 gap-2"></div>
                     <input type="hidden" id="hora_seleccionada" required>
                 </div>
+
+                <button type="submit" id="btnSolicitar" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold">SOLICITAR SERVICIO</button>
             </form>
 
             <a href="https://wa.me/59173694080?text=Hola,%20deseo%20solicitar%20una%20cotización%20o%20inspección%20para%20un%20servicio%20en%20mi%20hogar." 
@@ -99,7 +100,9 @@
         document.getElementById('modalApp').classList.add('hidden');
         if (window.accionPostModal) window.accionPostModal();
     }
-        
+    
+    // Inicializar lógica de agenda
+    inicializarAgenda(client, 'gridHorarios', 'fecha_seleccion', 'hora_seleccionada', 'btnSolicitar');
 
     window.verificarOtro = () => document.getElementById('otroCampo').classList.toggle('hidden', document.getElementById('opcion_servicio').value !== 'Otro');
 
@@ -109,10 +112,15 @@
             nombre_usuario: document.getElementById('nombre').value, 
             celular_contacto: document.getElementById('celular').value, 
             comentario_solicitud: (document.getElementById('opcion_servicio').value === 'Otro') ? document.getElementById('descripcion').value : document.getElementById('opcion_servicio').value,
+            fecha_solicitud: document.getElementById('fecha_seleccion').value,
+            hora_solicitud: document.getElementById('hora_seleccionada').value + ':00',
             respuesta_solicitud: 'iniciando'
         }]).select();
                
-        if (error) { mostrarModal("Error", error.message); } 
+        if (error) { mostrarModal("Error", error.message);
+                   btnSubmit.innerText = "SOLICITAR SERVICIO";
+                   btnSubmit.className = "w-full bg-teal-800 text-white p-4 rounded-xl font-bold";
+                   btnSubmit.disabled = false;} 
         else {
             localStorage.setItem('id_solicitud', data[0].solicitud_id);
             mostrarModal("¡Éxito!", "Solicitud enviada. Presione aceptar para marcar su ubicación.", () => { 
