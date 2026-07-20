@@ -78,7 +78,8 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+    import { inicializarAgenda } from './agenda.js';
     const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
@@ -98,6 +99,7 @@
         document.getElementById('modalApp').classList.add('hidden');
         if (window.accionPostModal) window.accionPostModal();
     }
+        
 
     window.verificarOtro = () => document.getElementById('otroCampo').classList.toggle('hidden', document.getElementById('opcion_servicio').value !== 'Otro');
 
@@ -109,7 +111,7 @@
             comentario_solicitud: (document.getElementById('opcion_servicio').value === 'Otro') ? document.getElementById('descripcion').value : document.getElementById('opcion_servicio').value,
             respuesta_solicitud: 'iniciando'
         }]).select();
-
+               
         if (error) { mostrarModal("Error", error.message); } 
         else {
             localStorage.setItem('id_solicitud', data[0].solicitud_id);
@@ -151,6 +153,7 @@
             }
         }
     };
+        
 </script>
 </body>
 </html>
