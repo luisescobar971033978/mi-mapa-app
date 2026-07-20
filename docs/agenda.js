@@ -70,30 +70,32 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         tableBody.appendChild(row);
     });
 
-    // --- MONITOREO INTEGRADO ---
-    setInterval(async () => {
-        const id = localStorage.getItem('id_solicitud');
-        if (!id) return;
+    
+    // --- MONITOREO INTEGRADO (Modo Test) ---
+setInterval(async () => {
+    const id = localStorage.getItem('id_solicitud');
+    if (!id) return;
 
-        const { data } = await client.from('solicitudes')
-            .select('fecha_solicitud, hora_solicitud, respuesta_solicitud')
-            .eq('solicitud_id', parseInt(id)).maybeSingle();
+    const { data } = await client.from('solicitudes')
+        .select('fecha_solicitud, hora_solicitud, respuesta_solicitud')
+        .eq('solicitud_id', parseInt(id)).maybeSingle();
 
-        if (data?.respuesta_solicitud === 'iniciando') {
-            const horaProgramada = new Date(`${data.fecha_solicitud}T${data.hora_solicitud}`);
-            const ahoraMonitoreo = new Date();
-            const faltanMinutos = (horaProgramada - ahoraMonitoreo) / (1000 * 60);
+    if (data?.respuesta_solicitud === 'iniciando') {
+        const horaProgramada = new Date(`${data.fecha_solicitud}T${data.hora_solicitud}`);
+        const ahoraMonitoreo = new Date();
+        const faltanMinutos = (horaProgramada - ahoraMonitoreo) / (1000 * 60);
 
-            if (faltanMinutos > 0 && faltanMinutos <= 30) {
-                if (Notification.permission !== "denied") {
-                    Notification.requestPermission();
-                    new Notification("RECORDATORIO DE SERVICIO", {
-                        body: "En 30 minutos tienes un servicio programado.",
-                        icon: "logo_1.jpeg"
-                    });
-                }
-                window.location.href = 'espera.html';
+        // PRUEBA A: Cambiamos el límite de 30 a 2 minutos
+        if (faltanMinutos > 0 && faltanMinutos <= 2) {
+            if (Notification.permission !== "denied") {
+                Notification.requestPermission();
+                new Notification("PRUEBA DE SERVICIO", {
+                    body: "Redirigiendo a espera...",
+                    icon: "logo_1.jpeg"
+                });
             }
+            window.location.href = 'espera.html';
         }
-    }, 60000); 
+    }
+}, 5000); // PRUEBA A: Revisión cada 5 segundos en lugar de 1 minuto para respuesta inmediata; 
 };
