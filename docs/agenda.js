@@ -13,7 +13,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
 
     // 1. Generar 7 días a partir de HOY
     const dias = [];
-    const nombresDias = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
+    const nombresDias = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
     for (let i = 0; i < 7; i++) {
         const d = new Date();
         d.setDate(d.getDate() + i);
