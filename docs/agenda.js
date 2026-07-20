@@ -7,7 +7,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     // Obtenemos fecha y hora actual (ajustado a Bolivia: -4h de UTC)
     const ahora = new Date();
     const fechaActual = ahora.toISOString().split('T')[0];
-    const horaActual = ahora.getHours(); // Ej: 15 para las 15:00
+    const horaActual = ahora.getHours(); 
 
     btnSubmit.disabled = true;
 
@@ -26,7 +26,8 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const { data: ocupados } = await client.from('solicitudes').select('solicitud_id, fecha_solicitud, hora_solicitud').in('fecha_solicitud', dias.map(d => d.fecha));
 
     tableBody.innerHTML = '';
-    const horasDisponibles = ["08:00", "10:00", "14:00", "16:00", "18:00"];
+    // Horarios reestructurados con intervalos de 01:30
+    const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30"];
 
     horasDisponibles.forEach(horaStr => {
         const row = document.createElement('tr');
@@ -39,20 +40,21 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
             const td = document.createElement('td');
             td.className = "border p-1 text-[9px]";
             
-            // Lógica de Validación
-            const horaNum = parseInt(horaStr);
-            const esPasado = (dia.fecha === fechaActual && horaNum <= horaActual) || (dia.fecha < fechaActual);
+            // Lógica de Validación (usamos hora y minutos para mayor precisión)
+            const [h, m] = horaStr.split(':').map(Number);
+            const horaCompletaActual = ahora.getHours() + (ahora.getMinutes() / 60);
+            const horaCompletaCelda = h + (m / 60);
+            
+            const esPasado = (dia.fecha === fechaActual && horaCompletaCelda <= horaCompletaActual) || (dia.fecha < fechaActual);
             const ocupado = ocupados?.find(o => o.fecha_solicitud === dia.fecha && o.hora_solicitud.substring(0, 5) === horaStr);
 
             if (ocupado) {
                 td.classList.add('bg-green-500', 'text-white');
                 td.innerText = `ID:${ocupado.solicitud_id}`;
             } else if (esPasado) {
-                // Horario vencido o pasado
                 td.classList.add('bg-gray-100', 'text-gray-300');
                 td.innerText = "X";
             } else {
-                // Disponible
                 td.classList.add('bg-white', 'hover:bg-gray-200', 'cursor-pointer');
                 td.innerText = "Libre";
                 td.onclick = () => {
@@ -67,4 +69,31 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         });
         tableBody.appendChild(row);
     });
+
+    // --- MONITOREO INTEGRADO ---
+    setInterval(async () => {
+        const id = localStorage.getItem('id_solicitud');
+        if (!id) return;
+
+        const { data } = await client.from('solicitudes')
+            .select('fecha_solicitud, hora_solicitud, respuesta_solicitud')
+            .eq('solicitud_id', parseInt(id)).maybeSingle();
+
+        if (data?.respuesta_solicitud === 'iniciando') {
+            const horaProgramada = new Date(`${data.fecha_solicitud}T${data.hora_solicitud}`);
+            const ahoraMonitoreo = new Date();
+            const faltanMinutos = (horaProgramada - ahoraMonitoreo) / (1000 * 60);
+
+            if (faltanMinutos > 0 && faltanMinutos <= 30) {
+                if (Notification.permission !== "denied") {
+                    Notification.requestPermission();
+                    new Notification("RECORDATORIO DE SERVICIO", {
+                        body: "En 30 minutos tienes un servicio programado.",
+                        icon: "logo_1.jpeg"
+                    });
+                }
+                window.location.href = 'espera.html';
+            }
+        }
+    }, 60000); 
 };
