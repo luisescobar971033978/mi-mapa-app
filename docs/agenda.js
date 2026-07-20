@@ -18,7 +18,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         const d = new Date();
         d.setDate(d.getDate() + i);
         const fStr = d.toISOString().split('T')[0];
-        const label = `${nombresDias[d.getDay()]}<br><span class="text-[9px] font-normal">${d.getDate()}/${(d.getMonth() + 1)}</span>`;
+        const label = `${nombresDias[d.getDay()]}<br><span class="text-[8px]">${d.getDate()}/${(d.getMonth() + 1)}</span>`;
         dias.push({ fecha: fStr, label: label });
         document.getElementById(`head-${i}`).innerHTML = label;
     }
