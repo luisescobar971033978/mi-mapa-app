@@ -58,14 +58,18 @@
     <div class="overflow-x-auto">
         <table class="w-full text-xs text-center border-collapse border border-gray-300" id="tablaAgenda">
             <thead class="bg-teal-100">
-                <tr>
-                    <th class="p-2 border">Hora</th>
-                    <th class="p-2 border">LUN</th><th class="p-2 border">MAR</th>
-                    <th class="p-2 border">MIÉ</th><th class="p-2 border">JUE</th>
-                    <th class="p-2 border">VIE</th><th class="p-2 border">SÁB</th>
-                    <th class="p-2 border">DOM</th>
-                </tr>
-            </thead>
+    <tr>
+        <th class="p-1 border">Hora</th>
+        <!-- Estas celdas se llenarán dinámicamente con JS -->
+        <th class="p-1 border" id="head-0">LUN</th>
+        <th class="p-1 border" id="head-1">MAR</th>
+        <th class="p-1 border" id="head-2">MIÉ</th>
+        <th class="p-1 border" id="head-3">JUE</th>
+        <th class="p-1 border" id="head-4">VIE</th>
+        <th class="p-1 border" id="head-5">SÁB</th>
+        <th class="p-1 border" id="head-6">DOM</th>
+    </tr>
+</thead>
             <tbody id="cuerpoAgenda">
                 <!-- Las filas y celdas se generarán o se llenarán aquí -->
             </tbody>
