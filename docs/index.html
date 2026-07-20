@@ -10,9 +10,16 @@
         .watermark { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('logo_1.jpeg'); background-repeat: no-repeat; background-position: center; background-size: contain; opacity: 0.1; z-index: 0; pointer-events: none; }
         .content-layer { position: relative; z-index: 10; }
         /* Mejora responsiva para la tabla en móviles */
-        @media (max-width: 640px) {
-        .tabla-agenda { font-size: 9px; }
-        .tabla-agenda td, .tabla-agenda th { padding: 4px 2px; }
+       @media (max-width: 480px) {
+        .tabla-agenda { 
+            font-size: 8px !important; 
+            table-layout: fixed; /* Fuerza a que las columnas tengan el mismo ancho */
+        }
+        .tabla-agenda th, .tabla-agenda td { 
+            padding: 2px 1px !important; 
+            overflow: hidden;
+            white-space: nowrap; /* Evita que el texto se salte de línea */
+        }
     }
     </style>
 </head>
