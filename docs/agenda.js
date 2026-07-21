@@ -118,6 +118,12 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                                 });
                                 console.log(`¡Vobo confirmado! Alarma absoluta programada para el timestamp: ${tiempoAlertaMs}`);
                             }
+
+                            // Registramos la sincronización en segundo plano para mitigar bloqueos de pantalla
+                            if ('SyncManager' in window) {
+                                await registration.sync.register('sincronizar-alarma-servicio');
+                                console.log("Background Sync registrado con éxito.");
+                            }
                         } catch (err) {
                             console.error("Error al comunicarse con el Service Worker:", err);
                         }
