@@ -57,6 +57,18 @@ self.addEventListener('message', (event) => {
     }
 });
 
+// Escuchar eventos de Background Sync para tolerancia ante bloqueos de pantalla
+self.addEventListener('sync', (event) => {
+    if (event.tag === 'sincronizar-alarma-servicio') {
+        event.waitUntil(
+            ejecutarNotificacion(
+                "PRUEBA DE SERVICIO",
+                "¡Hola! Tu servicio de mantenimiento está por comenzar. Haz clic aquí para ver la unidad móvil en camino."
+            )
+        );
+    }
+});
+
 // Escuchar eventos de notificación Push tradicionales por red
 self.addEventListener('push', (event) => {
     let data = { title: "Aviso de Servicio", body: "Tienes una actualización en tu solicitud de mantenimiento.", icon: "logo_1.jpeg" };
