@@ -4,18 +4,20 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const horaHidden = document.getElementById(horaHiddenId);
     const btnSubmit = document.getElementById(btnSubmitId);
     
-    // Obtenemos fecha y hora actual (ajustado a Bolivia: -4h de UTC)
+    // Obtenemos fecha y hora local ajustada a Bolivia (-4 horas)
     const ahora = new Date();
-    const fechaActual = ahora.toISOString().split('T')[0];
-    const horaActual = ahora.getHours(); 
+    const offsetBolivia = -4 * 60 * 60 * 1000;
+    const fechaBolivia = new Date(ahora.getTime() + offsetBolivia);
+    const fechaActual = fechaBolivia.toISOString().split('T')[0];
+    const horaActual = ahora.getHours();
 
     btnSubmit.disabled = true;
 
-    // 1. Generar 7 días a partir de HOY
+    // 1. Generar 7 días a partir de HOY (usando la base ajustada a Bolivia)
     const dias = [];
     const nombresDias = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
     for (let i = 0; i < 7; i++) {
-        const d = new Date();
+        const d = new Date(fechaBolivia.getTime()); // Partimos de la fecha local
         d.setDate(d.getDate() + i);
         const fStr = d.toISOString().split('T')[0];
         const label = `${nombresDias[d.getDay()]}<br><span class="text-[8px]">${d.getDate()}/${(d.getMonth() + 1)}</span>`;
@@ -26,7 +28,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const { data: ocupados } = await client.from('solicitudes').select('solicitud_id, fecha_solicitud, hora_solicitud').in('fecha_solicitud', dias.map(d => d.fecha));
 
     tableBody.innerHTML = '';
-    // Horarios reestructurados con intervalos (Sintaxis corregida con comas)
+    // Horarios reestructurados con intervalos
     const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30", "19:30", "19:45", "19:50", "20:05", "20:15", "20:20"];
 
     horasDisponibles.forEach(horaStr => {
