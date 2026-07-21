@@ -17,7 +17,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const dias = [];
     const nombresDias = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
     for (let i = 0; i < 7; i++) {
-        const d = new Date(fechaBolivia.getTime()); // Partimos de la fecha local
+        const d = new Date(fechaBolivia.getTime()); 
         d.setDate(d.getDate() + i);
         const fStr = d.toISOString().split('T')[0];
         const label = `${nombresDias[d.getDay()]}<br><span class="text-[8px]">${d.getDate()}/${(d.getMonth() + 1)}</span>`;
@@ -28,7 +28,6 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const { data: ocupados } = await client.from('solicitudes').select('solicitud_id, fecha_solicitud, hora_solicitud').in('fecha_solicitud', dias.map(d => d.fecha));
 
     tableBody.innerHTML = '';
-    // Horarios reestructurados con intervalos
     const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30", "19:30", "19:45", "19:50", "22:15", "22:27", "22:35", "22:47", "22:55"];
 
     horasDisponibles.forEach(horaStr => {
@@ -42,7 +41,6 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
             const td = document.createElement('td');
             td.className = "border p-1 text-[9px]";
             
-            // Lógica de Validación (usamos hora y minutos para mayor precisión)
             const [h, m] = horaStr.split(':').map(Number);
             const horaCompletaActual = ahora.getHours() + (ahora.getMinutes() / 60);
             const horaCompletaCelda = h + (m / 60);
@@ -72,12 +70,14 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         tableBody.appendChild(row);
     });
 
-    // --- ASEGURAR REGISTRO DE ALARMA EN LOCALSTORAGE AL ENVIAR LA CITA ---
+    // --- ASEGURAR REGISTRO DE ALARMA Y PERMISOS AL ENVIAR LA CITA ---
     if (btnSubmit) {
-        // Evitamos duplicar eventos si la función se llama varias veces
         btnSubmit.addEventListener('click', async (e) => {
-            // Nota: Si tu formulario hace un submit nativo, puedes capturarlo aquí o asegurar que el ID de la solicitud recién creada se guarde.
-            // Una vez que se guarde el id_solicitud en localStorage, también guardamos la estructura de la alarma:
+            // Pedir permisos de notificación nativa del navegador de forma obligatoria al agendar
+            if ("Notification" in window && Notification.permission !== "granted") {
+                await Notification.requestPermission();
+            }
+
             setTimeout(() => {
                 const idSolicitud = localStorage.getItem('id_solicitud');
                 const fechaSel = fechaInput.value;
@@ -85,7 +85,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
 
                 if (idSolicitud && fechaSel && horaSel) {
                     const horaCita = new Date(`${fechaSel}T${horaSel}`);
-                    // PRUEBA RÁPIDA: Restamos 2 minutos (cambiar a 30 en producción)
+                    // PRUEBA RÁPIDA: Restamos 2 minutos
                     const tiempoAlerta = new Date(horaCita.getTime() - (2 * 60 * 1000));
 
                     const datosAlarma = {
@@ -95,16 +95,16 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                     };
 
                     localStorage.setItem('alarma_servicio', JSON.stringify(datosAlarma));
-                    console.log("Alarma de prueba rápida programada en localStorage para 2 minutos antes.");
+                    console.log("Alarma configurada correctamente con permisos otorgados.");
                 }
-            }, 1000); // Pequeño retardo para asegurar que Supabase ya haya respondido y guardado el ID
+            }, 1000); 
         });
     }
 
-   // --- MONITOREO INTEGRADO EN AGENDA.JS ---
+   // --- MONITOREO LOCAL EN AGENDA (Si el usuario sigue en la pantalla de agenda) ---
     setInterval(async () => {
         const id = localStorage.getItem('id_solicitud');
-        if (!id) return; // Si no hay ID guardado, no hace nada
+        if (!id) return; 
 
         const { data, error } = await client.from('solicitudes')
             .select('fecha_solicitud, hora_solicitud, respuesta_solicitud')
@@ -113,14 +113,12 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
 
         if (error || !data) return;
 
-        // Calcular el tiempo restante para la cita
         const horaProgramada = new Date(`${data.fecha_solicitud}T${data.hora_solicitud}`);
         const ahoraMonitoreo = new Date();
         const faltanMinutos = (horaProgramada - ahoraMonitoreo) / (1000 * 60);
 
-        console.log(`Monitoreando ID ${id} desde agenda.js - Faltan minutos: ${faltanMinutos.toFixed(2)}`);
+        console.log(`Monitoreando ID ${id} - Faltan minutos: ${faltanMinutos.toFixed(2)}`);
 
-        // Si faltan 2 minutos o menos para la cita (Prueba rápida)
         if (faltanMinutos > 0 && faltanMinutos <= 2) {
             if (Notification.permission === "granted") {
                 new Notification("PRUEBA DE SERVICIO", {
@@ -129,7 +127,6 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                 });
             }
             
-            // Redirigir a la pantalla de espera si aún no estamos ahí
             if (!window.location.pathname.includes('espera.html')) {
                 window.location.href = 'espera.html';
             }
