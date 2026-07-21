@@ -39,7 +39,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const { data: ocupados } = await client.from('solicitudes').select('solicitud_id, fecha_solicitud, hora_solicitud').in('fecha_solicitud', dias.map(d => d.fecha));
 
     tableBody.innerHTML = '';
-    const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30", "19:30", "19:45", "19:50", "23:08", "23:16", "23:24", "23:32", "23:40"];
+    const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30", "19:30", "19:45", "19:50", "22:15", "22:27", "22:35", "22:47", "22:55", "23:08", "23:15", "23:30"];
 
     horasDisponibles.forEach(horaStr => {
         const row = document.createElement('tr');
@@ -81,7 +81,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         tableBody.appendChild(row);
     });
 
-    // --- 3. PEDIR VOBO (PERMISO) Y CONFIGURAR ALARMA AL HACER CLIC EN ENVIAR ---
+    // --- 3. PEDIR VOBO (PERMISO) Y PROGRAMAR LA ALARMA DE FONDO AL HACER CLIC EN ENVIAR ---
     if (btnSubmit) {
         btnSubmit.addEventListener('click', async (e) => {
             // Solicitud explícita del visto bueno (permiso de notificaciones del sistema)
@@ -93,66 +93,43 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                 }
             }
 
-            setTimeout(() => {
+            setTimeout(async () => {
                 const idSolicitud = localStorage.getItem('id_solicitud');
                 const fechaSel = fechaInput.value;
                 const horaSel = horaHidden.value;
 
                 if (idSolicitud && fechaSel && horaSel) {
                     const horaCita = new Date(`${fechaSel}T${horaSel}`);
-                    // PRUEBA RÁPIDA: Restamos 2 minutos (cambiar a 30 en producción)
-                    const tiempoAlerta = new Date(horaCita.getTime() - (2 * 60 * 1000));
+                    
+                    // PRUEBA RÁPIDA: Restamos 2 minutos para el disparo de la alerta
+                    const tiempoAlertaMs = horaCita.getTime() - (2 * 60 * 1000);
+                    const tiempoRestanteMs = tiempoAlertaMs - Date.now();
 
-                    const datosAlarma = {
-                        id: idSolicitud,
-                        tiempoAlertaMs: tiempoAlerta.getTime(),
-                        mensaje: "¡Hola! Tu servicio de mantenimiento está por comenzar. Haz clic aquí para ver la unidad móvil en camino."
-                    };
+                    if (tiempoRestanteMs > 0) {
+                        console.log(`¡Vobo confirmado! Alarma programada para dispararse en ${(tiempoRestanteMs / 1000).toFixed(0)} segundos.`);
 
-                    localStorage.setItem('alarma_servicio', JSON.stringify(datosAlarma));
-                    console.log("¡Vobo confirmado! Alarma programada con éxito.");
+                        // Programar el temporizador autónomo que invocará al Service Worker de fondo
+                        setTimeout(async () => {
+                            if ('serviceWorker' in navigator) {
+                                try {
+                                    const registration = await navigator.serviceWorker.ready;
+                                    await registration.showNotification("PRUEBA DE SERVICIO", {
+                                        body: "¡Hola! Tu servicio de mantenimiento está por comenzar. Haz clic aquí para ver la unidad móvil en camino.",
+                                        icon: "logo_1.jpeg",
+                                        badge: "logo_1.jpeg",
+                                        vibrate: [200, 100, 200],
+                                        tag: "alerta-servicio-fondo",
+                                        renotify: true
+                                    });
+                                    console.log("Notificación push de fondo ejecutada con éxito por el Service Worker.");
+                                } catch (err) {
+                                    console.error("Error al mostrar la notificación desde el Service Worker:", err);
+                                }
+                            }
+                        }, tiempoRestanteMs);
+                    }
                 }
             }, 1000); 
         });
     }
-
-   // --- 4. MONITOREO QUE DISPARA LA NOTIFICACIÓN NATIVA MEDIANTE EL SERVICE WORKER ---
-    setInterval(async () => {
-        const id = localStorage.getItem('id_solicitud');
-        if (!id) return; 
-
-        const { data, error } = await client.from('solicitudes')
-            .select('fecha_solicitud, hora_solicitud, respuesta_solicitud')
-            .eq('solicitud_id', parseInt(id))
-            .maybeSingle();
-
-        if (error || !data) return;
-
-        const horaProgramada = new Date(`${data.fecha_solicitud}T${data.hora_solicitud}`);
-        const ahoraMonitoreo = new Date();
-        const faltanMinutos = (horaProgramada - ahoraMonitoreo) / (1000 * 60);
-
-        console.log(`Monitoreando ID ${id} - Faltan minutos: ${faltanMinutos.toFixed(2)}`);
-
-        // Si estamos en el umbral de los 2 minutos de la prueba rápida
-        if (faltanMinutos > 0 && faltanMinutos <= 2) {
-            // Usamos el Service Worker para disparar la notificación persistente del sistema
-            if ('serviceWorker' in navigator && Notification.permission === "granted") {
-                navigator.serviceWorker.ready.then((registration) => {
-                    registration.showNotification("PRUEBA DE SERVICIO", {
-                        body: "¡Hola! Tu servicio de mantenimiento está por comenzar. Haz clic aquí para ver la unidad móvil en camino.",
-                        icon: "logo_1.jpeg",
-                        badge: "logo_1.jpeg",
-                        vibrate: [200, 100, 200],
-                        tag: "alerta-servicio"
-                    });
-                });
-            }
-            
-            // Redirigir a la pantalla de espera
-            if (!window.location.pathname.includes('espera.html')) {
-                window.location.href = 'espera.html';
-            }
-        }
-    }, 5000); 
 };
