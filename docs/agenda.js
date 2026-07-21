@@ -1,3 +1,15 @@
+// Función auxiliar para convertir la llave VAPID a Uint8Array
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
 export const inicializarAgenda = async (client, tableId, fechaInputId, horaHiddenId, btnSubmitId) => {
     const tableBody = document.getElementById('cuerpoAgenda');
     const fechaInput = document.getElementById(fechaInputId);
@@ -39,7 +51,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const { data: ocupados } = await client.from('solicitudes').select('solicitud_id, fecha_solicitud, hora_solicitud').in('fecha_solicitud', dias.map(d => d.fecha));
 
     tableBody.innerHTML = '';
-    const horasDisponibles = ["00:10", "00:17", "00:25", "00:32", "00:40", "00:48", "01:00"];
+    const horasDisponibles = ["01:30", "01:40", "01:50", "02:00", "02:10", "02:20", "02:30"];
 
     horasDisponibles.forEach(horaStr => {
         const row = document.createElement('tr');
@@ -81,7 +93,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         tableBody.appendChild(row);
     });
 
-    // --- 3. PEDIR VOBO (PERMISO) Y ENVIAR LA ORDEN AL SERVICE WORKER EXTERNO ---
+    // --- 3. PEDIR VOBO (PERMISO) Y OBTENER SUSCRIPCIÓN PUSH PARA SUPABASE ---
     if (btnSubmit) {
         btnSubmit.addEventListener('click', async (e) => {
             if ("Notification" in window && Notification.permission !== "granted") {
@@ -98,35 +110,34 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                 const horaSel = horaHidden.value;
 
                 if (idSolicitud && fechaSel && horaSel) {
-                    const horaCita = new Date(`${fechaSel}T${horaSel}`);
-                    
-                    // PRUEBA RÁPIDA: Restamos 2 minutos para el disparo de la alerta
-                    const tiempoAlertaMs = horaCita.getTime() - (2 * 60 * 1000);
-                    const tiempoRestanteMs = tiempoAlertaMs - Date.now();
+                    try {
+                        const registration = await navigator.serviceWorker.ready;
+                        
+                        // NOTA: Reemplaza esto con tu llave pública VAPID real cuando la generemos
+                        const publicVapidKey = 'TU_CLAVE_PUBLICA_VAPID_AQUI'; 
 
-                    if (tiempoRestanteMs > 0 && 'serviceWorker' in navigator) {
-                        try {
-                            const registration = await navigator.serviceWorker.ready;
-                            
-                            if (registration.active) {
-                                // Enviamos la marca de tiempo absoluta en el futuro
-                                registration.active.postMessage({
-                                    type: 'PROGRAMAR_ALARMA',
-                                    targetTime: tiempoAlertaMs,
-                                    title: "PRUEBA DE SERVICIO",
-                                    body: "¡Hola! Tu servicio de mantenimiento está por comenzar. Haz clic aquí para ver la unidad móvil en camino."
-                                });
-                                console.log(`¡Vobo confirmado! Alarma absoluta programada para el timestamp: ${tiempoAlertaMs}`);
-                            }
-
-                            // Registramos la sincronización en segundo plano para mitigar bloqueos de pantalla
-                            if ('SyncManager' in window) {
-                                await registration.sync.register('sincronizar-alarma-servicio');
-                                console.log("Background Sync registrado con éxito.");
-                            }
-                        } catch (err) {
-                            console.error("Error al comunicarse con el Service Worker:", err);
+                        let pushSubscription = null;
+                        if (publicVapidKey && publicVapidKey !== 'TU_CLAVE_PUBLICA_VAPID_AQUI') {
+                            pushSubscription = await registration.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+                            });
                         }
+
+                        // Actualizamos el registro en Supabase incluyendo la suscripción push
+                        const { error: updateError } = await client
+                            .from('solicitudes')
+                            .update({ push_subscription: pushSubscription })
+                            .eq('solicitud_id', idSolicitud);
+
+                        if (updateError) {
+                            console.error("Error al guardar la suscripción push en Supabase:", updateError);
+                        } else {
+                            console.log("¡Suscripción push guardada exitosamente en Supabase!");
+                        }
+
+                    } catch (err) {
+                        console.error("Error al procesar la suscripción push:", err);
                     }
                 }
             }, 1000); 
