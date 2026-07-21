@@ -94,23 +94,25 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     });
 
     // --- 3. GESTIÓN DE MODAL PERSONALIZADO Y SUSCRIPCIÓN PUSH ---
-    // --- 3. GESTIÓN DE MODAL PERSONALIZADO Y SUSCRIPCIÓN PUSH ---
     if (btnSubmit) {
         btnSubmit.addEventListener('click', async (e) => {
-            e.preventDefault(); // Evitamos recargas por defecto para controlarlo por código
+            e.preventDefault(); 
 
             const idSolicitud = localStorage.getItem('id_solicitud');
             const fechaSel = fechaInput.value;
             const horaSel = horaHidden.value;
 
+            console.log("Datos recuperados para guardar -> ID:", idSolicitud, "Fecha:", fechaSel, "Hora:", horaSel);
+
             if (!idSolicitud || !fechaSel || !horaSel) {
-                console.warn("Faltan datos de la solicitud, fecha u hora para continuar.");
+                console.warn("¡Atención! Faltan datos: id_solicitud, fecha o hora no están definidos.");
+                alert("Por favor selecciona una fecha y hora válidas en la agenda.");
                 return;
             }
 
-            // Función interna para ejecutar la suscripción y actualizar Supabase
             const ejecutarSuscripcionYGuardar = async () => {
                 try {
+                    console.log("Iniciando permisos y suscripción push...");
                     if ("Notification" in window && Notification.permission !== "granted") {
                         const permissionResult = await Notification.requestPermission();
                         if (permissionResult !== "granted") {
@@ -130,35 +132,35 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                         });
                     }
 
+                    console.log("Enviando actualización a Supabase para la solicitud ID:", idSolicitud);
+                    
                     // Actualizamos el registro en Supabase incluyendo la suscripción push
-                    const { error: updateError } = await client
+                    const { data, error: updateError } = await client
                         .from('solicitudes')
                         .update({ 
                             push_subscription: pushSubscription,
                             fecha_solicitud: fechaSel,
                             hora_solicitud: horaSel,
-                            respuesta_solicitud: 'pendiente' // O el estado que corresponda en tu flujo
+                            respuesta_solicitud: 'pendiente'
                         })
-                        .eq('solicitud_id', idSolicitud);
+                        .eq('solicitud_id', idSolicitud)
+                        .select(); // Añadimos .select() para forzar a que devuelva el resultado
 
                     if (updateError) {
-                        console.error("Error al guardar la suscripción push en Supabase:", updateError);
+                        console.error("Error devuelto por Supabase:", updateError);
                     } else {
-                        console.log("¡Cita agendada y suscripción push guardada con éxito!");
-                        // Aquí puedes redirigir o actualizar la vista si lo requieres, ej:
-                        // window.location.href = 'espera.html';
+                        console.log("¡Supabase respondió con éxito! Datos actualizados:", data);
+                        alert("¡Cita agendada correctamente!");
                     }
 
                 } catch (err) {
-                    console.error("Error al procesar la suscripción push o actualizar Supabase:", err);
+                    console.error("Excepción atrapada en el bloque catch:", err);
                 }
             };
 
-            // Verificamos en localStorage si ya se mostró/aceptó el modal previamente
             const notifAceptada = localStorage.getItem('notificacion_aceptada');
 
             if (!notifAceptada && "Notification" in window && Notification.permission !== "granted") {
-                // Creamos el modal flotante con Tailwind CSS
                 const modalDiv = document.createElement('div');
                 modalDiv.id = 'modalNotifPush';
                 modalDiv.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4';
@@ -180,14 +182,12 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                 `;
                 document.body.appendChild(modalDiv);
 
-                // Al hacer clic en aceptar, guardamos la preferencia, removemos el modal y ejecutamos el guardado
                 document.getElementById('btnAceptarModal').onclick = async () => {
                     localStorage.setItem('notificacion_aceptada', 'true');
                     modalDiv.remove();
                     await ejecutarSuscripcionYGuardar();
                 };
             } else {
-                // Si ya aceptó antes, ejecutamos directo
                 await ejecutarSuscripcionYGuardar();
             }
         });
