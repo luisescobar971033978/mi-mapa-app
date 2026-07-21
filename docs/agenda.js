@@ -81,7 +81,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         tableBody.appendChild(row);
     });
 
-    // --- 3. PEDIR VOBO (PERMISO) Y PROGRAMAR LA ALARMA DE FONDO AL HACER CLIC EN ENVIAR ---
+    // --- 3. PEDIR VOBO (PERMISO) Y ENVIAR LA ORDEN AL SERVICE WORKER EXTERNO ---
     if (btnSubmit) {
         btnSubmit.addEventListener('click', async (e) => {
             // Solicitud explícita del visto bueno (permiso de notificaciones del sistema)
@@ -105,28 +105,23 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                     const tiempoAlertaMs = horaCita.getTime() - (2 * 60 * 1000);
                     const tiempoRestanteMs = tiempoAlertaMs - Date.now();
 
-                    if (tiempoRestanteMs > 0) {
-                        console.log(`¡Vobo confirmado! Alarma programada para dispararse en ${(tiempoRestanteMs / 1000).toFixed(0)} segundos.`);
-
-                        // Programar el temporizador autónomo que invocará al Service Worker de fondo
-                        setTimeout(async () => {
-                            if ('serviceWorker' in navigator) {
-                                try {
-                                    const registration = await navigator.serviceWorker.ready;
-                                    await registration.showNotification("PRUEBA DE SERVICIO", {
-                                        body: "¡Hola! Tu servicio de mantenimiento está por comenzar. Haz clic aquí para ver la unidad móvil en camino.",
-                                        icon: "logo_1.jpeg",
-                                        badge: "logo_1.jpeg",
-                                        vibrate: [200, 100, 200],
-                                        tag: "alerta-servicio-fondo",
-                                        renotify: true
-                                    });
-                                    console.log("Notificación push de fondo ejecutada con éxito por el Service Worker.");
-                                } catch (err) {
-                                    console.error("Error al mostrar la notificación desde el Service Worker:", err);
-                                }
+                    if (tiempoRestanteMs > 0 && 'serviceWorker' in navigator) {
+                        try {
+                            const registration = await navigator.serviceWorker.ready;
+                            
+                            if (registration.active) {
+                                // Transferimos la responsabilidad del temporizador al Service Worker mediante postMessage
+                                registration.active.postMessage({
+                                    type: 'PROGRAMAR_ALARMA',
+                                    delay: tiempoRestanteMs,
+                                    title: "PRUEBA DE SERVICIO",
+                                    body: "¡Hola! Tu servicio de mantenimiento está por comenzar. Haz clic aquí para ver la unidad móvil en camino."
+                                });
+                                console.log(`¡Vobo confirmado! Orden de alarma enviada al Service Worker para dentro de ${(tiempoRestanteMs / 1000).toFixed(0)} segundos.`);
                             }
-                        }, tiempoRestanteMs);
+                        } catch (err) {
+                            console.error("Error al comunicarse con el Service Worker:", err);
+                        }
                     }
                 }
             }, 1000); 
