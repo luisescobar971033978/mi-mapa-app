@@ -12,40 +12,52 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(self.clients.claim());
 });
 
-// Escuchar mensajes enviados desde agenda.js para programar la alarma localmente
+// Función para disparar la notificación de forma segura
+const ejecutarNotificacion = async (title, body) => {
+    const options = {
+        body: body,
+        icon: 'logo_1.jpeg',
+        badge: 'logo_1.jpeg',
+        vibrate: [200, 100, 200],
+        tag: 'alerta-servicio-autonomo',
+        renotify: true
+    };
+
+    try {
+        await self.registration.showNotification(title, options);
+        console.log("Notificación disparada con éxito por el Service Worker.");
+    } catch (err) {
+        console.error("Error al mostrar la notificación desde el Service Worker:", err);
+    }
+};
+
+// Escuchar mensajes enviados desde agenda.js
 self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'PROGRAMAR_ALARMA') {
-        const { delay, title, body } = event.data;
+        const { targetTime, title, body } = event.data;
         
-        console.log(`Service Worker: Alarma programada de forma independiente para dispararse en ${delay} ms.`);
-
         if (temporizadorAlarma) {
             clearTimeout(temporizadorAlarma);
         }
 
-        // Programar el aviso autónomo dentro del ciclo de vida del Service Worker
-        temporizadorAlarma = setTimeout(() => {
-            const options = {
-                body: body,
-                icon: 'logo_1.jpeg',
-                badge: 'logo_1.jpeg',
-                vibrate: [200, 100, 200],
-                tag: 'alerta-servicio-autonomo',
-                renotify: true
-            };
+        const ahora = Date.now();
+        const delay = targetTime - ahora;
 
-            self.registration.showNotification(title, options)
-                .then(() => {
-                    console.log("Notificación disparada con éxito por el Service Worker en segundo plano.");
-                })
-                .catch((err) => {
-                    console.error("Error al mostrar la notificación desde el Service Worker:", err);
-                });
-        }, delay);
+        console.log(`Service Worker: Alarma recibida. Tiempo faltante calculado: ${delay} ms.`);
+
+        if (delay <= 0) {
+            // Si el tiempo ya pasó, disparar de inmediato
+            ejecutarNotificacion(title, body);
+        } else {
+            // Programar el temporizador con el retraso exacto
+            temporizadorAlarma = setTimeout(() => {
+                ejecutarNotificacion(title, body);
+            }, delay);
+        }
     }
 });
 
-// Escuchar eventos de notificación Push tradicionales por red (por si se usa en el futuro)
+// Escuchar eventos de notificación Push tradicionales por red
 self.addEventListener('push', (event) => {
     let data = { title: "Aviso de Servicio", body: "Tienes una actualización en tu solicitud de mantenimiento.", icon: "logo_1.jpeg" };
     
@@ -71,10 +83,10 @@ self.addEventListener('push', (event) => {
     );
 });
 
-// Manejar el clic sobre la notificación para abrir la app o ir al mapa/espera
+// Manejar el clic sobre la notificación para abrir la app
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
     event.waitUntil(
-        clients.openWindow('espera.html') // Redirige a la pantalla de espera al hacer clic
+        clients.openWindow('espera.html')
     );
 });
