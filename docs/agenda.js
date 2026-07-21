@@ -105,5 +105,5 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                 window.location.href = 'espera.html';
             }
         }
-    }, 5000);; 
+    }, 5000); 
 };
