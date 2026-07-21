@@ -29,7 +29,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
 
     tableBody.innerHTML = '';
     // Horarios reestructurados con intervalos
-    const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30", "19:30", "19:45", "19:50", "20:05", "20:15", "20:20", "20:30", "20:37", "20:45", "20:55"];
+    const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30", "19:30", "19:45", "19:50", "22:15", "22:27", "22:35", "22:47", "22:55"];
 
     horasDisponibles.forEach(horaStr => {
         const row = document.createElement('tr');
@@ -72,38 +72,67 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         tableBody.appendChild(row);
     });
 
-   // --- MONITOREO INTEGRADO EN AGENDA.JS ---
-setInterval(async () => {
-    const id = localStorage.getItem('id_solicitud');
-    if (!id) return; // Si no hay ID guardado, no hace nada
+    // --- ASEGURAR REGISTRO DE ALARMA EN LOCALSTORAGE AL ENVIAR LA CITA ---
+    if (btnSubmit) {
+        // Evitamos duplicar eventos si la función se llama varias veces
+        btnSubmit.addEventListener('click', async (e) => {
+            // Nota: Si tu formulario hace un submit nativo, puedes capturarlo aquí o asegurar que el ID de la solicitud recién creada se guarde.
+            // Una vez que se guarde el id_solicitud en localStorage, también guardamos la estructura de la alarma:
+            setTimeout(() => {
+                const idSolicitud = localStorage.getItem('id_solicitud');
+                const fechaSel = fechaInput.value;
+                const horaSel = horaHidden.value;
 
-    const { data, error } = await client.from('solicitudes')
-        .select('fecha_solicitud, hora_solicitud, respuesta_solicitud')
-        .eq('solicitud_id', parseInt(id))
-        .maybeSingle();
+                if (idSolicitud && fechaSel && horaSel) {
+                    const horaCita = new Date(`${fechaSel}T${horaSel}`);
+                    // PRUEBA RÁPIDA: Restamos 2 minutos (cambiar a 30 en producción)
+                    const tiempoAlerta = new Date(horaCita.getTime() - (2 * 60 * 1000));
 
-    if (error || !data) return;
+                    const datosAlarma = {
+                        id: idSolicitud,
+                        tiempoAlertaMs: tiempoAlerta.getTime(),
+                        mensaje: "¡Hola! Tu servicio de mantenimiento está por comenzar. Haz clic aquí para ver la unidad móvil en camino."
+                    };
 
-    // Calcular el tiempo restante para la cita
-    const horaProgramada = new Date(`${data.fecha_solicitud}T${data.hora_solicitud}`);
-    const ahoraMonitoreo = new Date();
-    const faltanMinutos = (horaProgramada - ahoraMonitoreo) / (1000 * 60);
-
-    console.log(`Monitoreando ID ${id} desde agenda.js - Faltan minutos: ${faltanMinutos.toFixed(2)}`);
-
-    // Si faltan 2 minutos o menos para la cita
-    if (faltanMinutos > 0 && faltanMinutos <= 2) {
-        if (Notification.permission === "granted") {
-            new Notification("PRUEBA DE SERVICIO", {
-                body: "Redirigiendo a espera...",
-                icon: "logo_1.jpeg"
-            });
-        }
-        
-        // Redirigir a la pantalla de espera si aún no estamos ahí
-        if (!window.location.pathname.includes('espera.html')) {
-            window.location.href = 'espera.html';
-        }
+                    localStorage.setItem('alarma_servicio', JSON.stringify(datosAlarma));
+                    console.log("Alarma de prueba rápida programada en localStorage para 2 minutos antes.");
+                }
+            }, 1000); // Pequeño retardo para asegurar que Supabase ya haya respondido y guardado el ID
+        });
     }
-}, 5000); 
+
+   // --- MONITOREO INTEGRADO EN AGENDA.JS ---
+    setInterval(async () => {
+        const id = localStorage.getItem('id_solicitud');
+        if (!id) return; // Si no hay ID guardado, no hace nada
+
+        const { data, error } = await client.from('solicitudes')
+            .select('fecha_solicitud, hora_solicitud, respuesta_solicitud')
+            .eq('solicitud_id', parseInt(id))
+            .maybeSingle();
+
+        if (error || !data) return;
+
+        // Calcular el tiempo restante para la cita
+        const horaProgramada = new Date(`${data.fecha_solicitud}T${data.hora_solicitud}`);
+        const ahoraMonitoreo = new Date();
+        const faltanMinutos = (horaProgramada - ahoraMonitoreo) / (1000 * 60);
+
+        console.log(`Monitoreando ID ${id} desde agenda.js - Faltan minutos: ${faltanMinutos.toFixed(2)}`);
+
+        // Si faltan 2 minutos o menos para la cita (Prueba rápida)
+        if (faltanMinutos > 0 && faltanMinutos <= 2) {
+            if (Notification.permission === "granted") {
+                new Notification("PRUEBA DE SERVICIO", {
+                    body: "¡Hola! Tu servicio de mantenimiento está por comenzar. Haz clic aquí para ver la unidad móvil en camino.",
+                    icon: "logo_1.jpeg"
+                });
+            }
+            
+            // Redirigir a la pantalla de espera si aún no estamos ahí
+            if (!window.location.pathname.includes('espera.html')) {
+                window.location.href = 'espera.html';
+            }
+        }
+    }, 5000); 
 };
