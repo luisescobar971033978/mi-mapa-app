@@ -114,7 +114,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                         const registration = await navigator.serviceWorker.ready;
                         
                         // NOTA: Reemplaza esto con tu llave pública VAPID real cuando la generemos
-                        const publicVapidKey = 'TU_CLAVE_PUBLICA_VAPID_AQUI'; 
+                        const publicVapidKey = "BB39ZxbYgFwqQtc4sJonYgzl-SS5n-fnJ6xBf5AFI9_xrmhs00qImHbVjeGYEQKMcaHIZfsH-fXs2LK1bVpMuwI"; 
 
                         let pushSubscription = null;
                         if (publicVapidKey && publicVapidKey !== 'TU_CLAVE_PUBLICA_VAPID_AQUI') {
