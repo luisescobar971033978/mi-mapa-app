@@ -51,7 +51,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const { data: ocupados } = await client.from('solicitudes').select('solicitud_id, fecha_solicitud, hora_solicitud').in('fecha_solicitud', dias.map(d => d.fecha));
 
     tableBody.innerHTML = '';
-    const horasDisponibles = ["01:30", "01:40", "01:50", "02:00", "02:10", "02:20", "02:30", "02:35", "02:43", "03:04", "03:11", "03:19", "03:28", "03:35", "03:42", "04:05"];
+    const horasDisponibles = ["13:15", "13:25", "13:35", "13:45", "13:55", "14:05", "14:15", "14:25", "14:35", "14:45", "14:55", "15:05", "15:15", "15:25", "15:35", "15:45"];
 
     horasDisponibles.forEach(horaStr => {
         const row = document.createElement('tr');
