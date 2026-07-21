@@ -13,7 +13,18 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
 
     btnSubmit.disabled = true;
 
-    // 1. Generar 7 días a partir de HOY (usando la base ajustada a Bolivia)
+    // --- 1. REGISTRAR EL SERVICE WORKER AL CARGAR LA AGENDA ---
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+        .then((reg) => {
+            console.log('Service Worker de notificaciones registrado exitosamente.');
+        })
+        .catch((err) => {
+            console.error('Error al registrar el Service Worker:', err);
+        });
+    }
+
+    // 2. Generar 7 días a partir de HOY
     const dias = [];
     const nombresDias = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
     for (let i = 0; i < 7; i++) {
@@ -28,7 +39,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const { data: ocupados } = await client.from('solicitudes').select('solicitud_id, fecha_solicitud, hora_solicitud').in('fecha_solicitud', dias.map(d => d.fecha));
 
     tableBody.innerHTML = '';
-    const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30", "19:30", "19:45", "19:50", "22:15", "22:27", "22:35", "22:47", "22:55"];
+    const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30", "19:30", "19:45", "19:50", "23:08", "23:16", "23:24", "23:32", "23:40"];
 
     horasDisponibles.forEach(horaStr => {
         const row = document.createElement('tr');
@@ -70,12 +81,16 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         tableBody.appendChild(row);
     });
 
-    // --- ASEGURAR REGISTRO DE ALARMA Y PERMISOS AL ENVIAR LA CITA ---
+    // --- 3. PEDIR VOBO (PERMISO) Y CONFIGURAR ALARMA AL HACER CLIC EN ENVIAR ---
     if (btnSubmit) {
         btnSubmit.addEventListener('click', async (e) => {
-            // Pedir permisos de notificación nativa del navegador de forma obligatoria al agendar
+            // Solicitud explícita del visto bueno (permiso de notificaciones del sistema)
             if ("Notification" in window && Notification.permission !== "granted") {
-                await Notification.requestPermission();
+                const permissionResult = await Notification.requestPermission();
+                if (permissionResult !== "granted") {
+                    console.log("El usuario denegó las notificaciones.");
+                    return;
+                }
             }
 
             setTimeout(() => {
@@ -85,7 +100,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
 
                 if (idSolicitud && fechaSel && horaSel) {
                     const horaCita = new Date(`${fechaSel}T${horaSel}`);
-                    // PRUEBA RÁPIDA: Restamos 2 minutos
+                    // PRUEBA RÁPIDA: Restamos 2 minutos (cambiar a 30 en producción)
                     const tiempoAlerta = new Date(horaCita.getTime() - (2 * 60 * 1000));
 
                     const datosAlarma = {
@@ -95,13 +110,13 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                     };
 
                     localStorage.setItem('alarma_servicio', JSON.stringify(datosAlarma));
-                    console.log("Alarma configurada correctamente con permisos otorgados.");
+                    console.log("¡Vobo confirmado! Alarma programada con éxito.");
                 }
             }, 1000); 
         });
     }
 
-   // --- MONITOREO LOCAL EN AGENDA (Si el usuario sigue en la pantalla de agenda) ---
+   // --- 4. MONITOREO QUE DISPARA LA NOTIFICACIÓN NATIVA MEDIANTE EL SERVICE WORKER ---
     setInterval(async () => {
         const id = localStorage.getItem('id_solicitud');
         if (!id) return; 
@@ -119,14 +134,22 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
 
         console.log(`Monitoreando ID ${id} - Faltan minutos: ${faltanMinutos.toFixed(2)}`);
 
+        // Si estamos en el umbral de los 2 minutos de la prueba rápida
         if (faltanMinutos > 0 && faltanMinutos <= 2) {
-            if (Notification.permission === "granted") {
-                new Notification("PRUEBA DE SERVICIO", {
-                    body: "¡Hola! Tu servicio de mantenimiento está por comenzar. Haz clic aquí para ver la unidad móvil en camino.",
-                    icon: "logo_1.jpeg"
+            // Usamos el Service Worker para disparar la notificación persistente del sistema
+            if ('serviceWorker' in navigator && Notification.permission === "granted") {
+                navigator.serviceWorker.ready.then((registration) => {
+                    registration.showNotification("PRUEBA DE SERVICIO", {
+                        body: "¡Hola! Tu servicio de mantenimiento está por comenzar. Haz clic aquí para ver la unidad móvil en camino.",
+                        icon: "logo_1.jpeg",
+                        badge: "logo_1.jpeg",
+                        vibrate: [200, 100, 200],
+                        tag: "alerta-servicio"
+                    });
                 });
             }
             
+            // Redirigir a la pantalla de espera
             if (!window.location.pathname.includes('espera.html')) {
                 window.location.href = 'espera.html';
             }
