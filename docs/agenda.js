@@ -21,7 +21,6 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const offsetBolivia = -4 * 60 * 60 * 1000;
     const fechaBolivia = new Date(ahora.getTime() + offsetBolivia);
     const fechaActual = fechaBolivia.toISOString().split('T')[0];
-    const horaActual = ahora.getHours();
 
     btnSubmit.disabled = true;
 
@@ -93,74 +92,15 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         tableBody.appendChild(row);
     });
 
-    // --- 3. GESTIÓN DE MODAL PERSONALIZADO Y SUSCRIPCIÓN PUSH ---
+    // --- 3. GESTIÓN DE MODAL PERSONALIZADO Y SUSCRIPCIÓN PUSH (Estructura Original Recuperada) ---
     if (btnSubmit) {
         btnSubmit.addEventListener('click', async (e) => {
-            e.preventDefault(); 
-
-            const idSolicitud = localStorage.getItem('id_solicitud');
-            const fechaSel = fechaInput.value;
-            const horaSel = horaHidden.value;
-
-            console.log("Datos recuperados para guardar -> ID:", idSolicitud, "Fecha:", fechaSel, "Hora:", horaSel);
-
-            if (!idSolicitud || !fechaSel || !horaSel) {
-                console.warn("¡Atención! Faltan datos: id_solicitud, fecha o hora no están definidos.");
-                alert("Por favor selecciona una fecha y hora válidas en la agenda.");
-                return;
-            }
-
-            const ejecutarSuscripcionYGuardar = async () => {
-                try {
-                    console.log("Iniciando permisos y suscripción push...");
-                    if ("Notification" in window && Notification.permission !== "granted") {
-                        const permissionResult = await Notification.requestPermission();
-                        if (permissionResult !== "granted") {
-                            console.log("El usuario denegó las notificaciones.");
-                            return;
-                        }
-                    }
-
-                    const registration = await navigator.serviceWorker.ready;
-                    const publicVapidKey = "BB39ZxbYgFwqQtc4sJonYgzl-SS5n-fnJ6xBf5AFI9_xrmhs00qImHbVjeGYEQKMcaHIZfsH-fXs2LK1bVpMuwI"; 
-
-                    let pushSubscription = null;
-                    if (publicVapidKey) {
-                        pushSubscription = await registration.pushManager.subscribe({
-                            userVisibleOnly: true,
-                            applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-                        });
-                    }
-
-                    console.log("Enviando actualización a Supabase para la solicitud ID:", idSolicitud);
-                    
-                    // Actualizamos el registro en Supabase incluyendo la suscripción push
-                    const { data, error: updateError } = await client
-                        .from('solicitudes')
-                        .update({ 
-                            push_subscription: pushSubscription,
-                            fecha_solicitud: fechaSel,
-                            hora_solicitud: horaSel,
-                            respuesta_solicitud: 'pendiente'
-                        })
-                        .eq('solicitud_id', idSolicitud)
-                        .select(); // Añadimos .select() para forzar a que devuelva el resultado
-
-                    if (updateError) {
-                        console.error("Error devuelto por Supabase:", updateError);
-                    } else {
-                        console.log("¡Supabase respondió con éxito! Datos actualizados:", data);
-                        alert("¡Cita agendada correctamente!");
-                    }
-
-                } catch (err) {
-                    console.error("Excepción atrapada en el bloque catch:", err);
-                }
-            };
-
             const notifAceptada = localStorage.getItem('notificacion_aceptada');
 
+            // Si no ha aceptado las notificaciones previamente, mostramos tu modal personalizado
             if (!notifAceptada && "Notification" in window && Notification.permission !== "granted") {
+                e.preventDefault(); // Frenamos solo si hay que mostrar el modal de advertencia
+
                 const modalDiv = document.createElement('div');
                 modalDiv.id = 'modalNotifPush';
                 modalDiv.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4';
@@ -185,62 +125,63 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                 document.getElementById('btnAceptarModal').onclick = async () => {
                     localStorage.setItem('notificacion_aceptada', 'true');
                     modalDiv.remove();
-                    await ejecutarSuscripcionYGuardar();
+
+                    // Pedimos el permiso nativo tras aceptar el modal
+                    const permissionResult = await Notification.requestPermission();
+                    if (permissionResult === "granted") {
+                        ejecutarLogicaSuscripcion(client, fechaInput, horaHidden);
+                    }
                 };
-            } else {
-                await ejecutarSuscripcionYGuardar();
+                return;
             }
+
+            // Si ya dio permiso antes, ejecutamos directo con el retraso seguro original
+            setTimeout(async () => {
+                ejecutarLogicaSuscripcion(client, fechaInput, horaHidden);
+            }, 1000);
         });
     }
+};
 
-    async function procesarSuscripcionYEnvio() {
+// Función de apoyo para mantener limpio el código de suscripción
+async function ejecutarLogicaSuscripcion(client, fechaInput, horaHidden) {
+    const idSolicitud = localStorage.getItem('id_solicitud');
+    const fechaSel = fechaInput.value;
+    const horaSel = horaHidden.value;
+
+    if (idSolicitud && fechaSel && horaSel) {
         try {
-            if ("Notification" in window && Notification.permission !== "granted") {
-                const permissionResult = await Notification.requestPermission();
-                if (permissionResult !== "granted") {
-                    console.log("El usuario denegó las notificaciones.");
-                    return;
-                }
+            const registration = await navigator.serviceWorker.ready;
+            const publicVapidKey = "BB39ZxbYgFwqQtc4sJonYgzl-SS5n-fnJ6xBf5AFI9_xrmhs00qImHbVjeGYEQKMcaHIZfsH-fXs2LK1bVpMuwI"; 
+
+            let pushSubscription = null;
+            if (publicVapidKey && publicVapidKey !== 'TU_CLAVE_PUBLICA_VAPID_AQUI') {
+                pushSubscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+                });
             }
 
-            setTimeout(async () => {
-                const idSolicitud = localStorage.getItem('id_solicitud');
-                const fechaSel = fechaInput.value;
-                const horaSel = horaHidden.value;
+            // Actualizamos el registro en Supabase incluyendo la suscripción push
+            const { error: updateError } = await client
+                .from('solicitudes')
+                .update({ 
+                    push_subscription: pushSubscription,
+                    fecha_solicitud: fechaSel,
+                    hora_solicitud: horaSel 
+                })
+                .eq('solicitud_id', idSolicitud);
 
-                if (idSolicitud && fechaSel && horaSel) {
-                    try {
-                        const registration = await navigator.serviceWorker.ready;
-                        
-                        const publicVapidKey = "BB39ZxbYgFwqQtc4sJonYgzl-SS5n-fnJ6xBf5AFI9_xrmhs00qImHbVjeGYEQKMcaHIZfsH-fXs2LK1bVpMuwI"; 
+            if (updateError) {
+                console.error("Error al guardar la suscripción push en Supabase:", updateError);
+            } else {
+                console.log("¡Suscripción push y cita guardadas exitosamente en Supabase!");
+            }
 
-                        let pushSubscription = null;
-                        if (publicVapidKey) {
-                            pushSubscription = await registration.pushManager.subscribe({
-                                userVisibleOnly: true,
-                                applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-                            });
-                        }
-
-                        // Actualizamos el registro en Supabase incluyendo la suscripción push
-                        const { error: updateError } = await client
-                            .from('solicitudes')
-                            .update({ push_subscription: pushSubscription })
-                            .eq('solicitud_id', idSolicitud);
-
-                        if (updateError) {
-                            console.error("Error al guardar la suscripción push en Supabase:", updateError);
-                        } else {
-                            console.log("¡Suscripción push guardada exitosamente en Supabase!");
-                        }
-
-                    } catch (err) {
-                        console.error("Error al procesar la suscripción push:", err);
-                    }
-                }
-            }, 1000);
         } catch (err) {
-            console.error("Error en permisos o suscripción:", err);
+            console.error("Error al procesar la suscripción push:", err);
         }
+    } else {
+        console.warn("Faltan datos en localStorage o en los inputs al intentar guardar.");
     }
-};
+}
