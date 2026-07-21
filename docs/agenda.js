@@ -72,39 +72,38 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         tableBody.appendChild(row);
     });
 
-    // --- MONITOREO INTEGRADO (Modo Test) ---
-    setInterval(async () => {
-        const id = localStorage.getItem('id_solicitud');
-        if (!id) return;
+   // --- MONITOREO INTEGRADO EN AGENDA.JS ---
+setInterval(async () => {
+    const id = localStorage.getItem('id_solicitud');
+    if (!id) return; // Si no hay ID guardado, no hace nada
 
-        const { data, error } = await client.from('solicitudes')
-            .select('fecha_solicitud, hora_solicitud, respuesta_solicitud')
-            .eq('solicitud_id', parseInt(id))
-            .maybeSingle();
+    const { data, error } = await client.from('solicitudes')
+        .select('fecha_solicitud, hora_solicitud, respuesta_solicitud')
+        .eq('solicitud_id', parseInt(id))
+        .maybeSingle();
 
-        if (error || !data) return;
+    if (error || !data) return;
 
-        // Si la hora programada existe, procedemos a calcular
-        const horaProgramada = new Date(`${data.fecha_solicitud}T${data.hora_solicitud}`);
-        const ahoraMonitoreo = new Date();
-        const faltanMinutos = (horaProgramada - ahoraMonitoreo) / (1000 * 60);
+    // Calcular el tiempo restante para la cita
+    const horaProgramada = new Date(`${data.fecha_solicitud}T${data.hora_solicitud}`);
+    const ahoraMonitoreo = new Date();
+    const faltanMinutos = (horaProgramada - ahoraMonitoreo) / (1000 * 60);
 
-        console.log(`Monitoreando ID ${id} - Faltan minutos: ${faltanMinutos.toFixed(2)}`);
+    console.log(`Monitoreando ID ${id} desde agenda.js - Faltan minutos: ${faltanMinutos.toFixed(2)}`);
 
-        // Si faltan 2 minutos o menos (y la cita es en el futuro cercano)
-        if (faltanMinutos > 0 && faltanMinutos <= 2) {
-            if (Notification.permission !== "denied") {
-                Notification.requestPermission();
-                new Notification("PRUEBA DE SERVICIO", {
-                    body: "Redirigiendo a espera...",
-                    icon: "logo_1.jpeg"
-                });
-            }
-            
-            // Evitar bucle si ya estamos en espera.html
-            if (!window.location.pathname.includes('espera.html')) {
-                window.location.href = 'espera.html';
-            }
+    // Si faltan 2 minutos o menos para la cita
+    if (faltanMinutos > 0 && faltanMinutos <= 2) {
+        if (Notification.permission === "granted") {
+            new Notification("PRUEBA DE SERVICIO", {
+                body: "Redirigiendo a espera...",
+                icon: "logo_1.jpeg"
+            });
         }
-    }, 5000); 
+        
+        // Redirigir a la pantalla de espera si aún no estamos ahí
+        if (!window.location.pathname.includes('espera.html')) {
+            window.location.href = 'espera.html';
+        }
+    }
+}, 5000); 
 };
