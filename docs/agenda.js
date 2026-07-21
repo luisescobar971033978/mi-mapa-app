@@ -84,7 +84,6 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     // --- 3. PEDIR VOBO (PERMISO) Y ENVIAR LA ORDEN AL SERVICE WORKER EXTERNO ---
     if (btnSubmit) {
         btnSubmit.addEventListener('click', async (e) => {
-            // Solicitud explícita del visto bueno (permiso de notificaciones del sistema)
             if ("Notification" in window && Notification.permission !== "granted") {
                 const permissionResult = await Notification.requestPermission();
                 if (permissionResult !== "granted") {
@@ -110,14 +109,14 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                             const registration = await navigator.serviceWorker.ready;
                             
                             if (registration.active) {
-                                // Transferimos la responsabilidad del temporizador al Service Worker mediante postMessage
+                                // Enviamos la marca de tiempo absoluta en el futuro
                                 registration.active.postMessage({
                                     type: 'PROGRAMAR_ALARMA',
-                                    delay: tiempoRestanteMs,
+                                    targetTime: tiempoAlertaMs,
                                     title: "PRUEBA DE SERVICIO",
                                     body: "¡Hola! Tu servicio de mantenimiento está por comenzar. Haz clic aquí para ver la unidad móvil en camino."
                                 });
-                                console.log(`¡Vobo confirmado! Orden de alarma enviada al Service Worker para dentro de ${(tiempoRestanteMs / 1000).toFixed(0)} segundos.`);
+                                console.log(`¡Vobo confirmado! Alarma absoluta programada para el timestamp: ${tiempoAlertaMs}`);
                             }
                         } catch (err) {
                             console.error("Error al comunicarse con el Service Worker:", err);
