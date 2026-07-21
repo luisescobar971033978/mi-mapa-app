@@ -26,8 +26,8 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const { data: ocupados } = await client.from('solicitudes').select('solicitud_id, fecha_solicitud, hora_solicitud').in('fecha_solicitud', dias.map(d => d.fecha));
 
     tableBody.innerHTML = '';
-    // Horarios reestructurados con intervalos de 01:30
-    const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30", "19:30", "19:45", "19:50" ,"20:05" ; "20:15"];
+    // Horarios reestructurados con intervalos (Sintaxis corregida con comas)
+    const horasDisponibles = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00", "18:30", "19:30", "19:45", "19:50", "20:05", "20:15", "20:20"];
 
     horasDisponibles.forEach(horaStr => {
         const row = document.createElement('tr');
@@ -70,8 +70,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         tableBody.appendChild(row);
     });
 
-    
-   // --- MONITOREO INTEGRADO (Modo Test) ---
+    // --- MONITOREO INTEGRADO (Modo Test) ---
     setInterval(async () => {
         const id = localStorage.getItem('id_solicitud');
         if (!id) return;
