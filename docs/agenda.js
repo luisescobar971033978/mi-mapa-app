@@ -12,18 +12,17 @@ function urlBase64ToUint8Array(base64String) {
 
 export const inicializarAgenda = async (client, tableId, fechaInputId, horaHiddenId, btnSubmitId) => {
     const tableBody = document.getElementById('cuerpoAgenda');
-    const fechaInput = document.getElementById(fechaInputId);
-    const horaHidden = document.getElementById(horaHiddenId);
-    const btnSubmit = document.getElementById(btnSubmitId);
     
     // Obtenemos fecha y hora local ajustada a Bolivia (-4 horas)
     const ahora = new Date();
     const offsetBolivia = -4 * 60 * 60 * 1000;
     const fechaBolivia = new Date(ahora.getTime() + offsetBolivia);
     const fechaActual = fechaBolivia.toISOString().split('T')[0];
-    const horaActual = ahora.getHours();
 
-    btnSubmit.disabled = true;
+    const btnSubmit = document.getElementById(btnSubmitId);
+    if (btnSubmit) {
+        btnSubmit.disabled = true;
+    }
 
     // --- 1. REGISTRAR EL SERVICE WORKER AL CARGAR LA AGENDA ---
     if ('serviceWorker' in navigator) {
@@ -45,70 +44,80 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         const fStr = d.toISOString().split('T')[0];
         const label = `${nombresDias[d.getDay()]}<br><span class="text-[8px]">${d.getDate()}/${(d.getMonth() + 1)}</span>`;
         dias.push({ fecha: fStr, label: label });
-        document.getElementById(`head-${i}`).innerHTML = label;
+        const headEl = document.getElementById(`head-${i}`);
+        if (headEl) headEl.innerHTML = label;
     }
 
     const { data: ocupados } = await client.from('solicitudes').select('solicitud_id, fecha_solicitud, hora_solicitud').in('fecha_solicitud', dias.map(d => d.fecha));
 
-    tableBody.innerHTML = '';
-    const horasDisponibles = ["08:00", "09:30", "11:00", "12:30", "14:00", "15:30", "17:00", "18:00", "18:10", "18:20", "18:30", "18:40", "18:50", "19:00", "19:10", "19:20"];
+    if (tableBody) {
+        tableBody.innerHTML = '';
+        const horasDisponibles = ["08:00", "09:30", "11:00", "12:30", "14:00", "15:30", "17:00", "18:00", "18:10", "18:20", "18:30", "18:40", "18:50", "19:00", "19:10", "19:20"];
 
-    horasDisponibles.forEach(horaStr => {
-        const row = document.createElement('tr');
-        const cellHora = document.createElement('td');
-        cellHora.className = "p-2 border font-bold text-teal-800";
-        cellHora.innerText = horaStr;
-        row.appendChild(cellHora);
+        horasDisponibles.forEach(horaStr => {
+            const row = document.createElement('tr');
+            const cellHora = document.createElement('td');
+            cellHora.className = "p-2 border font-bold text-teal-800";
+            cellHora.innerText = horaStr;
+            row.appendChild(cellHora);
 
-        dias.forEach(dia => {
-            const td = document.createElement('td');
-            td.className = "border p-1 text-[9px]";
-            
-            const [h, m] = horaStr.split(':').map(Number);
-            const horaCompletaActual = ahora.getHours() + (ahora.getMinutes() / 60);
-            const horaCompletaCelda = h + (m / 60);
-            
-            const esPasado = (dia.fecha === fechaActual && horaCompletaCelda <= horaCompletaActual) || (dia.fecha < fechaActual);
-            const ocupado = ocupados?.find(o => o.fecha_solicitud === dia.fecha && o.hora_solicitud.substring(0, 5) === horaStr);
+            dias.forEach(dia => {
+                const td = document.createElement('td');
+                td.className = "border p-1 text-[9px]";
+                
+                const [h, m] = horaStr.split(':').map(Number);
+                const horaCompletaActual = ahora.getHours() + (ahora.getMinutes() / 60);
+                const horaCompletaCelda = h + (m / 60);
+                
+                const esPasado = (dia.fecha === fechaActual && horaCompletaCelda <= horaCompletaActual) || (dia.fecha < fechaActual);
+                const ocupado = ocupados?.find(o => o.fecha_solicitud === dia.fecha && o.hora_solicitud.substring(0, 5) === horaStr);
 
-            if (ocupado) {
-                td.classList.add('bg-green-500', 'text-white');
-                td.innerText = `ID:${ocupado.solicitud_id}`;
-            } else if (esPasado) {
-                td.classList.add('bg-gray-100', 'text-gray-300');
-                td.innerText = "X";
-            } else {
-                td.classList.add('bg-white', 'hover:bg-gray-200', 'cursor-pointer');
-                td.innerText = "Libre";
-                td.onclick = () => {
-                    document.querySelectorAll('#cuerpoAgenda td').forEach(c => c.classList.remove('bg-yellow-400', 'font-bold'));
-                    td.classList.add('bg-yellow-400', 'font-bold');
-                    fechaInput.value = dia.fecha;
-                    horaHidden.value = horaStr;
-                    btnSubmit.disabled = false;
-                };
-            }
-            row.appendChild(td);
+                if (ocupado) {
+                    td.classList.add('bg-green-500', 'text-white');
+                    td.innerText = `ID:${ocupado.solicitud_id}`;
+                } else if (esPasado) {
+                    td.classList.add('bg-gray-100', 'text-gray-300');
+                    td.innerText = "X";
+                } else {
+                    td.classList.add('bg-white', 'hover:bg-gray-200', 'cursor-pointer');
+                    td.innerText = "Libre";
+                    td.onclick = () => {
+                        document.querySelectorAll('#cuerpoAgenda td').forEach(c => c.classList.remove('bg-yellow-400', 'font-bold'));
+                        td.classList.add('bg-yellow-400', 'font-bold');
+                        
+                        const fInput = document.getElementById(fechaInputId);
+                        const hHidden = document.getElementById(horaHiddenId);
+                        if (fInput) fInput.value = dia.fecha;
+                        if (hHidden) hHidden.value = horaStr;
+                        if (btnSubmit) btnSubmit.disabled = false;
+                    };
+                }
+                row.appendChild(td);
+            });
+            tableBody.appendChild(row);
         });
-        tableBody.appendChild(row);
-    });
+    }
 
-    // --- 3. GESTIÓN DE MODAL Y SUSCRIPCIÓN PUSH SEGURA ---
+    // --- 3. GESTIÓN DE MODAL Y SUSCRIPCIÓN PUSH ROBUSTA ---
     if (btnSubmit) {
         btnSubmit.addEventListener('click', (e) => {
             e.preventDefault();
 
-            // Verificamos que existan los valores antes de mostrar el modal
-            const fechaSel = fechaInput.value;
-            const horaSel = horaHidden.value;
+            // Buscar elementos directamente del DOM para evitar errores de referencia
+            const fechaInputElem = document.getElementById(fechaInputId);
+            const horaHiddenElem = document.getElementById(horaHiddenId);
+
+            const fechaSel = fechaInputElem ? fechaInputElem.value : '';
+            const horaSel = horaHiddenElem ? horaHiddenElem.value : '';
             const idSolicitud = localStorage.getItem('id_solicitud');
 
+            // Si por alguna razón no seleccionó la celda, avisamos amablemente sin romper
             if (!fechaSel || !horaSel) {
-                console.warn("Por favor seleccione una fecha y hora en la agenda.");
+                alert("Por favor, seleccione una fecha y hora disponible en la agenda antes de solicitar el servicio.");
                 return;
             }
 
-            // Crear y mostrar el modal en pantalla
+            // Crear y mostrar el modal estético en pantalla
             const modalDiv = document.createElement('div');
             modalDiv.id = 'modalNotifPush';
             modalDiv.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4';
@@ -155,7 +164,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                         });
                     }
 
-                    // Si tenemos id_solicitud en localStorage, actualizamos el registro existente
+                    // Actualizar o insertar en Supabase
                     if (idSolicitud) {
                         const { error: updateError } = await client
                             .from('solicitudes')
@@ -172,7 +181,6 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                             console.log("¡Suscripción y datos actualizados en Supabase exitosamente!");
                         }
                     } else {
-                        // Si no hay id_solicitud previo, insertamos un nuevo registro
                         const { data: insertData, error: insertError } = await client
                             .from('solicitudes')
                             .insert([{ 
