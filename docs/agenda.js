@@ -98,7 +98,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         });
     }
 
-    // --- 3. GESTIÓN DE MODAL Y ACTUALIZACIÓN DE FECHA/HORA SIN ROMPER EL FLUJO ---
+    // --- 3. GESTIÓN DE MODAL Y FLUJO BLINDADO CONTRA INCÓGNITO/BLOQUEOS ---
     if (btnSubmit) {
         btnSubmit.addEventListener('click', (e) => {
             e.preventDefault();
@@ -141,12 +141,30 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
             document.getElementById('btnAceptarModal').onclick = async () => {
                 modalDiv.remove();
 
+                // PASO A: Guardar obligatoriamente la fecha y la hora en Supabase (independiente de las notificaciones)
+                if (idSolicitud) {
+                    const { error: updateError } = await client
+                        .from('solicitudes')
+                        .update({ 
+                            fecha_solicitud: fechaSel,
+                            hora_solicitud: horaSel 
+                        })
+                        .eq('solicitud_id', idSolicitud);
+
+                    if (updateError) {
+                        console.error("Error al actualizar fecha y hora en Supabase:", updateError);
+                    } else {
+                        console.log("¡Fecha y hora guardadas en Supabase exitosamente!");
+                    }
+                }
+
+                // PASO B: Intentar activar notificaciones push de forma segura (si falla por incógnito o permisos, no rompe el flujo)
                 try {
-                    // Pedir permiso de notificaciones nativo si hace falta
                     if ("Notification" in window && Notification.permission !== "granted") {
                         const permissionResult = await Notification.requestPermission();
                         if (permissionResult !== "granted") {
                             console.log("El usuario denegó las notificaciones.");
+                            return;
                         }
                     }
 
@@ -159,30 +177,18 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                             userVisibleOnly: true,
                             applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
                         });
-                    }
 
-                    // Actualizamos únicamente el registro existente vinculado en localStorage (preservando nombre, celular, comentario y permitiendo continuar con el flujo de coordenadas)
-                    if (idSolicitud) {
-                        const { error: updateError } = await client
-                            .from('solicitudes')
-                            .update({ 
-                                push_subscription: pushSubscription,
-                                fecha_solicitud: fechaSel,
-                                hora_solicitud: horaSel 
-                            })
-                            .eq('solicitud_id', idSolicitud);
-
-                        if (updateError) {
-                            console.error("Error al actualizar la solicitud en Supabase:", updateError);
-                        } else {
-                            console.log("¡Fecha, hora y suscripción push agregadas al registro existente exitosamente!");
+                        // Actualizar la suscripción push en Supabase si se obtuvo correctamente
+                        if (idSolicitud && pushSubscription) {
+                            await client
+                                .from('solicitudes')
+                                .update({ push_subscription: pushSubscription })
+                                .eq('solicitud_id', idSolicitud);
+                            console.log("¡Suscripción push guardada exitosamente!");
                         }
-                    } else {
-                        console.warn("No se encontró un 'id_solicitud' previo en localStorage. Asegúrese de que el formulario principal cree el registro inicial antes de llegar a la agenda.");
                     }
-
-                } catch (err) {
-                    console.error("Error crítico en el flujo del modal:", err);
+                } catch (pushErr) {
+                    console.warn("Aviso: Las notificaciones Push no están disponibles (posible modo incógnito o navegador bloqueado), pero el flujo de la solicitud continúa con normalidad:", pushErr);
                 }
             };
         });
