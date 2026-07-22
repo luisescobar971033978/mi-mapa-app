@@ -98,7 +98,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         });
     }
 
-    // --- 3. GESTIÓN DE MODAL Y FLUJO BLINDADO CONTRA INCÓGNITO/BLOQUEOS ---
+    // --- 3. GESTIÓN DE MODAL Y FLUJO 100% BLINDADO ---
     if (btnSubmit) {
         btnSubmit.addEventListener('click', (e) => {
             e.preventDefault();
@@ -141,7 +141,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
             document.getElementById('btnAceptarModal').onclick = async () => {
                 modalDiv.remove();
 
-                // PASO A: Guardar obligatoriamente la fecha y la hora en Supabase (independiente de las notificaciones)
+                // 1. GUARDAR OBLIGATORIAMENTE FECHA Y HORA EN SUPABASE (Sin importar permisos ni incógnito)
                 if (idSolicitud) {
                     const { error: updateError } = await client
                         .from('solicitudes')
@@ -156,40 +156,42 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                     } else {
                         console.log("¡Fecha y hora guardadas en Supabase exitosamente!");
                     }
+                } else {
+                    console.warn("No se encontró id_solicitud en localStorage.");
                 }
 
-                // PASO B: Intentar activar notificaciones push de forma segura (si falla por incógnito o permisos, no rompe el flujo)
+                // 2. INTENTAR LAS NOTIFICACIONES PUSH DE FORMA OPCIONAL (Si falla, el flujo de la app sigue su curso normal)
                 try {
-                    if ("Notification" in window && Notification.permission !== "granted") {
-                        const permissionResult = await Notification.requestPermission();
-                        if (permissionResult !== "granted") {
-                            console.log("El usuario denegó las notificaciones.");
-                            return;
+                    if ("Notification" in window) {
+                        if (Notification.permission !== "granted") {
+                            await Notification.requestPermission();
                         }
-                    }
 
-                    const registration = await navigator.serviceWorker.ready;
-                    const publicVapidKey = "BB39ZxbYgFwqQtc4sJonYgzl-SS5n-fnJ6xBf5AFI9_xrmhs00qImHbVjeGYEQKMcaHIZfsH-fXs2LK1bVpMuwI"; 
+                        if (Notification.permission === "granted") {
+                            const registration = await navigator.serviceWorker.ready;
+                            const publicVapidKey = "BB39ZxbYgFwqQtc4sJonYgzl-SS5n-fnJ6xBf5AFI9_xrmhs00qImHbVjeGYEQKMcaHIZfsH-fXs2LK1bVpMuwI"; 
 
-                    let pushSubscription = null;
-                    if (publicVapidKey && publicVapidKey !== 'TU_CLAVE_PUBLICA_VAPID_AQUI') {
-                        pushSubscription = await registration.pushManager.subscribe({
-                            userVisibleOnly: true,
-                            applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-                        });
+                            if (publicVapidKey && publicVapidKey !== 'TU_CLAVE_PUBLICA_VAPID_AQUI') {
+                                const pushSubscription = await registration.pushManager.subscribe({
+                                    userVisibleOnly: true,
+                                    applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+                                });
 
-                        // Actualizar la suscripción push en Supabase si se obtuvo correctamente
-                        if (idSolicitud && pushSubscription) {
-                            await client
-                                .from('solicitudes')
-                                .update({ push_subscription: pushSubscription })
-                                .eq('solicitud_id', idSolicitud);
-                            console.log("¡Suscripción push guardada exitosamente!");
+                                if (idSolicitud && pushSubscription) {
+                                    await client
+                                        .from('solicitudes')
+                                        .update({ push_subscription: pushSubscription })
+                                        .eq('solicitud_id', idSolicitud);
+                                    console.log("¡Suscripción push guardada con éxito!");
+                                }
+                            }
                         }
                     }
                 } catch (pushErr) {
-                    console.warn("Aviso: Las notificaciones Push no están disponibles (posible modo incógnito o navegador bloqueado), pero el flujo de la solicitud continúa con normalidad:", pushErr);
+                    console.warn("Aviso de notificaciones (modo incógnito o navegador restringido): Continuamos con el flujo normal.", pushErr);
                 }
+
+                // AQUÍ PUEDES AGREGAR O CONTINUAR CON EL REDIRECCIONAMIENTO A LA VISTA DE COORDENADAS SI LO DESEAS
             };
         });
     }
