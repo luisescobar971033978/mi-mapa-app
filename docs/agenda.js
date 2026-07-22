@@ -93,18 +93,13 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         tableBody.appendChild(row);
     });
 
-    // --- 3. PEDIR VOBO (PERMISO CON MODAL TAILWIND) Y OBTENER SUSCRIPCIÓN PUSH ---
+    // --- 3. GESTIÓN DE MODAL Y SUSCRIPCIÓN PUSH INTEGRADA ---
     if (btnSubmit) {
         btnSubmit.addEventListener('click', async (e) => {
-            e.preventDefault(); // Evitamos envío nativo para controlar la aparición del modal estético
+            e.preventDefault(); // Evitamos recarga o envío por defecto
 
-            // Verificamos si ya tiene permiso otorgado
-            if ("Notification" in window && Notification.permission === "granted") {
-                ejecutarLogicaSuscripcion(client, fechaInput, horaHidden);
-                return;
-            }
-
-            // Si no tiene permiso, mostramos tu modal Tailwind con el mensaje solicitado
+            // Si ya tiene el permiso concedido, ejecutamos directo sin mostrar el modal si se prefiere, 
+            // o mostramos siempre el modal de éxito tal como pediste:
             const modalDiv = document.createElement('div');
             modalDiv.id = 'modalNotifPush';
             modalDiv.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4';
@@ -126,11 +121,12 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
             `;
             document.body.appendChild(modalDiv);
 
-            // Al hacer clic en Aceptar del modal, pedimos el permiso real y ejecutamos la lógica base
+            // Acción al hacer clic en el botón Aceptar del modal
             document.getElementById('btnAceptarModal').onclick = async () => {
                 modalDiv.remove();
 
-                if ("Notification" in window) {
+                // 1. Pedir permiso de notificaciones de forma nativa si hace falta
+                if ("Notification" in window && Notification.permission !== "granted") {
                     const permissionResult = await Notification.requestPermission();
                     if (permissionResult !== "granted") {
                         console.log("El usuario denegó las notificaciones.");
@@ -138,49 +134,42 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                     }
                 }
 
-                ejecutarLogicaSuscripcion(client, fechaInput, horaHidden);
+                // 2. Ejecutar la lógica de guardado y suscripción idéntica a tu base
+                setTimeout(async () => {
+                    const idSolicitud = localStorage.getItem('id_solicitud');
+                    const fechaSel = fechaInput.value;
+                    const horaSel = horaHidden.value;
+
+                    if (idSolicitud && fechaSel && horaSel) {
+                        try {
+                            const registration = await navigator.serviceWorker.ready;
+                            const publicVapidKey = "BB39ZxbYgFwqQtc4sJonYgzl-SS5n-fnJ6xBf5AFI9_xrmhs00qImHbVjeGYEQKMcaHIZfsH-fXs2LK1bVpMuwI"; 
+
+                            let pushSubscription = null;
+                            if (publicVapidKey && publicVapidKey !== 'TU_CLAVE_PUBLICA_VAPID_AQUI') {
+                                pushSubscription = await registration.pushManager.subscribe({
+                                    userVisibleOnly: true,
+                                    applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+                                });
+                            }
+
+                            const { error: updateError } = await client
+                                .from('solicitudes')
+                                .update({ push_subscription: pushSubscription })
+                                .eq('solicitud_id', idSolicitud);
+
+                            if (updateError) {
+                                console.error("Error al guardar la suscripción push en Supabase:", updateError);
+                            } else {
+                                console.log("¡Suscripción push guardada exitosamente en Supabase!");
+                            }
+
+                        } catch (err) {
+                            console.error("Error al procesar la suscripción push:", err);
+                        }
+                    }
+                }, 1000);
             };
         });
     }
 };
-
-// Función auxiliar idéntica a tu código base para procesar la suscripción y Supabase
-async function ejecutarLogicaSuscripcion(client, fechaInput, horaHidden) {
-    setTimeout(async () => {
-        const idSolicitud = localStorage.getItem('id_solicitud');
-        const fechaSel = fechaInput.value;
-        const horaSel = horaHidden.value;
-
-        if (idSolicitud && fechaSel && horaSel) {
-            try {
-                const registration = await navigator.serviceWorker.ready;
-                
-                // NOTA: Reemplaza esto con tu llave pública VAPID real cuando la generemos
-                const publicVapidKey = "BB39ZxbYgFwqQtc4sJonYgzl-SS5n-fnJ6xBf5AFI9_xrmhs00qImHbVjeGYEQKMcaHIZfsH-fXs2LK1bVpMuwI"; 
-
-                let pushSubscription = null;
-                if (publicVapidKey && publicVapidKey !== 'TU_CLAVE_PUBLICA_VAPID_AQUI') {
-                    pushSubscription = await registration.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-                    });
-                }
-
-                // Actualizamos el registro en Supabase incluyendo la suscripción push
-                const { error: updateError } = await client
-                    .from('solicitudes')
-                    .update({ push_subscription: pushSubscription })
-                    .eq('solicitud_id', idSolicitud);
-
-                if (updateError) {
-                    console.error("Error al guardar la suscripción push en Supabase:", updateError);
-                } else {
-                    console.log("¡Suscripción push guardada exitosamente en Supabase!");
-                }
-
-            } catch (err) {
-                console.error("Error al procesar la suscripción push:", err);
-            }
-        }
-    }, 1000); 
-}
