@@ -27,12 +27,8 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     // --- 1. REGISTRAR EL SERVICE WORKER AL CARGAR LA AGENDA ---
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
-        .then((reg) => {
-            console.log('Service Worker de notificaciones registrado exitosamente.');
-        })
-        .catch((err) => {
-            console.error('Error al registrar el Service Worker:', err);
-        });
+        .then(() => console.log('Service Worker registrado exitosamente.'))
+        .catch((err) => console.error('Error al registrar el Service Worker:', err));
     }
 
     // 2. Generar 7 días a partir de HOY
@@ -98,7 +94,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         });
     }
 
-    // --- 3. GESTIÓN DE MODAL Y FLUJO 100% BLINDADO ---
+    // --- 3. GESTIÓN DEL BOTÓN SOLICITAR SERVICIO (BLINDADO Y SINCRONIZADO) ---
     if (btnSubmit) {
         btnSubmit.addEventListener('click', (e) => {
             e.preventDefault();
@@ -108,14 +104,13 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
 
             const fechaSel = fechaInputElem ? fechaInputElem.value : '';
             const horaSel = horaHiddenElem ? horaHiddenElem.value : '';
-            const idSolicitud = localStorage.getItem('id_solicitud');
 
             if (!fechaSel || !horaSel) {
                 alert("Por favor, seleccione una fecha y hora disponible en la agenda antes de solicitar el servicio.");
                 return;
             }
 
-            // Crear y mostrar el modal estético en pantalla
+            // Mostrar Modal de Éxito / Notificaciones
             const modalDiv = document.createElement('div');
             modalDiv.id = 'modalNotifPush';
             modalDiv.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4';
@@ -128,7 +123,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                     </div>
                     <h3 class="text-xl font-bold text-gray-800 mb-2">¡Éxito!</h3>
                     <p class="text-sm text-gray-600 mb-6 leading-relaxed">
-                        Solicitud enviada. Presione Aceptar para marcar su ubicación y recibir un mensaje recordatorio de 30 minutos antes del Servicio solicitado. Gracias por favor mantenga la aplicación abierta!
+                        Solicitud enviada. Presione Aceptar para marcar su ubicación y continuar con el registro de su servicio. ¡Mantenga la aplicación abierta!
                     </p>
                     <button id="btnAceptarModal" type="button" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2.5 px-4 rounded-lg transition duration-200 shadow-md">
                         Aceptar
@@ -137,61 +132,87 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
             `;
             document.body.appendChild(modalDiv);
 
-            // Manejador del botón Aceptar del modal
             document.getElementById('btnAceptarModal').onclick = async () => {
                 modalDiv.remove();
 
-                // 1. GUARDAR OBLIGATORIAMENTE FECHA Y HORA EN SUPABASE (Sin importar permisos ni incógnito)
-                if (idSolicitud) {
-                    const { error: updateError } = await client
-                        .from('solicitudes')
-                        .update({ 
-                            fecha_solicitud: fechaSel,
-                            hora_solicitud: horaSel 
-                        })
-                        .eq('solicitud_id', idSolicitud);
-
-                    if (updateError) {
-                        console.error("Error al actualizar fecha y hora en Supabase:", updateError);
-                    } else {
-                        console.log("¡Fecha y hora guardadas en Supabase exitosamente!");
-                    }
-                } else {
-                    console.warn("No se encontró id_solicitud en localStorage.");
-                }
-
-                // 2. INTENTAR LAS NOTIFICACIONES PUSH DE FORMA OPCIONAL (Si falla, el flujo de la app sigue su curso normal)
                 try {
-                    if ("Notification" in window) {
-                        if (Notification.permission !== "granted") {
-                            await Notification.requestPermission();
-                        }
+                    // Recuperar datos temporales almacenados del formulario inicial (Asegura que no se pierdan nombre, celular ni comentarios)
+                    const nombreUsuario = localStorage.getItem('nombre_usuario') || '';
+                    const celularContacto = localStorage.getItem('celular_contacto') || '';
+                    const comentarioSolicitud = localStorage.getItem('comentario_solicitud') || '';
+                    const movilId = localStorage.getItem('movil_id') || 'Movil_1';
+                    const idTecnico = localStorage.getItem('id_tecnico') || '1234';
+                    let idSolicitud = localStorage.getItem('id_solicitud');
 
-                        if (Notification.permission === "granted") {
-                            const registration = await navigator.serviceWorker.ready;
-                            const publicVapidKey = "BB39ZxbYgFwqQtc4sJonYgzl-SS5n-fnJ6xBf5AFI9_xrmhs00qImHbVjeGYEQKMcaHIZfsH-fXs2LK1bVpMuwI"; 
-
-                            if (publicVapidKey && publicVapidKey !== 'TU_CLAVE_PUBLICA_VAPID_AQUI') {
-                                const pushSubscription = await registration.pushManager.subscribe({
-                                    userVisibleOnly: true,
-                                    applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-                                });
-
-                                if (idSolicitud && pushSubscription) {
-                                    await client
-                                        .from('solicitudes')
-                                        .update({ push_subscription: pushSubscription })
-                                        .eq('solicitud_id', idSolicitud);
-                                    console.log("¡Suscripción push guardada con éxito!");
+                    let pushSubscription = null;
+                    try {
+                        if ("Notification" in window) {
+                            if (Notification.permission !== "granted") {
+                                await Notification.requestPermission();
+                            }
+                            if (Notification.permission === "granted") {
+                                const registration = await navigator.serviceWorker.ready;
+                                const publicVapidKey = "BB39ZxbYgFwqQtc4sJonYgzl-SS5n-fnJ6xBf5AFI9_xrmhs00qImHbVjeGYEQKMcaHIZfsH-fXs2LK1bVpMuwI"; 
+                                if (publicVapidKey) {
+                                    pushSubscription = await registration.pushManager.subscribe({
+                                        userVisibleOnly: true,
+                                        applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+                                    });
                                 }
                             }
                         }
+                    } catch (pushErr) {
+                        console.warn("Aviso: Notificaciones push omitidas o modo incógnito activo.", pushErr);
                     }
-                } catch (pushErr) {
-                    console.warn("Aviso de notificaciones (modo incógnito o navegador restringido): Continuamos con el flujo normal.", pushErr);
-                }
 
-                // AQUÍ PUEDES AGREGAR O CONTINUAR CON EL REDIRECCIONAMIENTO A LA VISTA DE COORDENADAS SI LO DESEAS
+                    if (idSolicitud) {
+                        // Si ya existe un registro previo, lo actualizamos con fecha, hora y push
+                        const { error: updateError } = await client
+                            .from('solicitudes')
+                            .update({ 
+                                nombre_usuario: nombreUsuario,
+                                celular_contacto: celularContacto,
+                                comentario_solicitud: comentarioSolicitud,
+                                fecha_solicitud: fechaSel,
+                                hora_solicitud: horaSel,
+                                push_subscription: pushSubscription 
+                            })
+                            .eq('solicitud_id', idSolicitud);
+
+                        if (updateError) console.error("Error al actualizar:", updateError);
+                    } else {
+                        // Si no existe, insertamos un registro completo nuevo para evitar campos vacíos NULL
+                        const { data: insertData, error: insertError } = await client
+                            .from('solicitudes')
+                            .insert([{ 
+                                nombre_usuario: nombreUsuario,
+                                celular_contacto: celularContacto ? Number(celularContacto) : null,
+                                comentario_solicitud: comentarioSolicitud,
+                                fecha_solicitud: fechaSel,
+                                hora_solicitud: horaSel,
+                                movil_id: movilId,
+                                id_tecnico: idTecnico,
+                                push_subscription: pushSubscription 
+                            }])
+                            .select();
+
+                        if (insertError) {
+                            console.error("Error al insertar solicitud:", insertError);
+                        } else if (insertData && insertData.length > 0) {
+                            idSolicitud = insertData[0].solicitud_id;
+                            localStorage.setItem('id_solicitud', idSolicitud);
+                        }
+                    }
+
+                    // Continuar al flujo de coordenadas (Asegde que la redirección o siguiente vista ocurra aquí)
+                    console.log("¡Flujo completado con éxito, procediendo a coordenadas!");
+                    
+                    // Si tienes una función o redirección para las coordenadas, colócala aquí.
+                    // Por ejemplo: window.location.href = "mi-mapa.html"; 
+
+                } catch (err) {
+                    console.error("Error crítico en el flujo de guardado:", err);
+                }
             };
         });
     }
