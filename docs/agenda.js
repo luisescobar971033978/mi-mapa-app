@@ -93,13 +93,22 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         tableBody.appendChild(row);
     });
 
-    // --- 3. GESTIÓN DE MODAL Y SUSCRIPCIÓN PUSH INTEGRADA ---
+    // --- 3. GESTIÓN DE MODAL Y SUSCRIPCIÓN PUSH FLUIDA ---
     if (btnSubmit) {
         btnSubmit.addEventListener('click', async (e) => {
-            e.preventDefault(); // Evitamos recarga o envío por defecto
+            e.preventDefault();
 
-            // Si ya tiene el permiso concedido, ejecutamos directo sin mostrar el modal si se prefiere, 
-            // o mostramos siempre el modal de éxito tal como pediste:
+            // Validar que se haya seleccionado fecha y hora antes de mostrar el modal
+            const fechaSel = fechaInput.value;
+            const horaSel = horaHidden.value;
+            const idSolicitud = localStorage.getItem('id_solicitud');
+
+            if (!fechaSel || !horaSel || !idSolicitud) {
+                console.warn("Faltan datos de fecha, hora o ID de solicitud.");
+                return;
+            }
+
+            // Mostrar modal con el texto requerido
             const modalDiv = document.createElement('div');
             modalDiv.id = 'modalNotifPush';
             modalDiv.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4';
@@ -121,54 +130,51 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
             `;
             document.body.appendChild(modalDiv);
 
-            // Acción al hacer clic en el botón Aceptar del modal
+            // Acción al hacer clic en Aceptar
             document.getElementById('btnAceptarModal').onclick = async () => {
                 modalDiv.remove();
 
-                // 1. Pedir permiso de notificaciones de forma nativa si hace falta
-                if ("Notification" in window && Notification.permission !== "granted") {
-                    const permissionResult = await Notification.requestPermission();
-                    if (permissionResult !== "granted") {
-                        console.log("El usuario denegó las notificaciones.");
-                        return;
-                    }
-                }
-
-                // 2. Ejecutar la lógica de guardado y suscripción idéntica a tu base
-                setTimeout(async () => {
-                    const idSolicitud = localStorage.getItem('id_solicitud');
-                    const fechaSel = fechaInput.value;
-                    const horaSel = horaHidden.value;
-
-                    if (idSolicitud && fechaSel && horaSel) {
-                        try {
-                            const registration = await navigator.serviceWorker.ready;
-                            const publicVapidKey = "BB39ZxbYgFwqQtc4sJonYgzl-SS5n-fnJ6xBf5AFI9_xrmhs00qImHbVjeGYEQKMcaHIZfsH-fXs2LK1bVpMuwI"; 
-
-                            let pushSubscription = null;
-                            if (publicVapidKey && publicVapidKey !== 'TU_CLAVE_PUBLICA_VAPID_AQUI') {
-                                pushSubscription = await registration.pushManager.subscribe({
-                                    userVisibleOnly: true,
-                                    applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-                                });
-                            }
-
-                            const { error: updateError } = await client
-                                .from('solicitudes')
-                                .update({ push_subscription: pushSubscription })
-                                .eq('solicitud_id', idSolicitud);
-
-                            if (updateError) {
-                                console.error("Error al guardar la suscripción push en Supabase:", updateError);
-                            } else {
-                                console.log("¡Suscripción push guardada exitosamente en Supabase!");
-                            }
-
-                        } catch (err) {
-                            console.error("Error al procesar la suscripción push:", err);
+                try {
+                    // 1. Pedir permiso de notificaciones de forma nativa si es necesario
+                    if ("Notification" in window && Notification.permission !== "granted") {
+                        const permissionResult = await Notification.requestPermission();
+                        if (permissionResult !== "granted") {
+                            console.log("El usuario denegó las notificaciones.");
+                            return;
                         }
                     }
-                }, 1000);
+
+                    // 2. Obtener Service Worker y suscripción VAPID
+                    const registration = await navigator.serviceWorker.ready;
+                    const publicVapidKey = "BB39ZxbYgFwqQtc4sJonYgzl-SS5n-fnJ6xBf5AFI9_xrmhs00qImHbVjeGYEQKMcaHIZfsH-fXs2LK1bVpMuwI"; 
+
+                    let pushSubscription = null;
+                    if (publicVapidKey && publicVapidKey !== 'TU_CLAVE_PUBLICA_VAPID_AQUI') {
+                        pushSubscription = await registration.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+                        });
+                    }
+
+                    // 3. Actualizar Supabase con la suscripción y fecha/hora seleccionadas
+                    const { error: updateError } = await client
+                        .from('solicitudes')
+                        .update({ 
+                            push_subscription: pushSubscription,
+                            fecha_solicitud: fechaSel,
+                            hora_solicitud: horaSel 
+                        })
+                        .eq('solicitud_id', idSolicitud);
+
+                    if (updateError) {
+                        console.error("Error al guardar la suscripción push en Supabase:", updateError);
+                    } else {
+                        console.log("¡Suscripción push y datos guardados exitosamente en Supabase!");
+                    }
+
+                } catch (err) {
+                    console.error("Error al procesar la suscripción push:", err);
+                }
             };
         });
     }
