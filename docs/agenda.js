@@ -98,12 +98,11 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         });
     }
 
-    // --- 3. GESTIÓN DE MODAL Y SUSCRIPCIÓN PUSH ROBUSTA ---
+    // --- 3. GESTIÓN DE MODAL Y ACTUALIZACIÓN DE FECHA/HORA SIN ROMPER EL FLUJO ---
     if (btnSubmit) {
         btnSubmit.addEventListener('click', (e) => {
             e.preventDefault();
 
-            // Buscar elementos directamente del DOM para evitar errores de referencia
             const fechaInputElem = document.getElementById(fechaInputId);
             const horaHiddenElem = document.getElementById(horaHiddenId);
 
@@ -111,7 +110,6 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
             const horaSel = horaHiddenElem ? horaHiddenElem.value : '';
             const idSolicitud = localStorage.getItem('id_solicitud');
 
-            // Si por alguna razón no seleccionó la celda, avisamos amablemente sin romper
             if (!fechaSel || !horaSel) {
                 alert("Por favor, seleccione una fecha y hora disponible en la agenda antes de solicitar el servicio.");
                 return;
@@ -149,7 +147,6 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                         const permissionResult = await Notification.requestPermission();
                         if (permissionResult !== "granted") {
                             console.log("El usuario denegó las notificaciones.");
-                            return;
                         }
                     }
 
@@ -164,7 +161,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                         });
                     }
 
-                    // Actualizar o insertar en Supabase
+                    // Actualizamos únicamente el registro existente vinculado en localStorage (preservando nombre, celular, comentario y permitiendo continuar con el flujo de coordenadas)
                     if (idSolicitud) {
                         const { error: updateError } = await client
                             .from('solicitudes')
@@ -176,25 +173,12 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                             .eq('solicitud_id', idSolicitud);
 
                         if (updateError) {
-                            console.error("Error al actualizar Supabase:", updateError);
+                            console.error("Error al actualizar la solicitud en Supabase:", updateError);
                         } else {
-                            console.log("¡Suscripción y datos actualizados en Supabase exitosamente!");
+                            console.log("¡Fecha, hora y suscripción push agregadas al registro existente exitosamente!");
                         }
                     } else {
-                        const { data: insertData, error: insertError } = await client
-                            .from('solicitudes')
-                            .insert([{ 
-                                push_subscription: pushSubscription,
-                                fecha_solicitud: fechaSel,
-                                hora_solicitud: horaSel 
-                            }])
-                            .select();
-
-                        if (insertError) {
-                            console.error("Error al insertar en Supabase:", insertError);
-                        } else {
-                            console.log("¡Nueva solicitud insertada en Supabase!", insertData);
-                        }
+                        console.warn("No se encontró un 'id_solicitud' previo en localStorage. Asegúrese de que el formulario principal cree el registro inicial antes de llegar a la agenda.");
                     }
 
                 } catch (err) {
