@@ -93,27 +93,27 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         tableBody.appendChild(row);
     });
 
-    // --- 3. GESTIÓN DE MODAL Y SUSCRIPCIÓN PUSH FLUIDA ---
+    // --- 3. GESTIÓN DE MODAL Y SUSCRIPCIÓN PUSH SEGURA ---
     if (btnSubmit) {
-        btnSubmit.addEventListener('click', async (e) => {
+        btnSubmit.addEventListener('click', (e) => {
             e.preventDefault();
 
-            // Validar que se haya seleccionado fecha y hora antes de mostrar el modal
+            // Verificamos que existan los valores antes de mostrar el modal
             const fechaSel = fechaInput.value;
             const horaSel = horaHidden.value;
             const idSolicitud = localStorage.getItem('id_solicitud');
 
-            if (!fechaSel || !horaSel || !idSolicitud) {
-                console.warn("Faltan datos de fecha, hora o ID de solicitud.");
+            if (!fechaSel || !horaSel) {
+                console.warn("Por favor seleccione una fecha y hora en la agenda.");
                 return;
             }
 
-            // Mostrar modal con el texto requerido
+            // Crear y mostrar el modal en pantalla
             const modalDiv = document.createElement('div');
             modalDiv.id = 'modalNotifPush';
             modalDiv.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4';
             modalDiv.innerHTML = `
-                <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center transform transition-all animate-fade-in">
+                <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center transform transition-all">
                     <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-teal-100 text-teal-600 mb-4">
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
@@ -123,19 +123,19 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                     <p class="text-sm text-gray-600 mb-6 leading-relaxed">
                         Solicitud enviada. Presione Aceptar para marcar su ubicación y recibir un mensaje recordatorio de 30 minutos antes del Servicio solicitado. Gracias por favor mantenga la aplicación abierta!
                     </p>
-                    <button id="btnAceptarModal" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2.5 px-4 rounded-lg transition duration-200 shadow-md">
+                    <button id="btnAceptarModal" type="button" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2.5 px-4 rounded-lg transition duration-200 shadow-md">
                         Aceptar
                     </button>
                 </div>
             `;
             document.body.appendChild(modalDiv);
 
-            // Acción al hacer clic en Aceptar
+            // Manejador del botón Aceptar del modal
             document.getElementById('btnAceptarModal').onclick = async () => {
                 modalDiv.remove();
 
                 try {
-                    // 1. Pedir permiso de notificaciones de forma nativa si es necesario
+                    // Pedir permiso de notificaciones nativo si hace falta
                     if ("Notification" in window && Notification.permission !== "granted") {
                         const permissionResult = await Notification.requestPermission();
                         if (permissionResult !== "granted") {
@@ -144,7 +144,6 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                         }
                     }
 
-                    // 2. Obtener Service Worker y suscripción VAPID
                     const registration = await navigator.serviceWorker.ready;
                     const publicVapidKey = "BB39ZxbYgFwqQtc4sJonYgzl-SS5n-fnJ6xBf5AFI9_xrmhs00qImHbVjeGYEQKMcaHIZfsH-fXs2LK1bVpMuwI"; 
 
@@ -156,24 +155,42 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                         });
                     }
 
-                    // 3. Actualizar Supabase con la suscripción y fecha/hora seleccionadas
-                    const { error: updateError } = await client
-                        .from('solicitudes')
-                        .update({ 
-                            push_subscription: pushSubscription,
-                            fecha_solicitud: fechaSel,
-                            hora_solicitud: horaSel 
-                        })
-                        .eq('solicitud_id', idSolicitud);
+                    // Si tenemos id_solicitud en localStorage, actualizamos el registro existente
+                    if (idSolicitud) {
+                        const { error: updateError } = await client
+                            .from('solicitudes')
+                            .update({ 
+                                push_subscription: pushSubscription,
+                                fecha_solicitud: fechaSel,
+                                hora_solicitud: horaSel 
+                            })
+                            .eq('solicitud_id', idSolicitud);
 
-                    if (updateError) {
-                        console.error("Error al guardar la suscripción push en Supabase:", updateError);
+                        if (updateError) {
+                            console.error("Error al actualizar Supabase:", updateError);
+                        } else {
+                            console.log("¡Suscripción y datos actualizados en Supabase exitosamente!");
+                        }
                     } else {
-                        console.log("¡Suscripción push y datos guardados exitosamente en Supabase!");
+                        // Si no hay id_solicitud previo, insertamos un nuevo registro
+                        const { data: insertData, error: insertError } = await client
+                            .from('solicitudes')
+                            .insert([{ 
+                                push_subscription: pushSubscription,
+                                fecha_solicitud: fechaSel,
+                                hora_solicitud: horaSel 
+                            }])
+                            .select();
+
+                        if (insertError) {
+                            console.error("Error al insertar en Supabase:", insertError);
+                        } else {
+                            console.log("¡Nueva solicitud insertada en Supabase!", insertData);
+                        }
                     }
 
                 } catch (err) {
-                    console.error("Error al procesar la suscripción push:", err);
+                    console.error("Error crítico en el flujo del modal:", err);
                 }
             };
         });
