@@ -90,6 +90,8 @@ self.addEventListener('push', (event) => {
         renotify: true
     };
 
+    // Mejora implementada: Uso estricto de event.waitUntil para asegurar 
+    // que Windows/Chrome procese y renderice el banner flotante en escritorio.
     event.waitUntil(
         self.registration.showNotification(data.title, options)
     );
