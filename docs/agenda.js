@@ -135,6 +135,30 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                             console.log("¡Suscripción push guardada exitosamente en Supabase!");
                         }
 
+                        // --- NUEVO: LLAMADA ASINCRÓNICA PARA EL SMS ---
+                        // Obtenemos el teléfono del usuario (puedes adaptarlo según cómo lo guardes en localStorage o en el formulario)
+                        const telefonoUsuario = localStorage.getItem('telefono_usuario') || ''; 
+                        const mensajeTexto = `Tu mantenimiento solicitado #${idSolicitud} programado para las ${horaSel} ha sido confirmado con éxito.`;
+
+                        if (telefonoUsuario) {
+                            // Petición asincrónica a tu Edge Function de Supabase para disparar el SMS
+                            fetch("https://tu-proyecto.supabase.co/functions/v1/enviar-sms", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    // "Authorization": `Bearer ${client.supabaseKey}` // O tu clave anon correspondiente si aplica
+                                },
+                                body: JSON.stringify({
+                                    telefono: telefonoUsuario,
+                                    mensaje: mensajeTexto
+                                })
+                            })
+                            .then(res => res.json())
+                            .then(data => console.log("SMS programado/enviado con éxito:", data))
+                            .catch(err => console.error("Error en petición asincrónica de SMS:", err));
+                        }
+                        // ---------------------------------------------
+
                     } catch (err) {
                         console.error("Error al procesar la suscripción push:", err);
                     }
