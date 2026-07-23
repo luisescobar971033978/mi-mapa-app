@@ -51,7 +51,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const { data: ocupados } = await client.from('solicitudes').select('solicitud_id, fecha_solicitud, hora_solicitud').in('fecha_solicitud', dias.map(d => d.fecha));
 
     tableBody.innerHTML = '';
-    const horasDisponibles = ["08:00", "09:30", "11:00", "13:45", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "19:30", "20:00", "20:30", "21:00", "21:30"];
+    const horasDisponibles = ["08:00", "09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "16:00", "17:00", "18:00", "12:10", "12:20", "12:30", "12:40", "12:50", "13:00", "13:10"];
 
     horasDisponibles.forEach(horaStr => {
         const row = document.createElement('tr');
@@ -135,18 +135,17 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
                             console.log("¡Suscripción push guardada exitosamente en Supabase!");
                         }
 
-                        // --- NUEVO: LLAMADA ASINCRÓNICA PARA EL SMS ---
-                        // Obtenemos el teléfono del usuario (puedes adaptarlo según cómo lo guardes en localStorage o en el formulario)
+                        // --- LLAMADA ASINCRÓNICA PARA EL SMS ---
                         const telefonoUsuario = localStorage.getItem('telefono_usuario') || ''; 
                         const mensajeTexto = `Tu mantenimiento solicitado #${idSolicitud} programado para las ${horaSel} ha sido confirmado con éxito.`;
 
                         if (telefonoUsuario) {
-                            // Petición asincrónica a tu Edge Function de Supabase para disparar el SMS
-                            fetch("https://tu-proyecto.supabase.co/functions/v1/enviar-sms", {
+                            // Petición a la Edge Function de Supabase para disparar el SMS
+                            fetch("https://kcxkadqdhojrnfepkgfk.supabase.co/functions/v1/enviar-sms", {
                                 method: "POST",
                                 headers: {
                                     "Content-Type": "application/json",
-                                    // "Authorization": `Bearer ${client.supabaseKey}` // O tu clave anon correspondiente si aplica
+                                    "Authorization": `Bearer ${client.supabaseKey}`
                                 },
                                 body: JSON.stringify({
                                     telefono: telefonoUsuario,
