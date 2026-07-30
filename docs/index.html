@@ -48,14 +48,11 @@
                 <span class="text-3xl" title="Finalizar ciclo">🚪</span>
             </div>
 
-            <!-- Encabezado con distribución estructurada para evitar solapamientos -->
-            <div class="flex items-center justify-between mb-6 mt-2 relative">
-                <div class="w-10"></div> <!-- Espaciador izquierdo para equilibrar -->
-                <div class="flex flex-col items-center">
-                    <img src="imagen 3d.png" alt="Logotipo Empresa" class="w-12 h-12 md:w-14 md:h-14 object-contain logo-giratorio mb-1">
-                    <h2 class="text-xl md:text-2xl font-bold text-teal-900 text-center">PROGRAME SU SERVICIO</h2>
-                </div>
-                <div class="cursor-pointer text-2xl w-10 flex justify-end" 
+            <!-- Cabecera unificada en una sola línea centrada -->
+            <div class="flex items-center justify-center gap-2 mb-6 mt-2">
+                <img src="logo_3d.png" alt="Logotipo Empresa" class="w-10 h-10 md:w-12 md:h-12 object-contain logo-giratorio flex-shrink-0">
+                <h2 class="text-lg md:text-xl font-bold text-teal-900 text-center tracking-tight">PROGRAME SU SERVICIO</h2>
+                <div class="cursor-pointer text-xl flex-shrink-0 ml-1" 
                      onclick="mostrarModal('¿Cómo funciona?', '1. Llene sus datos\n2. Seleccione el servicio\n3. Presione Solicitar\n4. Marque su ubicación en el mapa')">
                     ℹ️
                 </div>
@@ -197,7 +194,7 @@
         const servicioFinalizado = localStorage.getItem('servicio_finalizado');
         if (servicioFinalizado === 'true') {
             document.getElementById('btnCerrar').classList.remove('hidden');
-            mostrarModal("Servicio Finalizado", "El servicio ha concluido. Presione la puerta (🚪) para CERRAR SESION e iniciar otra Solicitud.");
+            mostrarModal("Servicio Finalizado", "El servicio ha concluido. Presione la puerta (🚪) para CERRAR SESION e Iniciar otro Servicio.");
             return;
         }
 
