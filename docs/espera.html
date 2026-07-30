@@ -14,10 +14,10 @@
         <h2 class="text-xl font-bold">Buscando Técnico y Unidad Movil Cercana...</h2>
         <p class="mt-2 text-teal-200 text-sm">Su solicitud ha sido enviada con éxito.</p>
         
-        <!-- Mensaje de trazabilidad adaptado para celulares -->
+        <!-- Mensaje corregido sin caracteres erróneos -->
         <div class="bg-black/20 backdrop-blur-md rounded-xl p-3 my-3 text-center border border-white/10 shadow-lg text-xs leading-relaxed w-full">
             <p>
-                ¡Hola Estimad@ <span id="lbl-nombre" class="font-semibold">Cliente</span>, informarle que su Solicitud #-<span id="lbl-id" class="font-semibold">...</span>, para el servicio: "<span id="lbl-comentario" class="font-semibold">...</span>", agendado para las <span id="lbl-hora" class="font-semibold">...</span>, con fecha: <span id="lbl-fecha" class="font-semibold">...</span>, se encuentra en proceso: <span id="lbl-respuesta" class="font-semibold">pendiente</span>. Por favor para cualquier cambio o eventualidad comunicarse con el Número: <span class="font-semibold">73694080</span> haciendoทะเบียน referencia al número de solicitud #-<span id="lbl-id-ref" class="font-semibold">...</span>!
+                ¡Hola Estimad@ <span id="lbl-nombre" class="font-semibold">Cliente</span>, informarle que su Solicitud #-<span id="lbl-id" class="font-semibold">...</span>, para el servicio: "<span id="lbl-comentario" class="font-semibold">...</span>", agendado para las <span id="lbl-hora" class="font-semibold">...</span>, con fecha: <span id="lbl-fecha" class="font-semibold">...</span>, se encuentra en PROCESO. Por favor para cualquier REPROGRAMACION comunicarse con el Número: <span class="font-semibold">73694080</span> haciendo referencia al número de solicitud #-<span id="lbl-id-ref" class="font-semibold">...</span>!
             </p>
         </div>
 
@@ -36,7 +36,6 @@
     const idSolicitud = localStorage.getItem('id_solicitud');
     console.log("ESPERANDO ID:", idSolicitud);
 
-    // --- CARGA DE DATOS DINÁMICOS USANDO nombre_usuario ---
     async function cargarDatosTrazabilidad(id) {
         if (!id) return;
         const { data } = await client
@@ -56,7 +55,6 @@
         }
     }
 
-    // --- MEJORA: Verificación de estado activa al volver a primer plano ---
     async function verificarEstadoActual() {
         if (!idSolicitud) return;
         
@@ -90,13 +88,9 @@
             return;
         }
 
-        // Cargar los datos de trazabilidad estéticos en pantalla
         cargarDatosTrazabilidad(idSolicitud);
-
-        // Verificación inicial al cargar
         verificarEstadoActual();
 
-        // Mantenemos tu suscripción original intacta
         client.channel('any_channel')
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitudes' }, (payload) => {
             console.log("EVENTO RECIBIDO:", payload.new);
