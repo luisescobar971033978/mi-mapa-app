@@ -13,6 +13,14 @@
         <div class="text-6xl mb-4">⏳</div>
         <h2 class="text-2xl font-bold">Buscando Técnico y Unidad Movil Cercana...</h2>
         <p class="mt-2 text-teal-200">Su solicitud ha sido enviada con éxito.</p>
+        
+        <!-- Mensaje de trazabilidad integrado entre los dos textos -->
+        <div class="bg-black/20 backdrop-blur-md rounded-xl p-4 my-3 text-center border border-white/10 shadow-lg text-sm leading-relaxed max-w-lg">
+            <p>
+                ¡Hola Estimad@ <span id="lbl-nombre" class="font-semibold">...</span>, informarle que su Solicitud #-<span id="lbl-id" class="font-semibold">...</span>, para el servicio: "<span id="lbl-comentario" class="font-semibold">...</span>", agendado para las <span id="lbl-hora" class="font-semibold">...</span>, con fecha: <span id="lbl-fecha" class="font-semibold">...</span>, se encuentra en proceso: <span id="lbl-respuesta" class="font-semibold">...</span>. Por favor para cualquier cambio o eventualidad comunicarse con el Número: <span class="font-semibold">73694080</span> haciendo referencia al número de solicitud #-<span id="lbl-id-ref" class="font-semibold">...</span>!
+            </p>
+        </div>
+
         <p class="text-sm text-teal-300 mt-1">Por favor, no cierre esta ventana.</p>
     </div>
 
@@ -27,6 +35,26 @@
     
     const idSolicitud = localStorage.getItem('id_solicitud');
     console.log("ESPERANDO ID:", idSolicitud);
+
+    // --- MEJORA ESTÉTICA: Carga de datos dinámicos de la solicitud ---
+    async function cargarDatosTrazabilidad(id) {
+        if (!id) return;
+        const { data } = await client
+            .from('solicitudes')
+            .select('*')
+            .eq('solicitud_id', parseInt(id))
+            .maybeSingle();
+
+        if (data) {
+            document.getElementById('lbl-nombre').textContent = data.nombre_solicitud || 'Cliente';
+            document.getElementById('lbl-id').textContent = data.solicitud_id || id;
+            document.getElementById('lbl-id-ref').textContent = data.solicitud_id || id;
+            document.getElementById('lbl-comentario').textContent = data.comentario_solicitud || 'Servicio técnico';
+            document.getElementById('lbl-hora').textContent = data.hora_solicitud || '--:--';
+            document.getElementById('lbl-fecha').textContent = data.fecha_solicitud || '----/--/--';
+            document.getElementById('lbl-respuesta').textContent = data.respuesta_solicitud || 'pendiente';
+        }
+    }
 
     // --- MEJORA: Verificación de estado activa al volver a primer plano ---
     async function verificarEstadoActual() {
@@ -62,6 +90,9 @@
             return;
         }
 
+        // Cargar los datos de trazabilidad estéticos en pantalla
+        cargarDatosTrazabilidad(idSolicitud);
+
         // Verificación inicial al cargar
         verificarEstadoActual();
 
@@ -74,6 +105,11 @@
             const idEsperado = String(idSolicitud);
             
             if (idBD === idEsperado) {
+                // Actualizar visualmente la respuesta si cambia en tiempo real
+                if (payload.new.respuesta_solicitud) {
+                    document.getElementById('lbl-respuesta').textContent = payload.new.respuesta_solicitud;
+                }
+
                 if (payload.new.respuesta_solicitud === 'aceptado') {
                     window.location.href = `mapa_usuario.html?id=${idSolicitud}`;
                 }
