@@ -101,7 +101,7 @@
                 window.location.href = `mapa_tecnico.html?id=${servicioPendiente}`;
             } else {
                 cargarSolicitudes();
-                // Actualizar la evaluación de temperatura en tiempo real cada 30 segundos
+                // Actualizar automáticamente cada 30 segundos para reflejar la escala de temperatura en tiempo real
                 setInterval(cargarSolicitudes, 30000);
             }
         }
@@ -163,13 +163,13 @@
             return; 
         }
         
-        // Obtener la hora actual exacta ajustada a Bolivia (-4 horas)
+        // Hora actual exacta calculada con desfase de Bolivia (-4 horas) para que coincida con la hora local de las tarjetas
         const ahora = new Date();
         const offsetBolivia = -4 * 60 * 60 * 1000;
         const fechaBolivia = new Date(ahora.getTime() + offsetBolivia);
         const fechaActualStr = fechaBolivia.toISOString().split('T')[0];
         const minutosActualesTotales = fechaBolivia.getHours() * 60 + fechaBolivia.getMinutes();
-        
+
         lista.innerHTML = "";
         data.forEach(s => {
             const fecha = s.fecha_solicitud || 'N/A';
@@ -178,21 +178,23 @@
             // Color por defecto blanco
             let colorClaseCard = "bg-white";
 
-            // Evaluar la escala de temperatura de forma específica para cada servicio en tiempo real
+            // Evaluamos la escala de temperatura de forma estricta por cada servicio y en tiempo real
             if (fecha === fechaActualStr && s.hora_solicitud) {
                 const [hSol, mSol] = hora.split(':').map(Number);
                 const minutosSolicitudTotales = hSol * 60 + mSol;
+                
+                // Calculamos cuánto falta para la hora de la solicitud (Hora Solicitud - Hora Actual)
                 const diferenciaMinutos = minutosSolicitudTotales - minutosActualesTotales;
 
-                // 30 minutos o menos para la hora_solicitud (o pasado/en curso dentro del rango) -> Rojo claro
+                // 1. Rojo claro: Próximo en 30 minutos o menos (incluye si ya pasó o está en curso)
                 if (diferenciaMinutos <= 30 && diferenciaMinutos >= -120) {
                     colorClaseCard = "bg-red-100 border-red-400";
                 } 
-                // Entre 31 y 45 minutos para la hora_solicitud -> Naranja
+                // 2. Naranja: Próximo en más de 30 y hasta 45 minutos
                 else if (diferenciaMinutos > 30 && diferenciaMinutos <= 45) {
                     colorClaseCard = "bg-orange-100 border-orange-400";
                 } 
-                // Entre 46 y 60 minutos para la hora_solicitud -> Amarillo
+                // 3. Amarillo: Próximo en más de 45 y hasta 60 minutos
                 else if (diferenciaMinutos > 45 && diferenciaMinutos <= 60) {
                     colorClaseCard = "bg-yellow-100 border-yellow-400";
                 }
