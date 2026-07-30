@@ -1,397 +1,219 @@
 <!DOCTYPE html>
-
 <html lang="es">
-
 <head>
-
     <meta charset="UTF-8">
-
     <title>PROGRAME SU SERVICIO</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <style>
-
         .form-container { position: relative; background-color: rgba(255, 255, 255, 0.95); overflow: hidden; }
-
         .watermark { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('logo_1.jpeg'); background-repeat: no-repeat; background-position: center; background-size: contain; opacity: 0.1; z-index: 0; pointer-events: none; }
-
         .content-layer { position: relative; z-index: 10; }
+        
+        /* Animación para el giro 3D sobre el eje vertical */
+        @keyframes girar3D {
+            0% {
+                transform: perspective(600px) rotateY(0deg);
+            }
+            100% {
+                transform: perspective(600px) rotateY(360deg);
+            }
+        }
+
+        .logo-giratorio {
+            animation: girar3D 4s linear infinite;
+            transform-style: preserve-3d;
+        }
 
         /* Mejora responsiva para la tabla en móviles */
-
        @media (max-width: 480px) {
-
         .tabla-agenda { 
-
             font-size: 8px !important; 
-
             table-layout: fixed; /* Fuerza a que las columnas tengan el mismo ancho */
-
         }
-
         .tabla-agenda th, .tabla-agenda td { 
-
             padding: 2px 1px !important; 
-
             overflow: hidden;
-
             white-space: nowrap; /* Evita que el texto se salte de línea */
-
         }
-
     }
-
     </style>
-
 </head>
-
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-
     <div class="w-[98%] md:max-w-md bg-white p-6 md:p-8 rounded-2xl shadow-xl form-container">
-
         <div class="watermark"></div>
-
         
-
         <div class="content-layer">
-
             <div id="btnCerrar" class="hidden absolute top-4 left-4 cursor-pointer" onclick="cerrarSesion()">
-
                 <span class="text-3xl" title="Finalizar ciclo">🚪</span>
-
             </div>
-
-
 
             <div class="absolute top-4 right-4 cursor-pointer" 
-
                  onclick="mostrarModal('¿Cómo funciona?', '1. Llene sus datos\n2. Seleccione el servicio\n3. Presione Solicitar\n4. Marque su ubicación en el mapa')">
-
                 <span class="text-2xl">ℹ️</span>
-
             </div>
 
-
-
-            <h2 class="text-2xl font-bold text-teal-900 mb-6 text-center">PROGRAME SU SERVICIO</h2>
-
+            <!-- Encabezado con Logotipo 3D Giratorio -->
+            <div class="flex items-center justify-center gap-3 mb-6 mt-2">
+                <img src="imagen 3d.png" alt="Logotipo Empresa" class="w-12 h-12 md:w-14 md:h-14 object-contain logo-giratorio">
+                <h2 class="text-2xl font-bold text-teal-900 text-center">PROGRAME SU SERVICIO</h2>
+            </div>
             
-
             <form id="solicitudForm" class="space-y-4">
-
                 <input type="text" id="nombre" placeholder="Por favor colocar, Nombre del Contacto" class="w-full p-3 border rounded-lg" required>
-
                 <input type="number" id="celular" placeholder="Escriba el No. Celular del Contacto" class="w-full p-3 border rounded-lg" required>
-
                 <select id="opcion_servicio" class="w-full p-3 border rounded-lg" required onchange="verificarOtro()">
-
                     <option value="">SELECCIONE SU PROBLEMA</option>
-
                     <option value="Otro">Otro, describa su problema</option>
-
                     <option value="Fumigación contra El dengue y chikungunya">Fumigación contra El dengue y chikungunya</option>
-
                     <option value="Desbrozado de entrada, patios y Jardines">Desbrozado de entrada, patios y Jardines</option>
-
                     <option value="Problemas de Plomería">Problemas de Plomería</option>
-
                     <option value="Fuga de Agua">Fuga de Agua</option>
-
                     <option value="Tuberías trancadas del drenaje sanitario y de lluvias">Tuberías trancadas del drenaje sanitario y de lluvias</option>
-
                     <option value="Mi Ducha Eléctrica NO funciona">Mi Ducha Eléctrica NO funciona</option>
-
                     <option value="Interruptor / Tomacorriente NO funciona">Interruptor / Tomacorriente NO funciona</option>
-
                     <option value="Requiero Solución definitiva para GOTERAS">Requiero Solución definitiva para GOTERAS</option>
-
                     <option value="Mantenimiento de AIRE ACONDICIONADO">Mantenimiento de AIRE ACONDICIONADO</option>
-
                     <option value="Instalación de AIRE ACONDICIONADO">Instalación de AIRE ACONDICIONADO</option>
-
                     <option value="Servicio control de Humedad en Paredes">Servicio control de Humedad en Paredes</option>
-
                     <option value="Retoques de pintura en Fachada, Puertas de Acceso, Etc.">Retoques de pintura en Fachada, Puertas de Acceso, Etc.</option>
-
                     <option value="Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)">Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)</option>
-
                     <option value="Necesito aplicar veneno para los Sepes">Necesito aplicar veneno para los Sepes</option>
-
                     <option value="Remodelación de Vivienda y Oficinas">Remodelación de Vivienda y Oficinas</option>
-
                     <option value="Ampliación de Vivienda y Oficinas">Ampliación de Vivienda y Oficinas</option>
-
                 </select>
-
                 <div id="otroCampo" class="hidden"><textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg"></textarea></div>
-
                 
-
                 <!-- Contenedor del Calendario -->
-
                 <div class="mt-4 mb-6">
-
     <label class="block text-sm font-bold text-teal-900 mb-2">SELECCIONE FECHA Y HORA:</label>
-
-    <<div class="overflow-x-auto w-full -mx-2 md:mx-0">
-
+    <div class="overflow-x-auto w-full -mx-2 md:mx-0">
     <table class="w-full text-[8px] md:text-xs text-center border-collapse border border-gray-300 tabla-agenda" id="tablaAgenda">
-
             <thead class="bg-teal-100">
-
     <tr>
-
         <th class="p-1 border">Hora</th>
-
         <!-- Estas celdas se llenarán dinámicamente con JS -->
-
         <th class="p-1 border" id="head-0">LUN</th>
-
         <th class="p-1 border" id="head-1">MAR</th>
-
         <th class="p-1 border" id="head-2">MIÉ</th>
-
         <th class="p-1 border" id="head-3">JUE</th>
-
         <th class="p-1 border" id="head-4">VIE</th>
-
         <th class="p-1 border" id="head-5">SÁB</th>
-
         <th class="p-1 border" id="head-6">DOM</th>
-
     </tr>
-
 </thead>
-
-            <tbody id="cuerpoAgenda">
-
+        <tbody id="cuerpoAgenda">
                 <!-- Las filas y celdas se generarán o se llenarán aquí -->
-
             </tbody>
-
         </table>
-
     </div>
-
     <input type="hidden" id="fecha_seleccion" required>
-
     <input type="hidden" id="hora_seleccionada" required>
-
 </div>
 
-
-
                 <button type="submit" id="btnSolicitar" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold">SOLICITAR SERVICIO</button>
-
             </form>
 
-
-
             <a href="https://wa.me/59173694080?text=Hola,%20deseo%20solicitar%20una%20cotización%20o%20inspección%20para%20un%20servicio%20en%20mi%20hogar." 
-
                target="_blank" 
-
                class="w-full flex items-center justify-center bg-[#25D366] text-white p-4 rounded-xl font-bold shadow-lg mt-4 hover:bg-[#128C7E] transition-colors">
-
                <span class="mr-2">💬</span> Contactar por WhatsApp
-
             </a>
-
         </div>
-
     </div>
-
-
 
     <div id="modalApp" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[2000]">
-
         <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm text-center">
-
             <h3 id="modalTitulo" class="font-bold text-xl mb-2 text-teal-900">Mensaje</h3>
-
             <p id="modalTexto" class="text-gray-700 mb-6"></p>
-
             <button id="modalBtn" onclick="cerrarModal()" class="w-full bg-teal-800 text-white p-3 rounded-xl font-bold">Aceptar</button>
-
         </div>
-
     </div>
-
 <script type="module">
-
     import { inicializarAgenda } from './agenda.js';
-
     const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
-
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
-
     const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-
-
     // Inicializar agenda
-
     inicializarAgenda(client, 'tablaAgenda', 'fecha_seleccion', 'hora_seleccionada', 'btnSolicitar');
 
-
-
     function cerrarSesion() {
-
         localStorage.clear();
-
         location.reload();
-
     }
-
-
 
     function mostrarModal(titulo, texto, accion = null) {
-
         document.getElementById('modalTitulo').innerText = titulo;
-
         document.getElementById('modalTexto').innerText = texto;
-
         window.accionPostModal = accion;
-
         document.getElementById('modalApp').classList.remove('hidden');
-
     }
-
     
-
     function cerrarModal() {
-
         document.getElementById('modalApp').classList.add('hidden');
-
         if (window.accionPostModal) window.accionPostModal();
-
     }
-
     
-
     window.cerrarSesion = cerrarSesion;
-
     window.mostrarModal = mostrarModal;
-
     window.cerrarModal = cerrarModal;
-
     window.verificarOtro = () => document.getElementById('otroCampo').classList.toggle('hidden', document.getElementById('opcion_servicio').value !== 'Otro');
 
-
-
     document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
-
         e.preventDefault();
-
         
-
         // CORRECCIÓN: Definir el botón aquí para poder manipularlo
-
         const btnSubmit = document.getElementById('btnSolicitar');
-
         btnSubmit.innerText = "SOLICITANDO...";
-
         btnSubmit.className = "w-full bg-orange-500 text-white p-4 rounded-xl font-bold";
-
         btnSubmit.disabled = true;
 
-
-
         const { data, error } = await client.from('solicitudes').insert([{ 
-
             nombre_usuario: document.getElementById('nombre').value, 
-
             celular_contacto: document.getElementById('celular').value, 
-
             comentario_solicitud: (document.getElementById('opcion_servicio').value === 'Otro') ? document.getElementById('descripcion').value : document.getElementById('opcion_servicio').value,
-
             fecha_solicitud: document.getElementById('fecha_seleccion').value,
-
             hora_solicitud: document.getElementById('hora_seleccionada').value + ':00',
-
             respuesta_solicitud: 'iniciando'
-
         }]).select();
-
                 
-
         if (error) { 
-
             mostrarModal("Error", error.message);
-
             btnSubmit.innerText = "SOLICITAR SERVICIO";
-
             btnSubmit.className = "w-full bg-teal-800 text-white p-4 rounded-xl font-bold";
-
             btnSubmit.disabled = false;
-
         } else {
-
             localStorage.setItem('id_solicitud', data[0].solicitud_id);
-
             mostrarModal("¡Éxito!", "Presione Aceptar para marcar su ubicación y recibir un mensaje recordatorio con 30 minutos de anticipación del Servicio solicitado. ¡Gracias por favor mantenga la aplicación abierta!", () => { 
-
                 window.location.href = 'mapa.html'; 
-
             });
-
         }
-
     });
 
-
-
     window.onload = async function() {
-
         const servicioFinalizado = localStorage.getItem('servicio_finalizado');
-
         if (servicioFinalizado === 'true') {
-
             document.getElementById('btnCerrar').classList.remove('hidden');
-
             mostrarModal("Servicio Finalizado", "El servicio ha concluido. Presione la puerta (🚪) para iniciar otro.");
-
             return;
-
         }
-
-
 
         const idSolicitud = localStorage.getItem('id_solicitud');
-
         if (idSolicitud) {
-
             const { data } = await client.from('solicitudes').select('respuesta_solicitud').eq('solicitud_id', parseInt(idSolicitud)).maybeSingle();
-
             if (data) {
-
                 if (data.respuesta_solicitud === 'iniciando' || data.respuesta_solicitud === 'pendiente') {
-
                     window.location.href = 'espera.html';
-
                 } else if (data.respuesta_solicitud === 'aceptado') {
-
                     window.location.href = `mapa_usuario.html?id=${idSolicitud}`;
-
                 }
-
             } else {
-
                 localStorage.removeItem('id_solicitud');
-
             }
-
         }
-
     };
-
 </script>
-
     
-
 </body>
-
 </html>
