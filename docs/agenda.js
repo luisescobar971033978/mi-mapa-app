@@ -21,7 +21,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const offsetBolivia = -4 * 60 * 60 * 1000;
     const fechaBolivia = new Date(ahora.getTime() + offsetBolivia);
     const fechaActual = fechaBolivia.toISOString().split('T')[0];
-    const horaActual = ahora.getHours();
+    const horaActualMinutos = ahora.getHours() * 60 + ahora.getMinutes();
 
     btnSubmit.disabled = true;
 
@@ -48,7 +48,34 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         document.getElementById(`head-${i}`).innerHTML = label;
     }
 
-    const { data: ocupados } = await client.from('solicitudes').select('solicitud_id, fecha_solicitud, hora_solicitud').in('fecha_solicitud', dias.map(d => d.fecha));
+    // Consultamos todas las solicitudes de los días correspondientes trayendo su estado y hora
+    const { data: solicitudesBD } = await client
+        .from('solicitudes')
+        .select('solicitud_id, fecha_solicitud, hora_solicitud, respuesta_solicitud')
+        .in('fecha_solicitud', dias.map(d => d.fecha));
+
+    // Lógica complementaria: Filtrar o ignorar ocupaciones si el servicio está "finalizado"
+    // pero la tarea se ejecuta antes del horario programado (la hora actual es menor a la hora_solicitud del mismo día).
+    const ocupados = (solicitudesBD || []).filter(o => {
+        if (o.respuesta_solicitud !== 'finalizado') {
+            return true; // Sigue ocupado si no está finalizado
+        }
+        // Si está finalizado, evaluamos si el trabajo se realizó antes del horario previsto
+        const horaSolStr = o.hora_solicitud ? o.hora_solicitud.substring(0, 5) : "00:00";
+        const [hSol, mSol] = horaSolStr.split(':').map(Number);
+        const minutosSolicitud = hSol * 60 + mSol;
+
+        // Si la fecha de la solicitud es posterior a hoy, o si es hoy pero aún no llega la hora programada
+        if (o.fecha_solicitud > fechaActual) {
+            return true; 
+        }
+        if (o.fecha_solicitud === fechaActual && horaActualMinutos < minutosSolicitud) {
+            // El trabajo se ejecutó antes del horario programado: se considera LIBRE
+            return false;
+        }
+        // De lo contrario, se mantiene como finalizado/ocupado
+        return true;
+    });
 
     tableBody.innerHTML = '';
     const horasDisponibles = ["08:00", "09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "16:00", "17:00", "18:00", "19:10", "19:20", "19:30", "19:40", "19:50", "20:00", "20:10"];
@@ -69,7 +96,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
             const horaCompletaCelda = h + (m / 60);
             
             const esPasado = (dia.fecha === fechaActual && horaCompletaCelda <= horaCompletaActual) || (dia.fecha < fechaActual);
-            const ocupado = ocupados?.find(o => o.fecha_solicitud === dia.fecha && o.hora_solicitud.substring(0, 5) === horaStr);
+            const ocupado = ocupados.find(o => o.fecha_solicitud === dia.fecha && o.hora_solicitud.substring(0, 5) === horaStr);
 
             if (ocupado) {
                 td.classList.add('bg-green-500', 'text-white');
