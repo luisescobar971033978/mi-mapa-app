@@ -101,6 +101,8 @@
                 window.location.href = `mapa_tecnico.html?id=${servicioPendiente}`;
             } else {
                 cargarSolicitudes();
+                // Actualizar la evaluación de temperatura en tiempo real cada 30 segundos
+                setInterval(cargarSolicitudes, 30000);
             }
         }
     };
@@ -161,13 +163,43 @@
             return; 
         }
         
+        // Obtener la hora actual exacta ajustada a Bolivia (-4 horas)
+        const ahora = new Date();
+        const offsetBolivia = -4 * 60 * 60 * 1000;
+        const fechaBolivia = new Date(ahora.getTime() + offsetBolivia);
+        const fechaActualStr = fechaBolivia.toISOString().split('T')[0];
+        const minutosActualesTotales = fechaBolivia.getHours() * 60 + fechaBolivia.getMinutes();
+        
         lista.innerHTML = "";
         data.forEach(s => {
             const fecha = s.fecha_solicitud || 'N/A';
             const hora = s.hora_solicitud ? s.hora_solicitud.substring(0, 5) : 'N/A';
 
+            // Color por defecto blanco
+            let colorClaseCard = "bg-white";
+
+            // Evaluar la escala de temperatura de forma específica para cada servicio en tiempo real
+            if (fecha === fechaActualStr && s.hora_solicitud) {
+                const [hSol, mSol] = hora.split(':').map(Number);
+                const minutosSolicitudTotales = hSol * 60 + mSol;
+                const diferenciaMinutos = minutosSolicitudTotales - minutosActualesTotales;
+
+                // 30 minutos o menos para la hora_solicitud (o pasado/en curso dentro del rango) -> Rojo claro
+                if (diferenciaMinutos <= 30 && diferenciaMinutos >= -120) {
+                    colorClaseCard = "bg-red-100 border-red-400";
+                } 
+                // Entre 31 y 45 minutos para la hora_solicitud -> Naranja
+                else if (diferenciaMinutos > 30 && diferenciaMinutos <= 45) {
+                    colorClaseCard = "bg-orange-100 border-orange-400";
+                } 
+                // Entre 46 y 60 minutos para la hora_solicitud -> Amarillo
+                else if (diferenciaMinutos > 45 && diferenciaMinutos <= 60) {
+                    colorClaseCard = "bg-yellow-100 border-yellow-400";
+                }
+            }
+
             lista.innerHTML += `
-            <div class="bg-white p-4 rounded-lg shadow-md border-l-4 border-teal-800 mb-4">
+            <div class="${colorClaseCard} p-4 rounded-lg shadow-md border-l-4 border-teal-800 mb-4 transition-colors">
                 <h3 class="font-bold text-lg">${s.comentario_solicitud || 'Sin comentario'}</h3>
                 <p class="text-sm text-gray-600 mb-3"><strong>Cliente:</strong> ${s.nombre_usuario || 'Anónimo'}</p>
                 <div class="flex items-center justify-between text-xs text-gray-500 mb-4 px-1">
