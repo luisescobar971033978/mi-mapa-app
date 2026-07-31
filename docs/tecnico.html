@@ -161,11 +161,14 @@
             return; 
         }
         
+        // Tomamos la fecha y hora local exacta del dispositivo
         const ahora = new Date();
-        const offsetBolivia = -4 * 60 * 60 * 1000;
-        const fechaBolivia = new Date(ahora.getTime() + offsetBolivia);
-        const fechaActualStr = fechaBolivia.toISOString().split('T')[0];
-        const minutosActualesTotales = fechaBolivia.getHours() * 60 + fechaBolivia.getMinutes();
+        const anio = ahora.getFullYear();
+        const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+        const dia = String(ahora.getDate()).padStart(2, '0');
+        const fechaActualStr = `${anio}-${mes}-${dia}`;
+        
+        const minutosActualesTotales = ahora.getHours() * 60 + ahora.getMinutes();
 
         lista.innerHTML = "";
         data.forEach(s => {
@@ -180,13 +183,13 @@
                 const diferenciaMinutos = minutosSolicitudTotales - minutosActualesTotales;
 
                 if (diferenciaMinutos >= 0 && diferenciaMinutos <= 30) {
-                    estiloCard = "background-color: #fee2e2 !important; border-color: #f87171 !important;";
+                    estiloCard = "background-color: #fee2e2 !important; border-color: #f87171 !important;"; // Rojo claro
                 } 
                 else if (diferenciaMinutos > 30 && diferenciaMinutos <= 45) {
-                    estiloCard = "background-color: #ffedd5 !important; border-color: #fb923c !important;";
+                    estiloCard = "background-color: #ffedd5 !important; border-color: #fb923c !important;"; // Naranja
                 } 
                 else if (diferenciaMinutos > 45 && diferenciaMinutos <= 60) {
-                    estiloCard = "background-color: #fef9c3 !important; border-color: #facc15 !important;";
+                    estiloCard = "background-color: #fef9c3 !important; border-color: #facc15 !important;"; // Amarillo
                 }
             }
 
@@ -209,14 +212,13 @@
         
     async function confirmar(id) {
         localStorage.setItem('solicitudId_activo', id);
-        // Obtenemos la hora actual en formato HH:mm:ss
         const ahora = new Date().toTimeString().split(' ')[0];
         try {
             const { error } = await client.from('solicitudes').update({ 
                 respuesta_solicitud: 'aceptado',
                 id_tecnico: localStorage.getItem('tecnico'),
                 movil_id: localStorage.getItem('movil'),
-                hora_contacto: ahora // <--- Línea añadida para recuperar el dato en Supabase
+                hora_contacto: ahora 
             }).eq('solicitud_id', id);
 
             if (error) throw error;
