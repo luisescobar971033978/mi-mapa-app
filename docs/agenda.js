@@ -20,7 +20,16 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const ahora = new Date();
     const offsetBolivia = -4 * 60 * 60 * 1000;
     const fechaBolivia = new Date(ahora.getTime() + offsetBolivia);
-    const fechaActual = fechaBolivia.toISOString().split('T')[0];
+    
+    // Función auxiliar para obtener la fecha local exacta (YYYY-MM-DD) sin alteraciones de UTC
+    const obtenerFechaLocalStr = (fechaObj) => {
+        const anio = fechaObj.getFullYear();
+        const mes = String(fechaObj.getMonth() + 1).padStart(2, '0');
+        const dia = String(fechaObj.getDate()).padStart(2, '0');
+        return `${anio}-${mes}-${dia}`;
+    };
+
+    const fechaActual = obtenerFechaLocalStr(fechaBolivia);
     const horaActualMinutos = fechaBolivia.getHours() * 60 + fechaBolivia.getMinutes();
 
     btnSubmit.disabled = true;
@@ -36,13 +45,13 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         });
     }
 
-    // 2. Generar 7 días a partir de HOY (Base Bolivia)
+    // 2. Generar 7 días a partir de HOY (Base Bolivia) sin desfase UTC
     const dias = [];
     const nombresDias = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
     for (let i = 0; i < 7; i++) {
         const d = new Date(fechaBolivia.getTime()); 
         d.setDate(d.getDate() + i);
-        const fStr = d.toISOString().split('T')[0];
+        const fStr = obtenerFechaLocalStr(d);
         const label = `${nombresDias[d.getDay()]}<br><span class="text-[8px]">${d.getDate()}/${(d.getMonth() + 1)}</span>`;
         dias.push({ fecha: fStr, label: label });
         document.getElementById(`head-${i}`).innerHTML = label;
