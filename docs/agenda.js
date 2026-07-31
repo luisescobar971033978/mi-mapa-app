@@ -16,12 +16,12 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const horaHidden = document.getElementById(horaHiddenId);
     const btnSubmit = document.getElementById(btnSubmitId);
     
-    // Obtenemos fecha y hora local ajustada a Bolivia (-4 horas)
+    // Obtenemos fecha y hora local ajustada rígidamente a Bolivia (-4 horas) frente a UTC del servidor/entorno
     const ahora = new Date();
     const offsetBolivia = -4 * 60 * 60 * 1000;
     const fechaBolivia = new Date(ahora.getTime() + offsetBolivia);
     const fechaActual = fechaBolivia.toISOString().split('T')[0];
-    const horaActualMinutos = ahora.getHours() * 60 + ahora.getMinutes();
+    const horaActualMinutos = fechaBolivia.getHours() * 60 + fechaBolivia.getMinutes();
 
     btnSubmit.disabled = true;
 
@@ -36,7 +36,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         });
     }
 
-    // 2. Generar 7 días a partir de HOY
+    // 2. Generar 7 días a partir de HOY (Base Bolivia)
     const dias = [];
     const nombresDias = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
     for (let i = 0; i < 7; i++) {
@@ -55,7 +55,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         .in('fecha_solicitud', dias.map(d => d.fecha));
 
     // Lógica complementaria: Filtrar o ignorar ocupaciones si el servicio está "finalizado"
-    // pero la tarea se ejecuta antes del horario programado (la hora actual es menor a la hora_solicitud del mismo día).
+    // pero la tarea se ejecuta antes del horario programado (la hora actual de Bolivia es menor a la hora_solicitud del mismo día).
     const ocupados = (solicitudesBD || []).filter(o => {
         if (o.respuesta_solicitud !== 'finalizado') {
             return true; // Sigue ocupado si no está finalizado
@@ -65,7 +65,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         const [hSol, mSol] = horaSolStr.split(':').map(Number);
         const minutosSolicitud = hSol * 60 + mSol;
 
-        // Si la fecha de la solicitud es posterior a hoy, o si es hoy pero aún no llega la hora programada
+        // Si la fecha de la solicitud es posterior a hoy, o si es hoy pero aún no llega la hora programada en Bolivia
         if (o.fecha_solicitud > fechaActual) {
             return true; 
         }
@@ -92,9 +92,11 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
             td.className = "border p-1 text-[9px]";
             
             const [h, m] = horaStr.split(':').map(Number);
-            const horaCompletaActual = ahora.getHours() + (ahora.getMinutes() / 60);
+            // Sincronizado estrictamente con la hora calculada en Bolivia
+            const horaCompletaActual = fechaBolivia.getHours() + (fechaBolivia.getMinutes() / 60);
             const horaCompletaCelda = h + (m / 60);
             
+            // Corrección rigurosa: Bloquea automáticamente cualquier fecha pasada (ej. días anteriores) y horas transcurridas de hoy
             const esPasado = (dia.fecha === fechaActual && horaCompletaCelda <= horaCompletaActual) || (dia.fecha < fechaActual);
             const ocupado = ocupados.find(o => o.fecha_solicitud === dia.fecha && o.hora_solicitud.substring(0, 5) === horaStr);
 
