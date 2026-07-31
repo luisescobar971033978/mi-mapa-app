@@ -161,13 +161,7 @@
             return; 
         }
         
-        // Tomamos la fecha y hora local exacta del dispositivo
         const ahora = new Date();
-        const anio = ahora.getFullYear();
-        const mes = String(ahora.getMonth() + 1).padStart(2, '0');
-        const dia = String(ahora.getDate()).padStart(2, '0');
-        const fechaActualStr = `${anio}-${mes}-${dia}`;
-        
         const minutosActualesTotales = ahora.getHours() * 60 + ahora.getMinutes();
 
         lista.innerHTML = "";
@@ -177,10 +171,18 @@
 
             let estiloCard = "background-color: #ffffff !important; border-color: #cbd5e1 !important;";
 
-            if (fecha === fechaActualStr && s.hora_solicitud) {
+            if (s.hora_solicitud) {
                 const [hSol, mSol] = hora.split(':').map(Number);
                 const minutosSolicitudTotales = hSol * 60 + mSol;
-                const diferenciaMinutos = minutosSolicitudTotales - minutosActualesTotales;
+                
+                // Si la fecha en BD es de mañana (2026-07-31) pero la hora es 00:05 y hoy es tarde, 
+                // sumamos 1440 minutos (un día entero) para que la diferencia de tiempo se calcule bien de forma continua.
+                let ajusteFecha = 0;
+                if (fecha > ahora.toISOString().split('T')[0]) {
+                    ajusteFecha = 24 * 60; 
+                }
+
+                const diferenciaMinutos = (minutosSolicitudTotales + ajusteFecha) - minutosActualesTotales;
 
                 if (diferenciaMinutos >= 0 && diferenciaMinutos <= 30) {
                     estiloCard = "background-color: #fee2e2 !important; border-color: #f87171 !important;"; // Rojo claro
