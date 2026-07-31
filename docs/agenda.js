@@ -16,21 +16,19 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     const horaHidden = document.getElementById(horaHiddenId);
     const btnSubmit = document.getElementById(btnSubmitId);
     
-    // Obtenemos fecha y hora local ajustada rígidamente a Bolivia (-4 horas) frente a UTC del servidor/entorno
-    const ahora = new Date();
-    const offsetBolivia = -4 * 60 * 60 * 1000;
-    const fechaBolivia = new Date(ahora.getTime() + offsetBolivia);
+    // Obtener fecha y hora exacta de Bolivia de forma infalible mediante Intl
+    const opcionesFecha = { timeZone: 'America/La_Paz', year: 'numeric', month: '2-digit', day: '2-digit' };
+    const opcionesHora = { timeZone: 'America/La_Paz', hour: '2-digit', minute: '2-digit', hour12: false };
     
-    // Función auxiliar para obtener la fecha local exacta (YYYY-MM-DD) sin alteraciones de UTC
-    const obtenerFechaLocalStr = (fechaObj) => {
-        const anio = fechaObj.getFullYear();
-        const mes = String(fechaObj.getMonth() + 1).padStart(2, '0');
-        const dia = String(fechaObj.getDate()).padStart(2, '0');
-        return `${anio}-${mes}-${dia}`;
-    };
-
-    const fechaActual = obtenerFechaLocalStr(fechaBolivia);
-    const horaActualMinutos = fechaBolivia.getHours() * 60 + fechaBolivia.getMinutes();
+    const formatterFecha = new Intl.DateTimeFormat('en-CA', opcionesFecha); // Devuelve YYYY-MM-DD
+    const formatterHora = new Intl.DateTimeFormat('en-GB', opcionesHora);   // Devuelve HH:mm
+    
+    const ahoraDinamico = new Date();
+    const fechaActual = formatterFecha.format(ahoraDinamico);
+    const horaActualStr = formatterHora.format(ahoraDinamico);
+    
+    const [hActual, mActual] = horaActualStr.split(':').map(Number);
+    const horaActualMinutos = hActual * 60 + mActual;
 
     btnSubmit.disabled = true;
 
@@ -45,47 +43,53 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         });
     }
 
-    // 2. Generar 7 días a partir de HOY (Base Bolivia) sin desfase UTC
+    // 2. Generar 7 días a partir de HOY basados en Bolivia
     const dias = [];
     const nombresDias = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
+    
+    // Parseamos la fecha actual de Bolivia para los incrementos de días sin desfase
+    const [anioA, mesA, diaA] = fechaActual.split('-').map(Number);
+    const baseDate = new Date(anioA, mesA - 1, diaA);
+
     for (let i = 0; i < 7; i++) {
-        const d = new Date(fechaBolivia.getTime()); 
-        d.setDate(d.getDate() + i);
-        const fStr = obtenerFechaLocalStr(d);
+        const d = new Date(baseDate.getTime());
+        d.setDate(baseDate.getDate() + i);
+        
+        const fStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const label = `${nombresDias[d.getDay()]}<br><span class="text-[8px]">${d.getDate()}/${(d.getMonth() + 1)}</span>`;
         dias.push({ fecha: fStr, label: label });
-        document.getElementById(`head-${i}`).innerHTML = label;
+        
+        const headElement = document.getElementById(`head-${i}`);
+        if (headElement) headElement.innerHTML = label;
     }
 
-    // Consultamos todas las solicitudes de los días correspondientes trayendo su estado y hora
+    // Consultamos todas las solicitudes de los días correspondientes
     const { data: solicitudesBD } = await client
         .from('solicitudes')
         .select('solicitud_id, fecha_solicitud, hora_solicitud, respuesta_solicitud')
         .in('fecha_solicitud', dias.map(d => d.fecha));
 
-    // Lógica complementaria: Filtrar o ignorar ocupaciones si el servicio está "finalizado"
-    // y la tarea se ejecutó antes del horario programado para el día actual.
+    // Lógica de filtrado de ocupados con validación estricta de tareas finalizadas antes de tiempo
     const ocupados = (solicitudesBD || []).filter(o => {
-        if (o.respuesta_solicitud !== 'finalizado') {
+        if (!o.respuesta_solicitud || o.respuesta_solicitud.toLowerCase() !== 'finalizado') {
             return true; // Sigue ocupado si no está finalizado
         }
 
-        // Si la solicitud pertenece a una fecha distinta al día actual, se mantiene ocupada
+        // Si es de otra fecha, se mantiene ocupado/finalizado
         if (o.fecha_solicitud !== fechaActual) {
             return true; 
         }
 
-        // Si está finalizado y es para hoy, evaluamos si se hizo antes de la hora programada
+        // Evaluamos si el trabajo se realizó antes del horario previsto hoy
         const horaSolStr = o.hora_solicitud ? o.hora_solicitud.substring(0, 5) : "00:00";
         const [hSol, mSol] = horaSolStr.split(':').map(Number);
         const minutosSolicitud = hSol * 60 + mSol;
 
         if (horaActualMinutos < minutosSolicitud) {
-            // El trabajo se ejecutó antes del horario programado: se considera LIBRE (retorna false para omitirlo de ocupados)
+            // Finalizado antes de la hora: SE LIBERA (retornamos false para excluirlo de ocupados)
             return false;
         }
 
-        // De lo contrario, se mantiene como finalizado/ocupado
         return true;
     });
 
@@ -106,9 +110,9 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
             const [h, m] = horaStr.split(':').map(Number);
             const minutosCelda = h * 60 + m;
             
-            // Corrección rigurosa y exacta por minutos: Bloquea automáticamente cualquier fecha pasada y horas transcurridas de hoy
+            // Validación exacta por comparación de cadenas de fecha y total de minutos para horas pasadas
             const esPasado = (dia.fecha < fechaActual) || (dia.fecha === fechaActual && minutosCelda <= horaActualMinutos);
-            const ocupado = ocupados.find(o => o.fecha_solicitud === dia.fecha && o.hora_solicitud.substring(0, 5) === horaStr);
+            const ocupado = ocupados.find(o => o.fecha_solicitud === dia.fecha && o.hora_solicitud && o.hora_solicitud.substring(0, 5) === horaStr);
 
             if (ocupado) {
                 td.classList.add('bg-green-500', 'text-white');
