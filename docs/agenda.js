@@ -63,25 +63,28 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         .select('solicitud_id, fecha_solicitud, hora_solicitud, respuesta_solicitud')
         .in('fecha_solicitud', dias.map(d => d.fecha));
 
-    // Lógica complementaria: Filtrar o ignorar ocupaciones si el servicio está "finalizado"
-    // pero la tarea se ejecuta antes del horario programado (la hora actual de Bolivia es menor a la hora_solicitud del mismo día).
+    // Lógica complementaria corregida: Filtrar o ignorar ocupaciones si el servicio está "finalizado"
+    // y la tarea se ejecutó antes del horario programado para el día actual.
     const ocupados = (solicitudesBD || []).filter(o => {
         if (o.respuesta_solicitud !== 'finalizado') {
             return true; // Sigue ocupado si no está finalizado
         }
-        // Si está finalizado, evaluamos si el trabajo se realizó antes del horario previsto
+
+        // Si la solicitud pertenece a una fecha distinta al día actual, se mantiene ocupada
+        if (o.fecha_solicitud !== fechaActual) {
+            return true; 
+        }
+
+        // Si está finalizado y es para hoy, evaluamos si se hizo antes de la hora programada
         const horaSolStr = o.hora_solicitud ? o.hora_solicitud.substring(0, 5) : "00:00";
         const [hSol, mSol] = horaSolStr.split(':').map(Number);
         const minutosSolicitud = hSol * 60 + mSol;
 
-        // Si la fecha de la solicitud es posterior a hoy, o si es hoy pero aún no llega la hora programada en Bolivia
-        if (o.fecha_solicitud > fechaActual) {
-            return true; 
-        }
-        if (o.fecha_solicitud === fechaActual && horaActualMinutos < minutosSolicitud) {
-            // El trabajo se ejecutó antes del horario programado: se considera LIBRE
+        if (horaActualMinutos < minutosSolicitud) {
+            // El trabajo se ejecutó antes del horario programado: se considera LIBRE (retorna false para omitirlo de ocupados)
             return false;
         }
+
         // De lo contrario, se mantiene como finalizado/ocupado
         return true;
     });
