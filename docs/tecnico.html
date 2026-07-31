@@ -173,25 +173,25 @@
             const fecha = s.fecha_solicitud || 'N/A';
             const hora = s.hora_solicitud ? s.hora_solicitud.substring(0, 5) : 'N/A';
 
-            // Estilo por defecto (blanco con borde gris)
-            let estiloCard = "background-color: #ffffff; border-color: #cbd5e1;";
+            // Estilo por defecto con !important
+            let estiloCard = "background-color: #ffffff !important; border-color: #cbd5e1 !important;";
 
             if (fecha === fechaActualStr && s.hora_solicitud) {
                 const [hSol, mSol] = hora.split(':').map(Number);
                 const minutosSolicitudTotales = hSol * 60 + mSol;
                 const diferenciaMinutos = minutosSolicitudTotales - minutosActualesTotales;
 
-                // 1. Rojo claro: 30 minutos o menos (o pasado/en curso)
+                // 1. Rojo claro: 30 minutos o menos
                 if (diferenciaMinutos <= 30 && diferenciaMinutos >= -120) {
-                    estiloCard = "background-color: #fee2e2; border-color: #f87171;";
+                    estiloCard = "background-color: #fee2e2 !important; border-color: #f87171 !important;";
                 } 
                 // 2. Naranja: Entre 31 y 45 minutos
                 else if (diferenciaMinutos > 30 && diferenciaMinutos <= 45) {
-                    estiloCard = "background-color: #ffedd5; border-color: #fb923c;";
+                    estiloCard = "background-color: #ffedd5 !important; border-color: #fb923c !important;";
                 } 
                 // 3. Amarillo: Entre 46 y 60 minutos
                 else if (diferenciaMinutos > 45 && diferenciaMinutos <= 60) {
-                    estiloCard = "background-color: #fef9c3; border-color: #facc15;";
+                    estiloCard = "background-color: #fef9c3 !important; border-color: #facc15 !important;";
                 }
             }
 
