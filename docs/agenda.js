@@ -78,7 +78,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
     });
 
     tableBody.innerHTML = '';
-    const horasDisponibles = ["08:00", "09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "16:00", "17:00", "18:00", "01:00", "01:10", "01:20", "01:30", "01:40", "01:50", "02:00"];
+    const horasDisponibles = ["01:00", "01:10", "01:20", "01:30", "01:40", "01:50", "02:00", "08:00", "09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "16:00", "17:00", "18:00"];
 
     horasDisponibles.forEach(horaStr => {
         const row = document.createElement('tr');
