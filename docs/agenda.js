@@ -63,7 +63,7 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
         .select('solicitud_id, fecha_solicitud, hora_solicitud, respuesta_solicitud')
         .in('fecha_solicitud', dias.map(d => d.fecha));
 
-    // Lógica complementaria corregida: Filtrar o ignorar ocupaciones si el servicio está "finalizado"
+    // Lógica complementaria: Filtrar o ignorar ocupaciones si el servicio está "finalizado"
     // y la tarea se ejecutó antes del horario programado para el día actual.
     const ocupados = (solicitudesBD || []).filter(o => {
         if (o.respuesta_solicitud !== 'finalizado') {
@@ -104,12 +104,10 @@ export const inicializarAgenda = async (client, tableId, fechaInputId, horaHidde
             td.className = "border p-1 text-[9px]";
             
             const [h, m] = horaStr.split(':').map(Number);
-            // Sincronizado estrictamente con la hora calculada en Bolivia
-            const horaCompletaActual = fechaBolivia.getHours() + (fechaBolivia.getMinutes() / 60);
-            const horaCompletaCelda = h + (m / 60);
+            const minutosCelda = h * 60 + m;
             
-            // Corrección rigurosa: Bloquea automáticamente cualquier fecha pasada (ej. días anteriores) y horas transcurridas de hoy
-            const esPasado = (dia.fecha === fechaActual && horaCompletaCelda <= horaCompletaActual) || (dia.fecha < fechaActual);
+            // Corrección rigurosa y exacta por minutos: Bloquea automáticamente cualquier fecha pasada y horas transcurridas de hoy
+            const esPasado = (dia.fecha < fechaActual) || (dia.fecha === fechaActual && minutosCelda <= horaActualMinutos);
             const ocupado = ocupados.find(o => o.fecha_solicitud === dia.fecha && o.hora_solicitud.substring(0, 5) === horaStr);
 
             if (ocupado) {
