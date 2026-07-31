@@ -162,41 +162,34 @@
         }
         
         const ahora = new Date();
-        const minutosActualesTotales = ahora.getHours() * 60 + ahora.getMinutes();
 
         lista.innerHTML = "";
         data.forEach(s => {
             const fecha = s.fecha_solicitud || 'N/A';
             const hora = s.hora_solicitud ? s.hora_solicitud.substring(0, 5) : 'N/A';
 
-            let estiloCard = "background-color: #ffffff !important; border-color: #cbd5e1 !important;";
+            let estiloCard = "border-l-4 border-teal-800";
 
-            if (s.hora_solicitud) {
-                const [hSol, mSol] = hora.split(':').map(Number);
-                const minutosSolicitudTotales = hSol * 60 + mSol;
+            if (s.fecha_solicitud && s.hora_solicitud) {
+                // Construimos el objeto fecha de la solicitud de forma segura
+                const fechaSolicitudObj = new Date(`${s.fecha_solicitud}T${s.hora_solicitud}`);
                 
-                // Si la fecha en BD es de mañana (2026-07-31) pero la hora es 00:05 y hoy es tarde, 
-                // sumamos 1440 minutos (un día entero) para que la diferencia de tiempo se calcule bien de forma continua.
-                let ajusteFecha = 0;
-                if (fecha > ahora.toISOString().split('T')[0]) {
-                    ajusteFecha = 24 * 60; 
-                }
+                if (!isNaN(fechaSolicitudObj.getTime())) {
+                    const diferenciaMs = fechaSolicitudObj.getTime() - ahora.getTime();
+                    const diferenciaMinutos = Math.floor(diferenciaMs / (1000 * 60));
 
-                const diferenciaMinutos = (minutosSolicitudTotales + ajusteFecha) - minutosActualesTotales;
-
-                if (diferenciaMinutos >= 0 && diferenciaMinutos <= 30) {
-                    estiloCard = "background-color: #fee2e2 !important; border-color: #f87171 !important;"; // Rojo claro
-                } 
-                else if (diferenciaMinutos > 30 && diferenciaMinutos <= 45) {
-                    estiloCard = "background-color: #ffedd5 !important; border-color: #fb923c !important;"; // Naranja
-                } 
-                else if (diferenciaMinutos > 45 && diferenciaMinutos <= 60) {
-                    estiloCard = "background-color: #fef9c3 !important; border-color: #facc15 !important;"; // Amarillo
+                    if (diferenciaMinutos >= 0 && diferenciaMinutos <= 30) {
+                        estiloCard = "border-l-4 border-red-500 bg-red-50";
+                    } else if (diferenciaMinutos > 30 && diferenciaMinutos <= 45) {
+                        estiloCard = "border-l-4 border-orange-500 bg-orange-50";
+                    } else if (diferenciaMinutos > 45 && diferenciaMinutos <= 60) {
+                        estiloCard = "border-l-4 border-yellow-400 bg-yellow-50";
+                    }
                 }
             }
 
             lista.innerHTML += `
-            <div style="${estiloCard}" class="p-4 rounded-lg shadow-md border-l-4 mb-4">
+            <div class="bg-white p-4 rounded-lg shadow-md ${estiloCard} mb-4">
                 <h3 class="font-bold text-lg">${s.comentario_solicitud || 'Sin comentario'}</h3>
                 <p class="text-sm text-gray-600 mb-3"><strong>Cliente:</strong> ${s.nombre_usuario || 'Anónimo'}</p>
                 <div class="flex items-center justify-between text-xs text-gray-500 mb-4 px-1">
@@ -214,13 +207,14 @@
         
     async function confirmar(id) {
         localStorage.setItem('solicitudId_activo', id);
+        // Obtenemos la hora actual en formato HH:mm:ss
         const ahora = new Date().toTimeString().split(' ')[0];
         try {
             const { error } = await client.from('solicitudes').update({ 
                 respuesta_solicitud: 'aceptado',
                 id_tecnico: localStorage.getItem('tecnico'),
                 movil_id: localStorage.getItem('movil'),
-                hora_contacto: ahora 
+                hora_contacto: ahora // <--- Línea añadida para recuperar el dato en Supabase
             }).eq('solicitud_id', id);
 
             if (error) throw error;
