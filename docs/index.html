@@ -38,20 +38,23 @@
         }
     }
 
-    /* Estilos para el asistente flotante de ayuda */
+    /* Estilos para el asistente flotante transparente con bordes y flecha fucsia */
     #asistente-flotante {
         position: fixed;
         bottom: 20px;
         left: 20px;
-        background: #198754; /* Color verde corporativo */
-        color: #ffffff;
+        background: rgba(255, 255, 255, 0.85); /* Fondo semitransparente */
+        backdrop-filter: blur(4px);
+        color: #0f766e; /* Texto oscuro corporativo para legibilidad */
+        border: 2px solid #ff007f; /* Bordes color fucsia */
         padding: 12px 18px;
         border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 4px 20px rgba(255, 0, 127, 0.25);
         font-size: 14px;
+        font-weight: bold;
         font-family: sans-serif;
         z-index: 9999;
-        max-width: 280px;
+        max-width: 290px;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -59,7 +62,8 @@
     }
 
     #asistente-flotante .flecha {
-        font-size: 18px;
+        font-size: 20px;
+        color: #ff007f; /* Flecha color fucsia */
         animation: apuntar 1s ease-in-out infinite alternate;
     }
 
@@ -70,7 +74,7 @@
 
     @keyframes apuntar {
         0% { transform: translateX(0); }
-        100% { transform: translateX(4px); }
+        100% { transform: translateX(6px); }
     }
     </style>
 </head>
@@ -156,7 +160,7 @@
         </div>
     </div>
 
-    <!-- Caja flotante del asistente guiado -->
+    <!-- Caja flotante del asistente guiado con flecha fucsia -->
     <div id="asistente-flotante">
         <span class="flecha">👉</span>
         <span id="texto-asistente">Cargando guía...</span>
@@ -200,10 +204,11 @@
     window.cerrarModal = cerrarModal;
     window.verificarOtro = () => {
         document.getElementById('otroCampo').classList.toggle('hidden', document.getElementById('opcion_servicio').value !== 'Otro');
-        actualizarAsistente(); // Actualiza el asistente en tiempo real al cambiar el selector
+        actualizarAsistente(); 
     };
 
     // Lógica del Asistente Flotante de Experiencia de Usuario
+    const contenedorAsistente = document.getElementById("asistente-flotante");
     const txtAsistente = document.getElementById("texto-asistente");
     const inputNombre = document.getElementById("nombre");
     const inputCelular = document.getElementById("celular");
@@ -257,13 +262,12 @@
         txtAsistente.textContent = "* Falta Presionar el Boton SOLICITAR SERVICIO";
     }
 
-    // Escuchar eventos de cambio de los campos para actualizar dinámicamente los mensajes flotantes
+    // Escuchar eventos de cambio de los campos para actualizar dinámicamente
     if (inputNombre) inputNombre.addEventListener("input", actualizarAsistente);
     if (inputCelular) inputCelular.addEventListener("input", actualizarAsistente);
     if (selectProblema) selectProblema.addEventListener("change", actualizarAsistente);
     if (inputDescripcion) inputDescripcion.addEventListener("input", actualizarAsistente);
     
-    // Detectar selección de fecha/hora en la tabla mediante observación de cambios en los inputs ocultos
     if (inputFechaSel) {
         const observer = new MutationObserver(actualizarAsistente);
         observer.observe(inputFechaSel, { attributes: true, childList: true, subtree: true, characterData: true });
@@ -277,7 +281,11 @@
     document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // CORRECCIÓN: Definir el botón aquí para poder manipularlo
+        // OCULTAR INMEDIATAMENTE EL MENSAJE GUÍA JUSTO ANTES DEL MODAL PARA NO DISTRAER
+        if (contenedorAsistente) {
+            contenedorAsistente.style.display = 'none';
+        }
+
         const btnSubmit = document.getElementById('btnSolicitar');
         btnSubmit.innerText = "SOLICITANDO...";
         btnSubmit.className = "w-full bg-orange-500 text-white p-4 rounded-xl font-bold";
@@ -297,6 +305,7 @@
             btnSubmit.innerText = "SOLICITAR SERVICIO";
             btnSubmit.className = "w-full bg-teal-800 text-white p-4 rounded-xl font-bold";
             btnSubmit.disabled = false;
+            if (contenedorAsistente) contenedorAsistente.style.display = 'flex'; // Restaurar si hay error
         } else {
             localStorage.setItem('id_solicitud', data[0].solicitud_id);
             mostrarModal("¡Éxito!", "Presione Aceptar para marcar su ubicación y recibir un mensaje recordatorio con 30 minutos de anticipación del Servicio solicitado. ¡Gracias por favor mantenga la aplicación abierta!", () => { 
@@ -306,7 +315,6 @@
     });
 
     window.onload = async function() {
-        // Inicializar estado del asistente al cargar
         actualizarAsistente();
 
         const servicioFinalizado = localStorage.getItem('servicio_finalizado');
