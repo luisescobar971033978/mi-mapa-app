@@ -6,7 +6,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        .form-container { position: relative; background-color: rgba(255, 255, 255, 0.95); }
+        .form-container { position: relative; background-color: rgba(255, 255, 255, 0.95); overflow: hidden; }
         .watermark { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('logo_1.jpeg'); background-repeat: no-repeat; background-position: center; background-size: contain; opacity: 0.1; z-index: 0; pointer-events: none; }
         .content-layer { position: relative; z-index: 10; }
         
@@ -38,33 +38,35 @@
         }
     }
 
-    /* Estilos de la Flecha Guía Direccional flotante (corregidos para móviles y posicionamiento fijo fuera del overflow) */
+    /* Estilos del Asistente Guía Direccional Flotante (fondo totalmente transparente, con borde y soporte fijo de desplazamiento móvil) */
     #asistente-flotante {
         position: fixed !important;
         bottom: 20px !important;
         left: 15px !important;
-        background: rgba(255, 255, 255, 0.90);
-        backdrop-filter: blur(4px);
+        background: transparent !important;
+        backdrop-filter: none !important;
         color: #0f766e;
         border: 2px solid #ff007f;
         padding: 10px 14px;
         border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(255, 0, 127, 0.3);
+        box-shadow: 0 4px 20px rgba(255, 0, 127, 0.2);
         font-size: 12px;
         font-weight: bold;
         font-family: sans-serif;
-        z-index: 99999;
+        z-index: 2147483647;
         max-width: 260px;
         display: flex;
         align-items: center;
         gap: 8px;
         animation: flotar 2s ease-in-out infinite;
+        -webkit-transform: translateZ(0);
     }
 
     #asistente-flotante .flecha {
         font-size: 18px;
         color: #ff007f;
         animation: apuntar 1s ease-in-out infinite alternate;
+        display: inline-block;
     }
 
     @keyframes flotar {
@@ -168,7 +170,7 @@
         </div>
     </div>
 
-    <!-- Elemento de la Flecha Guía Direccional flotante ubicado fuera del contenedor para garantizar el scroll fijo en móviles -->
+    <!-- Elemento del Asistente Flotante con Fondo Transparente -->
     <div id="asistente-flotante">
         <span class="flecha">👉</span>
         <span id="texto-asistente">Cargando guía...</span>
@@ -208,7 +210,7 @@
         actualizarAsistente();
     };
 
-    // Lógica dinámica de la Flecha Guía Direccional
+    // Lógica dinámica del Asistente Guía Direccional
     const contenedorAsistente = document.getElementById("asistente-flotante");
     const txtAsistente = document.getElementById("texto-asistente");
     const inputNombre = document.getElementById("nombre");
@@ -279,7 +281,6 @@
             contenedorAsistente.style.display = 'none';
         }
         
-        // CORRECCIÓN: Definir el botón aquí para poder manipularlo
         const btnSubmit = document.getElementById('btnSolicitar');
         btnSubmit.innerText = "SOLICITANDO...";
         btnSubmit.className = "w-full bg-orange-500 text-white p-4 rounded-xl font-bold";
