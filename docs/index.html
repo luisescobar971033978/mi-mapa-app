@@ -38,28 +38,33 @@
         }
     }
 
-    /* Estilos del Asistente Guía Direccional Flotante (fondo totalmente transparente, con borde y soporte fijo de desplazamiento móvil) */
+    /* Estilos del Asistente Guía Direccional Flotante (Fondo 100% transparente, optimizado para móviles) */
     #asistente-flotante {
         position: fixed !important;
-        bottom: 20px !important;
-        left: 15px !important;
+        bottom: 15px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: 92% !important;
+        max-width: 400px !important;
         background: transparent !important;
+        background-color: transparent !important;
         backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
         color: #0f766e;
         border: 2px solid #ff007f;
         padding: 10px 14px;
         border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(255, 0, 127, 0.2);
-        font-size: 12px;
+        box-shadow: 0 4px 20px rgba(255, 0, 127, 0.25);
+        font-size: 11px;
         font-weight: bold;
         font-family: sans-serif;
         z-index: 2147483647;
-        max-width: 260px;
         display: flex;
         align-items: center;
         gap: 8px;
         animation: flotar 2s ease-in-out infinite;
-        -webkit-transform: translateZ(0);
+        -webkit-transform: translateX(-50%) translateZ(0);
+        pointer-events: none; /* Permite hacer clic a través de él si es necesario */
     }
 
     #asistente-flotante .flecha {
@@ -67,20 +72,35 @@
         color: #ff007f;
         animation: apuntar 1s ease-in-out infinite alternate;
         display: inline-block;
+        flex-shrink: 0;
+    }
+
+    #texto-asistente {
+        background: transparent !important;
+        color: #134e4a;
+        text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+        width: 100%;
     }
 
     @keyframes flotar {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-4px); }
+        0%, 100% { transform: translateX(-50%) translateY(0); }
+        50% { transform: translateX(-50%) translateY(-4px); }
     }
 
     @keyframes apuntar {
         0% { transform: translateX(0); }
-        100% { transform: translateX(4px); }
+        100% { transform: translateX(5px); }
+    }
+
+    /* Estilo visual sutil para resaltar el campo que el usuario debe completar */
+    .resaltar-pendu {
+        border-color: #ff007f !important;
+        box-shadow: 0 0 10px rgba(255, 0, 127, 0.4) !important;
+        transition: all 0.3s ease;
     }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 pb-24">
     <div class="w-[98%] md:max-w-md bg-white p-6 md:p-8 rounded-2xl shadow-xl form-container">
         <div class="watermark"></div>
         
@@ -170,7 +190,7 @@
         </div>
     </div>
 
-    <!-- Elemento del Asistente Flotante con Fondo Transparente -->
+    <!-- Elemento del Asistente Flotante Direccional con Fondo Totalmente Transparente -->
     <div id="asistente-flotante">
         <span class="flecha">👉</span>
         <span id="texto-asistente">Cargando guía...</span>
@@ -210,7 +230,7 @@
         actualizarAsistente();
     };
 
-    // Lógica dinámica del Asistente Guía Direccional
+    // Lógica dinámica del Asistente Guía Direccional y enfoque visual
     const contenedorAsistente = document.getElementById("asistente-flotante");
     const txtAsistente = document.getElementById("texto-asistente");
     const inputNombre = document.getElementById("nombre");
@@ -220,8 +240,17 @@
     const tablaHorarios = document.getElementById("tablaAgenda");
     const inputFechaSel = document.getElementById("fecha_seleccion");
     const inputHoraSel = document.getElementById("hora_seleccionada");
+    const btnSolicitar = document.getElementById("btnSolicitar");
+
+    function limpiarResaltados() {
+        [inputNombre, inputCelular, selectProblema, inputDescripcion, tablaHorarios, btnSolicitar].forEach(el => {
+            if (el) el.classList.remove('resaltar-pendu');
+        });
+    }
 
     function actualizarAsistente() {
+        limpiarResaltados();
+
         const nombreVal = inputNombre ? inputNombre.value.trim() : "";
         const celularVal = inputCelular ? inputCelular.value.trim() : "";
         const problemaVal = selectProblema ? selectProblema.value : "";
@@ -232,31 +261,37 @@
         const horaDiaSeleccionada = (fechaVal !== "" && horaVal !== "");
 
         if (!nombreVal) {
-            txtAsistente.textContent = "* Falta colocar su Nombre";
+            txtAsistente.textContent = "👉 Falta colocar su Nombre";
+            if (inputNombre) inputNombre.classList.add('resaltar-pendu');
             return;
         }
 
         if (!celularVal) {
-            txtAsistente.textContent = "* Falta colocar Su numero de Celular";
+            txtAsistente.textContent = "👉 Falta colocar Su número de Celular";
+            if (inputCelular) inputCelular.classList.add('resaltar-pendu');
             return;
         }
 
         if (!problemaVal || problemaVal === "") {
-            txtAsistente.textContent = "* Falta seleccionar el problema de la lista desplegada si no encuentra el servicio por favor escoja Otro y describa su solicitud especifica";
+            txtAsistente.textContent = "👉 Falta seleccionar el problema de la lista desplegada";
+            if (selectProblema) selectProblema.classList.add('resaltar-pendu');
             return;
         }
 
         if (esOtro && !descripcionVal) {
-            txtAsistente.textContent = "* Falta describir su requerimiento especifico";
+            txtAsistente.textContent = "👉 Falta describir su requerimiento específico";
+            if (inputDescripcion) inputDescripcion.classList.add('resaltar-pendu');
             return;
         }
 
         if (!horaDiaSeleccionada) {
-            txtAsistente.textContent = "* Falta seleccionar Hora y dia del servicio";
+            txtAsistente.textContent = "👉 Falta seleccionar la Hora y el Día en la agenda";
+            if (tablaHorarios) tablaHorarios.classList.add('resaltar-pendu');
             return;
         }
 
-        txtAsistente.textContent = "* Falta Presionar el Boton SOLICITAR SERVICIO";
+        txtAsistente.textContent = "👉 ¡Todo listo! Presione el botón SOLICITAR SERVICIO";
+        if (btnSolicitar) btnSolicitar.classList.add('resaltar-pendu');
     }
 
     if (inputNombre) inputNombre.addEventListener("input", actualizarAsistente);
