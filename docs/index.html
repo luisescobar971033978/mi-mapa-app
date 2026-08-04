@@ -38,23 +38,23 @@
         }
     }
 
-    /* Estilos para el asistente flotante transparente con bordes y flecha fucsia */
+    /* Estilos de la Flecha Guía Direccional flotante (transparente con borde y flecha/manito fucsia) */
     #asistente-flotante {
         position: fixed;
         bottom: 20px;
         left: 20px;
-        background: rgba(255, 255, 255, 0.85); /* Fondo semitransparente */
+        background: rgba(255, 255, 255, 0.15);
         backdrop-filter: blur(4px);
-        color: #0f766e; /* Texto oscuro corporativo para legibilidad */
-        border: 2px solid #ff007f; /* Bordes color fucsia */
+        color: #0f766e;
+        border: 2px solid #ff007f;
         padding: 12px 18px;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(255, 0, 127, 0.25);
-        font-size: 14px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(255, 0, 127, 0.2);
+        font-size: 13px;
         font-weight: bold;
         font-family: sans-serif;
         z-index: 9999;
-        max-width: 290px;
+        max-width: 280px;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -63,7 +63,7 @@
 
     #asistente-flotante .flecha {
         font-size: 20px;
-        color: #ff007f; /* Flecha color fucsia */
+        color: #ff007f;
         animation: apuntar 1s ease-in-out infinite alternate;
     }
 
@@ -74,7 +74,7 @@
 
     @keyframes apuntar {
         0% { transform: translateX(0); }
-        100% { transform: translateX(6px); }
+        100% { transform: translateX(5px); }
     }
     </style>
 </head>
@@ -92,7 +92,7 @@
                 <img src="logo_3d.png" alt="Logotipo Empresa" class="w-10 h-10 md:w-12 md:h-12 object-contain logo-giratorio flex-shrink-0">
                 <h2 class="text-lg md:text-xl font-bold text-teal-900 text-center tracking-tight">PROGRAME SU SERVICIO</h2>
                 <div class="cursor-pointer text-xl flex-shrink-0 ml-1" 
-   onclick="mostrarModal('¿Cómo funciona?', '1. Ingrese su Nombre y Celular.\n2. Seleccione el tipo de servicio requerido.\n3. Elija la Fecha y Hora disponible en la agenda.\n4. Presione el botón Solicitar Servicio.\n5. Desplace y marque su ubicación exacta en el mapa satelital.\n6. Presione Confirmar Ubicación.\n7. En la pantalla de espera, presione el botón INICIAR SEGUIMIENTO.\n8. Converse con el técnico en el chat mientras visualiza cómo se aproxima la unidad móvil de apoyo.')">
+     onclick="mostrarModal('¿Cómo funciona?', '1. Ingrese su Nombre y Celular.\n2. Seleccione el tipo de servicio requerido.\n3. Elija la Fecha y Hora disponible en la agenda.\n4. Presione el botón Solicitar Servicio.\n5. Desplace y marque su ubicación exacta en el mapa satelital.\n6. Presione Confirmar Ubicación.\n7. En la pantalla de espera, presione el botón INICIAR SEGUIMIENTO.\n8. Converse con el técnico en el chat mientras visualiza cómo se aproxima la unidad móvil de apoyo.')">
     ℹ️
 </div>
             </div>
@@ -160,7 +160,7 @@
         </div>
     </div>
 
-    <!-- Caja flotante del asistente guiado con flecha fucsia -->
+    <!-- Elemento de la Flecha Guía Direccional -->
     <div id="asistente-flotante">
         <span class="flecha">👉</span>
         <span id="texto-asistente">Cargando guía...</span>
@@ -204,10 +204,10 @@
     window.cerrarModal = cerrarModal;
     window.verificarOtro = () => {
         document.getElementById('otroCampo').classList.toggle('hidden', document.getElementById('opcion_servicio').value !== 'Otro');
-        actualizarAsistente(); 
+        actualizarAsistente();
     };
 
-    // Lógica del Asistente Flotante de Experiencia de Usuario
+    // Lógica dinámica de la Flecha Guía Direccional
     const contenedorAsistente = document.getElementById("asistente-flotante");
     const txtAsistente = document.getElementById("texto-asistente");
     const inputNombre = document.getElementById("nombre");
@@ -228,41 +228,34 @@
         const horaVal = inputHoraSel ? inputHoraSel.value : "";
         const horaDiaSeleccionada = (fechaVal !== "" && horaVal !== "");
 
-        // Paso 1: Falta Nombre
         if (!nombreVal) {
             txtAsistente.textContent = "* Falta colocar su Nombre";
             return;
         }
 
-        // Paso 2: Falta Celular
         if (!celularVal) {
             txtAsistente.textContent = "* Falta colocar Su numero de Celular";
             return;
         }
 
-        // Paso 3: Falta seleccionar problema
         if (!problemaVal || problemaVal === "") {
             txtAsistente.textContent = "* Falta seleccionar el problema de la lista desplegada si no encuentra el servicio por favor escoja Otro y describa su solicitud especifica";
             return;
         }
 
-        // Paso 4 (Intermedio Condicional): Si seleccionó "Otro", falta describir
         if (esOtro && !descripcionVal) {
             txtAsistente.textContent = "* Falta describir su requerimiento especifico";
             return;
         }
 
-        // Paso 5: Falta seleccionar hora y día de la tabla
         if (!horaDiaSeleccionada) {
             txtAsistente.textContent = "* Falta seleccionar Hora y dia del servicio";
             return;
         }
 
-        // Paso 6: Todo completo, falta presionar el botón de enviar
         txtAsistente.textContent = "* Falta Presionar el Boton SOLICITAR SERVICIO";
     }
 
-    // Escuchar eventos de cambio de los campos para actualizar dinámicamente
     if (inputNombre) inputNombre.addEventListener("input", actualizarAsistente);
     if (inputCelular) inputCelular.addEventListener("input", actualizarAsistente);
     if (selectProblema) selectProblema.addEventListener("change", actualizarAsistente);
@@ -281,11 +274,12 @@
     document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // OCULTAR INMEDIATAMENTE EL MENSAJE GUÍA JUSTO ANTES DEL MODAL PARA NO DISTRAER
+        // Ocultar la flecha guía inmediatamente antes del modal de éxito para evitar distracciones
         if (contenedorAsistente) {
             contenedorAsistente.style.display = 'none';
         }
-
+        
+        // CORRECCIÓN: Definir el botón aquí para poder manipularlo
         const btnSubmit = document.getElementById('btnSolicitar');
         btnSubmit.innerText = "SOLICITANDO...";
         btnSubmit.className = "w-full bg-orange-500 text-white p-4 rounded-xl font-bold";
@@ -305,7 +299,7 @@
             btnSubmit.innerText = "SOLICITAR SERVICIO";
             btnSubmit.className = "w-full bg-teal-800 text-white p-4 rounded-xl font-bold";
             btnSubmit.disabled = false;
-            if (contenedorAsistente) contenedorAsistente.style.display = 'flex'; // Restaurar si hay error
+            if (contenedorAsistente) contenedorAsistente.style.display = 'flex';
         } else {
             localStorage.setItem('id_solicitud', data[0].solicitud_id);
             mostrarModal("¡Éxito!", "Presione Aceptar para marcar su ubicación y recibir un mensaje recordatorio con 30 minutos de anticipación del Servicio solicitado. ¡Gracias por favor mantenga la aplicación abierta!", () => { 
