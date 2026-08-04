@@ -6,7 +6,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        .form-container { position: relative; background-color: rgba(255, 255, 255, 0.95); overflow: hidden; }
+        .form-container { position: relative; background-color: rgba(255, 255, 255, 0.95); }
         .watermark { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('logo_1.jpeg'); background-repeat: no-repeat; background-position: center; background-size: contain; opacity: 0.1; z-index: 0; pointer-events: none; }
         .content-layer { position: relative; z-index: 10; }
         
@@ -38,43 +38,43 @@
         }
     }
 
-    /* Estilos de la Flecha Guía Direccional flotante (transparente con borde y flecha/manito fucsia) */
+    /* Estilos de la Flecha Guía Direccional flotante (corregidos para móviles y posicionamiento fijo fuera del overflow) */
     #asistente-flotante {
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        background: rgba(255, 255, 255, 0.15);
+        position: fixed !important;
+        bottom: 20px !important;
+        left: 15px !important;
+        background: rgba(255, 255, 255, 0.90);
         backdrop-filter: blur(4px);
         color: #0f766e;
         border: 2px solid #ff007f;
-        padding: 12px 18px;
+        padding: 10px 14px;
         border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(255, 0, 127, 0.2);
-        font-size: 13px;
+        box-shadow: 0 4px 20px rgba(255, 0, 127, 0.3);
+        font-size: 12px;
         font-weight: bold;
         font-family: sans-serif;
-        z-index: 9999;
-        max-width: 280px;
+        z-index: 99999;
+        max-width: 260px;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         animation: flotar 2s ease-in-out infinite;
     }
 
     #asistente-flotante .flecha {
-        font-size: 20px;
+        font-size: 18px;
         color: #ff007f;
         animation: apuntar 1s ease-in-out infinite alternate;
     }
 
     @keyframes flotar {
         0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-5px); }
+        50% { transform: translateY(-4px); }
     }
 
     @keyframes apuntar {
         0% { transform: translateX(0); }
-        100% { transform: translateX(5px); }
+        100% { transform: translateX(4px); }
     }
     </style>
 </head>
@@ -160,12 +160,6 @@
         </div>
     </div>
 
-    <!-- Elemento de la Flecha Guía Direccional -->
-    <div id="asistente-flotante">
-        <span class="flecha">👉</span>
-        <span id="texto-asistente">Cargando guía...</span>
-    </div>
-
     <div id="modalApp" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[2000]">
         <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm text-center">
             <h3 id="modalTitulo" class="font-bold text-xl mb-2 text-teal-900">Mensaje</h3>
@@ -173,6 +167,13 @@
             <button id="modalBtn" onclick="cerrarModal()" class="w-full bg-teal-800 text-white p-3 rounded-xl font-bold">Aceptar</button>
         </div>
     </div>
+
+    <!-- Elemento de la Flecha Guía Direccional flotante ubicado fuera del contenedor para garantizar el scroll fijo en móviles -->
+    <div id="asistente-flotante">
+        <span class="flecha">👉</span>
+        <span id="texto-asistente">Cargando guía...</span>
+    </div>
+
 <script type="module">
     import { inicializarAgenda } from './agenda.js';
     const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
@@ -274,7 +275,6 @@
     document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Ocultar la flecha guía inmediatamente antes del modal de éxito para evitar distracciones
         if (contenedorAsistente) {
             contenedorAsistente.style.display = 'none';
         }
