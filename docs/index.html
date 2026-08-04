@@ -37,6 +37,41 @@
             white-space: nowrap; /* Evita que el texto se salte de línea */
         }
     }
+
+    /* Estilos para el asistente flotante de ayuda */
+    #asistente-flotante {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: #198754; /* Color verde corporativo */
+        color: #ffffff;
+        padding: 12px 18px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+        font-size: 14px;
+        font-family: sans-serif;
+        z-index: 9999;
+        max-width: 280px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: flotar 2s ease-in-out infinite;
+    }
+
+    #asistente-flotante .flecha {
+        font-size: 18px;
+        animation: apuntar 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes flotar {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+    }
+
+    @keyframes apuntar {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(4px); }
+    }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
@@ -53,7 +88,7 @@
                 <img src="logo_3d.png" alt="Logotipo Empresa" class="w-10 h-10 md:w-12 md:h-12 object-contain logo-giratorio flex-shrink-0">
                 <h2 class="text-lg md:text-xl font-bold text-teal-900 text-center tracking-tight">PROGRAME SU SERVICIO</h2>
                 <div class="cursor-pointer text-xl flex-shrink-0 ml-1" 
-     onclick="mostrarModal('¿Cómo funciona?', '1. Ingrese su Nombre y Celular.\n2. Seleccione el tipo de servicio requerido.\n3. Elija la Fecha y Hora disponible en la agenda.\n4. Presione el botón Solicitar Servicio.\n5. Desplace y marque su ubicación exacta en el mapa satelital.\n6. Presione Confirmar Ubicación.\n7. En la pantalla de espera, presione el botón INICIAR SEGUIMIENTO.\n8. Converse con el técnico en el chat mientras visualiza cómo se aproxima la unidad móvil de apoyo.')">
+   onclick="mostrarModal('¿Cómo funciona?', '1. Ingrese su Nombre y Celular.\n2. Seleccione el tipo de servicio requerido.\n3. Elija la Fecha y Hora disponible en la agenda.\n4. Presione el botón Solicitar Servicio.\n5. Desplace y marque su ubicación exacta en el mapa satelital.\n6. Presione Confirmar Ubicación.\n7. En la pantalla de espera, presione el botón INICIAR SEGUIMIENTO.\n8. Converse con el técnico en el chat mientras visualiza cómo se aproxima la unidad móvil de apoyo.')">
     ℹ️
 </div>
             </div>
@@ -121,6 +156,12 @@
         </div>
     </div>
 
+    <!-- Caja flotante del asistente guiado -->
+    <div id="asistente-flotante">
+        <span class="flecha">👉</span>
+        <span id="texto-asistente">Cargando guía...</span>
+    </div>
+
     <div id="modalApp" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[2000]">
         <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm text-center">
             <h3 id="modalTitulo" class="font-bold text-xl mb-2 text-teal-900">Mensaje</h3>
@@ -157,7 +198,81 @@
     window.cerrarSesion = cerrarSesion;
     window.mostrarModal = mostrarModal;
     window.cerrarModal = cerrarModal;
-    window.verificarOtro = () => document.getElementById('otroCampo').classList.toggle('hidden', document.getElementById('opcion_servicio').value !== 'Otro');
+    window.verificarOtro = () => {
+        document.getElementById('otroCampo').classList.toggle('hidden', document.getElementById('opcion_servicio').value !== 'Otro');
+        actualizarAsistente(); // Actualiza el asistente en tiempo real al cambiar el selector
+    };
+
+    // Lógica del Asistente Flotante de Experiencia de Usuario
+    const txtAsistente = document.getElementById("texto-asistente");
+    const inputNombre = document.getElementById("nombre");
+    const inputCelular = document.getElementById("celular");
+    const selectProblema = document.getElementById("opcion_servicio");
+    const inputDescripcion = document.getElementById("descripcion");
+    const tablaHorarios = document.getElementById("tablaAgenda");
+    const inputFechaSel = document.getElementById("fecha_seleccion");
+    const inputHoraSel = document.getElementById("hora_seleccionada");
+
+    function actualizarAsistente() {
+        const nombreVal = inputNombre ? inputNombre.value.trim() : "";
+        const celularVal = inputCelular ? inputCelular.value.trim() : "";
+        const problemaVal = selectProblema ? selectProblema.value : "";
+        const esOtro = problemaVal === "Otro";
+        const descripcionVal = inputDescripcion ? inputDescripcion.value.trim() : "";
+        const fechaVal = inputFechaSel ? inputFechaSel.value : "";
+        const horaVal = inputHoraSel ? inputHoraSel.value : "";
+        const horaDiaSeleccionada = (fechaVal !== "" && horaVal !== "");
+
+        // Paso 1: Falta Nombre
+        if (!nombreVal) {
+            txtAsistente.textContent = "* Falta colocar su Nombre";
+            return;
+        }
+
+        // Paso 2: Falta Celular
+        if (!celularVal) {
+            txtAsistente.textContent = "* Falta colocar Su numero de Celular";
+            return;
+        }
+
+        // Paso 3: Falta seleccionar problema
+        if (!problemaVal || problemaVal === "") {
+            txtAsistente.textContent = "* Falta seleccionar el problema de la lista desplegada si no encuentra el servicio por favor escoja Otro y describa su solicitud especifica";
+            return;
+        }
+
+        // Paso 4 (Intermedio Condicional): Si seleccionó "Otro", falta describir
+        if (esOtro && !descripcionVal) {
+            txtAsistente.textContent = "* Falta describir su requerimiento especifico";
+            return;
+        }
+
+        // Paso 5: Falta seleccionar hora y día de la tabla
+        if (!horaDiaSeleccionada) {
+            txtAsistente.textContent = "* Falta seleccionar Hora y dia del servicio";
+            return;
+        }
+
+        // Paso 6: Todo completo, falta presionar el botón de enviar
+        txtAsistente.textContent = "* Falta Presionar el Boton SOLICITAR SERVICIO";
+    }
+
+    // Escuchar eventos de cambio de los campos para actualizar dinámicamente los mensajes flotantes
+    if (inputNombre) inputNombre.addEventListener("input", actualizarAsistente);
+    if (inputCelular) inputCelular.addEventListener("input", actualizarAsistente);
+    if (selectProblema) selectProblema.addEventListener("change", actualizarAsistente);
+    if (inputDescripcion) inputDescripcion.addEventListener("input", actualizarAsistente);
+    
+    // Detectar selección de fecha/hora en la tabla mediante observación de cambios en los inputs ocultos
+    if (inputFechaSel) {
+        const observer = new MutationObserver(actualizarAsistente);
+        observer.observe(inputFechaSel, { attributes: true, childList: true, subtree: true, characterData: true });
+    }
+    if (tablaHorarios) {
+        tablaHorarios.addEventListener("click", () => {
+            setTimeout(actualizarAsistente, 100);
+        });
+    }
 
     document.getElementById('solicitudForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -191,6 +306,9 @@
     });
 
     window.onload = async function() {
+        // Inicializar estado del asistente al cargar
+        actualizarAsistente();
+
         const servicioFinalizado = localStorage.getItem('servicio_finalizado');
         if (servicioFinalizado === 'true') {
             document.getElementById('btnCerrar').classList.remove('hidden');
