@@ -34,23 +34,30 @@
             }
         }
 
-        /* Estilos del Asistente Estático Superior (Integrado y visible siempre al tope del formulario) */
+        /* Asistente Flotante Fijo en la Esquina Inferior Izquierda (Acompaña siempre la vista) */
         #asistente-flotante {
-            position: relative !important;
-            width: 100% !important;
-            background: #f0fdf4 !important;
+            position: fixed !important;
+            bottom: 20px !important;
+            left: 16px !important;
+            max-width: 260px !important;
+            background: rgba(255, 255, 255, 0.97) !important;
+            background-color: rgba(255, 255, 255, 0.97) !important;
+            backdrop-filter: blur(6px) !important;
+            -webkit-backdrop-filter: blur(6px) !important;
             color: #0f766e;
             border: 2px solid #ff007f;
-            padding: 10px 14px;
-            border-radius: 12px;
-            box-shadow: 0 3px 10px rgba(255, 0, 127, 0.2);
-            font-size: 12px;
+            padding: 10px 12px;
+            border-radius: 14px;
+            box-shadow: 0 6px 20px rgba(255, 0, 127, 0.35);
+            font-size: 11px;
             font-weight: bold;
             font-family: sans-serif;
+            z-index: 2147483647;
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
+            gap: 6px;
+            pointer-events: none;
+            animation: flotar 2s ease-in-out infinite;
         }
 
         #asistente-flotante .flecha {
@@ -68,6 +75,11 @@
             line-height: 1.2;
         }
 
+        @keyframes flotar {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+
         @keyframes apuntar {
             0% { transform: translateX(0); }
             100% { transform: translateX(4px); }
@@ -81,7 +93,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 pb-28">
     <div class="w-[98%] md:max-w-md bg-white p-6 md:p-8 rounded-2xl shadow-xl form-container">
         <div class="watermark"></div>
         
@@ -91,19 +103,13 @@
             </div>
 
             <!-- Cabecera unificada en una sola línea centrada -->
-            <div class="flex items-center justify-center gap-2 mb-4 mt-2">
+            <div class="flex items-center justify-center gap-2 mb-6 mt-2">
                 <img src="logo_3d.png" alt="Logotipo Empresa" class="w-10 h-10 md:w-12 md:h-12 object-contain logo-giratorio flex-shrink-0">
                 <h2 class="text-lg md:text-xl font-bold text-teal-900 text-center tracking-tight">PROGRAME SU SERVICIO</h2>
                 <div class="cursor-pointer text-xl flex-shrink-0 ml-1" 
                      onclick="mostrarModal('¿Cómo funciona?', '1. Ingrese su Nombre y Celular.\n2. Seleccione el tipo de servicio requerido.\n3. Elija la Fecha y Hora disponible en la agenda.\n4. Presione el botón Solicitar Servicio.\n5. Desplace y marque su ubicación exacta en el mapa satelital.\n6. Presione Confirmar Ubicación.\n7. En la pantalla de espera, presione el botón INICIAR SEGUIMIENTO.\n8. Converse con el técnico en el chat mientras visualiza cómo se aproxima la unidad móvil de apoyo.')">
                     ℹ️
                 </div>
-            </div>
-
-            <!-- Asistente Guía Integrado Arriba del Formulario (Visible de inmediato sin problemas de scroll móvil) -->
-            <div id="asistente-flotante">
-                <span class="flecha">👉</span>
-                <span id="texto-asistente">Cargando guía...</span>
             </div>
             
             <form id="solicitudForm" class="space-y-4">
@@ -172,6 +178,12 @@
             <p id="modalTexto" class="text-gray-700 mb-6"></p>
             <button id="modalBtn" onclick="cerrarModal()" class="w-full bg-teal-800 text-white p-3 rounded-xl font-bold">Aceptar</button>
         </div>
+    </div>
+
+    <!-- Asistente Flotante Direccional en la Esquina Inferior Izquierda -->
+    <div id="asistente-flotante">
+        <span class="flecha">👉</span>
+        <span id="texto-asistente">Cargando guía...</span>
     </div>
 
 <script type="module">
