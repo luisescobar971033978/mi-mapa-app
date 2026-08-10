@@ -38,13 +38,13 @@
         }
     }
 
-    /* Estilos del Asistente Guía Direccional Flotante (Fondo 100% transparente, optimizado para móviles) */
+    /* Estilos del Asistente Guía Direccional Flotante (Fondo 100% transparente, optimizado y visible en móviles) */
     #asistente-flotante {
         position: fixed !important;
-        bottom: 15px !important;
+        bottom: 10px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
-        width: 92% !important;
+        width: 94% !important;
         max-width: 400px !important;
         background: transparent !important;
         background-color: transparent !important;
@@ -52,23 +52,22 @@
         -webkit-backdrop-filter: none !important;
         color: #0f766e;
         border: 2px solid #ff007f;
-        padding: 10px 14px;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(255, 0, 127, 0.25);
+        padding: 8px 12px;
+        border-radius: 14px;
+        box-shadow: 0 4px 15px rgba(255, 0, 127, 0.3);
         font-size: 11px;
         font-weight: bold;
         font-family: sans-serif;
         z-index: 2147483647;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         animation: flotar 2s ease-in-out infinite;
-        -webkit-transform: translateX(-50%) translateZ(0);
         pointer-events: none; /* Permite hacer clic a través de él si es necesario */
     }
 
     #asistente-flotante .flecha {
-        font-size: 18px;
+        font-size: 16px;
         color: #ff007f;
         animation: apuntar 1s ease-in-out infinite alternate;
         display: inline-block;
@@ -78,18 +77,19 @@
     #texto-asistente {
         background: transparent !important;
         color: #134e4a;
-        text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+        text-shadow: 0 1px 2px rgba(255,255,255,0.9);
         width: 100%;
+        line-height: 1.2;
     }
 
     @keyframes flotar {
         0%, 100% { transform: translateX(-50%) translateY(0); }
-        50% { transform: translateX(-50%) translateY(-4px); }
+        50% { transform: translateX(-50%) translateY(-3px); }
     }
 
     @keyframes apuntar {
         0% { transform: translateX(0); }
-        100% { transform: translateX(5px); }
+        100% { transform: translateX(4px); }
     }
 
     /* Estilo visual sutil para resaltar el campo que el usuario debe completar */
@@ -100,7 +100,7 @@
     }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 pb-24">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 pb-28">
     <div class="w-[98%] md:max-w-md bg-white p-6 md:p-8 rounded-2xl shadow-xl form-container">
         <div class="watermark"></div>
         
