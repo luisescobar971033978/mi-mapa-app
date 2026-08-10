@@ -48,19 +48,23 @@
             transform-style: preserve-3d;
         }
 
-        /* Estilos idénticos y proporcionales para la tabla en móviles y PC */
+        /* Estructura de la tabla idéntica a la vista de PC, con scroll horizontal fluido en móviles */
         .tabla-agenda { 
-            font-size: 10px; 
+            width: 100%;
+            min-width: 550px; /* Fuerza el ancho exacto de la PC para evitar que se comprima */
+            font-size: 11px; 
             table-layout: fixed; 
         }
         .tabla-agenda th, .tabla-agenda td { 
-            padding: 4px 2px; 
+            padding: 6px 4px; 
             overflow: hidden;
             white-space: nowrap; 
         }
+
         @media (min-width: 768px) {
             .tabla-agenda {
                 font-size: 12px;
+                min-width: 100%;
             }
         }
 
@@ -123,7 +127,6 @@
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 pb-28">
-    <!-- Contenedor unificado con estructura idéntica a la vista de PC -->
     <div class="w-full max-w-md bg-white p-6 md:p-8 rounded-2xl shadow-xl form-container mx-auto">
         <div class="watermark"></div>
         
@@ -170,8 +173,8 @@
                 <!-- Contenedor del Calendario -->
                 <div class="mt-4 mb-6">
                     <label class="block text-sm font-bold text-teal-900 mb-2">SELECCIONE FECHA Y HORA:</label>
-                    <div class="overflow-x-auto w-full">
-                        <table class="w-full text-center border-collapse border border-gray-300 tabla-agenda" id="tablaAgenda">
+                    <div class="overflow-x-auto w-full pb-2">
+                        <table class="text-center border-collapse border border-gray-300 tabla-agenda" id="tablaAgenda">
                             <thead class="bg-teal-100">
                                 <tr>
                                     <th class="p-1 border">Hora</th>
