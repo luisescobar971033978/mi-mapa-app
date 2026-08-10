@@ -51,7 +51,7 @@
         /* Estructura de la tabla idéntica a la vista de PC, con scroll horizontal fluido en móviles */
         .tabla-agenda { 
             width: 100%;
-            min-width: 550px; /* Fuerza el ancho exacto de la PC para evitar que se comprima */
+            min-width: 550px; 
             font-size: 11px; 
             table-layout: fixed; 
         }
@@ -66,6 +66,11 @@
                 font-size: 12px;
                 min-width: 100%;
             }
+        }
+
+        /* Transiciones suaves para mostrar los pasos progresivamente */
+        .paso-form {
+            transition: all 0.4s ease-in-out;
         }
 
         /* Asistente Flotante Fijo y Universal (Idéntico en Móvil y PC) */
@@ -146,32 +151,45 @@
             </div>
             
             <form id="solicitudForm" class="space-y-4">
-                <input type="text" id="nombre" placeholder="Por favor colocar, Nombre del Contacto" class="w-full p-3 border rounded-lg text-sm md:text-base bg-white" required>
-                <input type="number" id="celular" placeholder="Escriba el No. Celular del Contacto" class="w-full p-3 border rounded-lg text-sm md:text-base bg-white" required>
-                <select id="opcion_servicio" class="w-full p-3 border rounded-lg text-sm md:text-base bg-white truncate" required onchange="verificarOtro()">
-                    <option value="">SELECCIONE SU PROBLEMA</option>
-                    <option value="Otro">Otro, describa su problema</option>
-                    <option value="Fumigación contra El dengue y chikungunya">Fumigación contra El dengue y chikungunya</option>
-                    <option value="Desbrozado de entrada, patios y Jardines">Desbrozado de entrada, patios y Jardines</option>
-                    <option value="Problemas de Plomería">Problemas de Plomería</option>
-                    <option value="Fuga de Agua">Fuga de Agua</option>
-                    <option value="Tuberías trancadas del drenaje sanitario y de lluvias">Tuberías trancadas del drenaje sanitario y de lluvias</option>
-                    <option value="Mi Ducha Eléctrica NO funciona">Mi Ducha Eléctrica NO funciona</option>
-                    <option value="Interruptor / Tomacorriente NO funciona">Interruptor / Tomacorriente NO funciona</option>
-                    <option value="Requiero Solución definitiva para GOTERAS">Requiero Solución definitiva para GOTERAS</option>
-                    <option value="Mantenimiento de AIRE ACONDICIONADO">Mantenimiento de AIRE ACONDICIONADO</option>
-                    <option value="Instalación de AIRE ACONDICIONADO">Instalación de AIRE ACONDICIONADO</option>
-                    <option value="Servicio control de Humedad en Paredes">Servicio control de Humedad en Paredes</option>
-                    <option value="Retoques de pintura en Fachada, Puertas de Acceso, Etc.">Retoques de pintura en Fachada, Puertas de Acceso, Etc.</option>
-                    <option value="Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)">Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)</option>
-                    <option value="Necesito aplicar veneno para los Sepes">Necesito aplicar veneno para los Sepes</option>
-                    <option value="Remodelación de Vivienda y Oficinas">Remodelación de Vivienda y Oficinas</option>
-                    <option value="Ampliación de Vivienda y Oficinas">Ampliación de Vivienda y Oficinas</option>
-                </select>
-                <div id="otroCampo" class="hidden"><textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg text-sm md:text-base bg-white"></textarea></div>
+                <!-- Paso 1: Nombre -->
+                <div id="seccion-nombre" class="paso-form">
+                    <input type="text" id="nombre" placeholder="Por favor colocar, Nombre del Contacto" class="w-full p-3 border rounded-lg text-sm md:text-base bg-white" required>
+                </div>
+
+                <!-- Paso 2: Celular (Oculto inicialmente) -->
+                <div id="seccion-celular" class="paso-form hidden">
+                    <input type="number" id="celular" placeholder="Escriba el No. Celular del Contacto" class="w-full p-3 border rounded-lg text-sm md:text-base bg-white">
+                </div>
+
+                <!-- Paso 3: Servicio (Oculto inicialmente) -->
+                <div id="seccion-servicio" class="paso-form hidden space-y-4">
+                    <select id="opcion_servicio" class="w-full p-3 border rounded-lg text-sm md:text-base bg-white truncate" onchange="verificarOtro()">
+                        <option value="">SELECCIONE SU PROBLEMA</option>
+                        <option value="Otro">Otro, describa su problema</option>
+                        <option value="Fumigación contra El dengue y chikungunya">Fumigación contra El dengue y chikungunya</option>
+                        <option value="Desbrozado de entrada, patios y Jardines">Desbrozado de entrada, patios y Jardines</option>
+                        <option value="Problemas de Plomería">Problemas de Plomería</option>
+                        <option value="Fuga de Agua">Fuga de Agua</option>
+                        <option value="Tuberías trancadas del drenaje sanitario y de lluvias">Tuberías trancadas del drenaje sanitario y de lluvias</option>
+                        <option value="Mi Ducha Eléctrica NO funciona">Mi Ducha Eléctrica NO funciona</option>
+                        <option value="Interruptor / Tomacorriente NO funciona">Interruptor / Tomacorriente NO funciona</option>
+                        <option value="Requiero Solución definitiva para GOTERAS">Requiero Solución definitiva para GOTERAS</option>
+                        <option value="Mantenimiento de AIRE ACONDICIONADO">Mantenimiento de AIRE ACONDICIONADO</option>
+                        <option value="Instalación de AIRE ACONDICIONADO">Instalación de AIRE ACONDICIONADO</option>
+                        <option value="Servicio control de Humedad en Paredes">Servicio control de Humedad en Paredes</option>
+                        <option value="Retoques de pintura en Fachada, Puertas de Acceso, Etc.">Retoques de pintura en Fachada, Puertas de Acceso, Etc.</option>
+                        <option value="Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)">Fumigación contra plagas de jardines (Pulgón, mosca Blanca, Petillas, ácaros Etc.)</option>
+                        <option value="Necesito aplicar veneno para los Sepes">Necesito aplicar veneno para los Sepes</option>
+                        <option value="Remodelación de Vivienda y Oficinas">Remodelación de Vivienda y Oficinas</option>
+                        <option value="Ampliación de Vivienda y Oficinas">Ampliación de Vivienda y Oficinas</option>
+                    </select>
+                    <div id="otroCampo" class="hidden">
+                        <textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg text-sm md:text-base bg-white"></textarea>
+                    </div>
+                </div>
                 
-                <!-- Contenedor del Calendario -->
-                <div class="mt-4 mb-6">
+                <!-- Paso 4: Calendario y Botón de Envío (Ocultos inicialmente) -->
+                <div id="seccion-agenda" class="paso-form hidden mt-4 mb-6">
                     <label class="block text-sm font-bold text-teal-900 mb-2">SELECCIONE FECHA Y HORA:</label>
                     <div class="overflow-x-auto w-full pb-2">
                         <table class="text-center border-collapse border border-gray-300 tabla-agenda" id="tablaAgenda">
@@ -190,11 +208,13 @@
                             <tbody id="cuerpoAgenda"></tbody>
                         </table>
                     </div>
-                    <input type="hidden" id="fecha_seleccion" required>
-                    <input type="hidden" id="hora_seleccionada" required>
+                    <input type="hidden" id="fecha_seleccion">
+                    <input type="hidden" id="hora_seleccionada">
                 </div>
 
-                <button type="submit" id="btnSolicitar" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold text-sm md:text-base">SOLICITAR SERVICIO</button>
+                <div id="seccion-boton" class="paso-form hidden">
+                    <button type="submit" id="btnSolicitar" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold text-sm md:text-base">SOLICITAR SERVICIO</button>
+                </div>
             </form>
 
             <a href="https://wa.me/59173694080?text=Hola,%20deseo%20solicitar%20una%20cotización%20o%20inspección%20para%20un%20servicio%20en%20mi%20hogar." 
@@ -248,7 +268,8 @@
     window.mostrarModal = mostrarModal;
     window.cerrarModal = cerrarModal;
     window.verificarOtro = () => {
-        document.getElementById('otroCampo').classList.toggle('hidden', document.getElementById('opcion_servicio').value !== 'Otro');
+        const esOtro = document.getElementById('opcion_servicio').value === 'Otro';
+        document.getElementById('otroCampo').classList.toggle('hidden', !esOtro);
         actualizarAsistente();
     };
 
@@ -262,6 +283,12 @@
     const inputFechaSel = document.getElementById("fecha_seleccion");
     const inputHoraSel = document.getElementById("hora_seleccionada");
     const btnSolicitar = document.getElementById("btnSolicitar");
+
+    // Contenedores de los pasos
+    const secCelular = document.getElementById("seccion-celular");
+    const secServicio = document.getElementById("seccion-servicio");
+    const secAgenda = document.getElementById("seccion-agenda");
+    const secBoton = document.getElementById("seccion-boton");
 
     function limpiarResaltados() {
         [inputNombre, inputCelular, selectProblema, inputDescripcion, tablaHorarios, btnSolicitar].forEach(el => {
@@ -281,36 +308,66 @@
         const horaVal = inputHoraSel ? inputHoraSel.value : "";
         const horaDiaSeleccionada = (fechaVal !== "" && horaVal !== "");
 
+        // Paso 1: Validar Nombre
         if (!nombreVal) {
+            secCelular.classList.add("hidden");
+            secServicio.classList.add("hidden");
+            secAgenda.classList.add("hidden");
+            secBoton.classList.add("hidden");
+
             txtAsistente.textContent = "👉 Falta colocar su Nombre";
             if (inputNombre) inputNombre.classList.add('resaltar-pendu');
             return;
         }
 
+        // Se despliega el campo Celular
+        secCelular.classList.remove("hidden");
+
+        // Paso 2: Validar Celular
         if (!celularVal) {
-            txtAsistente.textContent = "👉 Falta colocar Su número de Celular";
+            secServicio.classList.add("hidden");
+            secAgenda.classList.add("hidden");
+            secBoton.classList.add("hidden");
+
+            txtAsistente.textContent = "👉 Falta colocar su número de Celular";
             if (inputCelular) inputCelular.classList.add('resaltar-pendu');
             return;
         }
 
+        // Se despliega la lista de servicios
+        secServicio.classList.remove("hidden");
+
+        // Paso 3: Validar Problema / Servicio
         if (!problemaVal || problemaVal === "") {
+            secAgenda.classList.add("hidden");
+            secBoton.classList.add("hidden");
+
             txtAsistente.textContent = "👉 Falta seleccionar el problema de la lista desplegada";
             if (selectProblema) selectProblema.classList.add('resaltar-pendu');
             return;
         }
 
         if (esOtro && !descripcionVal) {
+            secAgenda.classList.add("hidden");
+            secBoton.classList.add("hidden");
+
             txtAsistente.textContent = "👉 Falta describir su requerimiento específico";
             if (inputDescripcion) inputDescripcion.classList.add('resaltar-pendu');
             return;
         }
 
+        // Se despliega la Agenda y el Botón Final
+        secAgenda.classList.remove("hidden");
+        secBoton.classList.remove("hidden");
+
+        // Paso 4: Validar Fecha y Hora
         if (!horaDiaSeleccionada) {
             txtAsistente.textContent = "👉 Falta seleccionar la Hora y el Día en la agenda";
             if (tablaHorarios) tablaHorarios.classList.add('resaltar-pendu');
             return;
         }
 
+        // Paso 5: Todo listo
         txtAsistente.textContent = "👉 ¡Todo listo! Presione el botón SOLICITAR SERVICIO";
         if (btnSolicitar) btnSolicitar.classList.add('resaltar-pendu');
     }
