@@ -38,18 +38,18 @@
         }
     }
 
-    /* Estilos del Asistente Guía Direccional Flotante (Fondo 100% transparente, optimizado y visible en móviles) */
+    /* Estilos del Asistente Guía Superior (Siempre visible en la pantalla del celular) */
     #asistente-flotante {
         position: fixed !important;
-        bottom: 10px !important;
+        top: 10px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         width: 94% !important;
         max-width: 400px !important;
-        background: transparent !important;
-        background-color: transparent !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(4px) !important;
+        -webkit-backdrop-filter: blur(4px) !important;
         color: #0f766e;
         border: 2px solid #ff007f;
         padding: 8px 12px;
@@ -77,14 +77,13 @@
     #texto-asistente {
         background: transparent !important;
         color: #134e4a;
-        text-shadow: 0 1px 2px rgba(255,255,255,0.9);
         width: 100%;
         line-height: 1.2;
     }
 
     @keyframes flotar {
         0%, 100% { transform: translateX(-50%) translateY(0); }
-        50% { transform: translateX(-50%) translateY(-3px); }
+        50% { transform: translateX(-50%) translateY(-2px); }
     }
 
     @keyframes apuntar {
@@ -100,8 +99,15 @@
     }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 pb-28">
-    <div class="w-[98%] md:max-w-md bg-white p-6 md:p-8 rounded-2xl shadow-xl form-container">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 pt-20 pb-12">
+    
+    <!-- Elemento del Asistente Flotante Direccional (Posicionado Arriba para visibilidad inmediata en móviles) -->
+    <div id="asistente-flotante">
+        <span class="flecha">👉</span>
+        <span id="texto-asistente">Cargando guía...</span>
+    </div>
+
+    <div class="w-[98%] md:max-w-md bg-white p-6 md:p-8 rounded-2xl shadow-xl form-container mt-4">
         <div class="watermark"></div>
         
         <div class="content-layer">
@@ -188,12 +194,6 @@
             <p id="modalTexto" class="text-gray-700 mb-6"></p>
             <button id="modalBtn" onclick="cerrarModal()" class="w-full bg-teal-800 text-white p-3 rounded-xl font-bold">Aceptar</button>
         </div>
-    </div>
-
-    <!-- Elemento del Asistente Flotante Direccional con Fondo Totalmente Transparente -->
-    <div id="asistente-flotante">
-        <span class="flecha">👉</span>
-        <span id="texto-asistente">Cargando guía...</span>
     </div>
 
 <script type="module">
