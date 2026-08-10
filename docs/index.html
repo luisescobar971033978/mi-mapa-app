@@ -13,9 +13,29 @@
             text-size-adjust: 100%;
         }
 
-        .form-container { position: relative; background-color: rgba(255, 255, 255, 0.95); overflow: hidden; }
-        .watermark { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('logo_1.jpeg'); background-repeat: no-repeat; background-position: center; background-size: contain; opacity: 0.1; z-index: 0; pointer-events: none; }
-        .content-layer { position: relative; z-index: 10; }
+        .form-container { 
+            position: relative; 
+            background-color: rgba(255, 255, 255, 0.95); 
+            overflow: hidden; 
+        }
+        .watermark { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background-image: url('logo_1.jpeg'); 
+            background-repeat: no-repeat; 
+            background-position: center; 
+            background-size: contain; 
+            opacity: 0.1; 
+            z-index: 0; 
+            pointer-events: none; 
+        }
+        .content-layer { 
+            position: relative; 
+            z-index: 10; 
+        }
         
         /* Animación para el giro 3D sobre el eje vertical */
         @keyframes girar3D {
@@ -28,16 +48,19 @@
             transform-style: preserve-3d;
         }
 
-        /* Mejora responsiva para la tabla en móviles manteniendo proporciones */
-        @media (max-width: 480px) {
-            .tabla-agenda { 
-                font-size: 9px !important; 
-                table-layout: fixed; 
-            }
-            .tabla-agenda th, .tabla-agenda td { 
-                padding: 3px 2px !important; 
-                overflow: hidden;
-                white-space: nowrap; 
+        /* Estilos idénticos y proporcionales para la tabla en móviles y PC */
+        .tabla-agenda { 
+            font-size: 10px; 
+            table-layout: fixed; 
+        }
+        .tabla-agenda th, .tabla-agenda td { 
+            padding: 4px 2px; 
+            overflow: hidden;
+            white-space: nowrap; 
+        }
+        @media (min-width: 768px) {
+            .tabla-agenda {
+                font-size: 12px;
             }
         }
 
@@ -100,7 +123,8 @@
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 pb-28">
-    <div class="w-[98%] md:max-w-md bg-white p-6 md:p-8 rounded-2xl shadow-xl form-container">
+    <!-- Contenedor unificado con estructura idéntica a la vista de PC -->
+    <div class="w-full max-w-md bg-white p-6 md:p-8 rounded-2xl shadow-xl form-container mx-auto">
         <div class="watermark"></div>
         
         <div class="content-layer">
@@ -119,9 +143,9 @@
             </div>
             
             <form id="solicitudForm" class="space-y-4">
-                <input type="text" id="nombre" placeholder="Por favor colocar, Nombre del Contacto" class="w-full p-3 border rounded-lg text-sm md:text-base" required>
-                <input type="number" id="celular" placeholder="Escriba el No. Celular del Contacto" class="w-full p-3 border rounded-lg text-sm md:text-base" required>
-                <select id="opcion_servicio" class="w-full p-3 border rounded-lg text-sm md:text-base" required onchange="verificarOtro()">
+                <input type="text" id="nombre" placeholder="Por favor colocar, Nombre del Contacto" class="w-full p-3 border rounded-lg text-sm md:text-base bg-white" required>
+                <input type="number" id="celular" placeholder="Escriba el No. Celular del Contacto" class="w-full p-3 border rounded-lg text-sm md:text-base bg-white" required>
+                <select id="opcion_servicio" class="w-full p-3 border rounded-lg text-sm md:text-base bg-white truncate" required onchange="verificarOtro()">
                     <option value="">SELECCIONE SU PROBLEMA</option>
                     <option value="Otro">Otro, describa su problema</option>
                     <option value="Fumigación contra El dengue y chikungunya">Fumigación contra El dengue y chikungunya</option>
@@ -141,13 +165,13 @@
                     <option value="Remodelación de Vivienda y Oficinas">Remodelación de Vivienda y Oficinas</option>
                     <option value="Ampliación de Vivienda y Oficinas">Ampliación de Vivienda y Oficinas</option>
                 </select>
-                <div id="otroCampo" class="hidden"><textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg text-sm md:text-base"></textarea></div>
+                <div id="otroCampo" class="hidden"><textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg text-sm md:text-base bg-white"></textarea></div>
                 
                 <!-- Contenedor del Calendario -->
                 <div class="mt-4 mb-6">
                     <label class="block text-sm font-bold text-teal-900 mb-2">SELECCIONE FECHA Y HORA:</label>
-                    <div class="overflow-x-auto w-full -mx-2 md:mx-0">
-                        <table class="w-full text-[10px] md:text-xs text-center border-collapse border border-gray-300 tabla-agenda" id="tablaAgenda">
+                    <div class="overflow-x-auto w-full">
+                        <table class="w-full text-center border-collapse border border-gray-300 tabla-agenda" id="tablaAgenda">
                             <thead class="bg-teal-100">
                                 <tr>
                                     <th class="p-1 border">Hora</th>
