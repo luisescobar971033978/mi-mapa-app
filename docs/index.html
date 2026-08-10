@@ -38,36 +38,36 @@
         }
     }
 
-    /* Estilos del Asistente Guía Superior (Siempre visible en la pantalla del celular) */
+    /* Estilos del Asistente Flotante Inferior optimizado para acompañar la vista en móviles */
     #asistente-flotante {
         position: fixed !important;
-        top: 10px !important;
+        bottom: 20px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
-        width: 94% !important;
+        width: 92% !important;
         max-width: 400px !important;
-        background: rgba(255, 255, 255, 0.95) !important;
-        background-color: rgba(255, 255, 255, 0.95) !important;
-        backdrop-filter: blur(4px) !important;
-        -webkit-backdrop-filter: blur(4px) !important;
+        background: rgba(255, 255, 255, 0.98) !important;
+        background-color: rgba(255, 255, 255, 0.98) !important;
+        backdrop-filter: blur(6px) !important;
+        -webkit-backdrop-filter: blur(6px) !important;
         color: #0f766e;
         border: 2px solid #ff007f;
-        padding: 8px 12px;
-        border-radius: 14px;
-        box-shadow: 0 4px 15px rgba(255, 0, 127, 0.3);
+        padding: 10px 14px;
+        border-radius: 16px;
+        box-shadow: 0 6px 25px rgba(255, 0, 127, 0.35);
         font-size: 11px;
         font-weight: bold;
         font-family: sans-serif;
         z-index: 2147483647;
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         animation: flotar 2s ease-in-out infinite;
         pointer-events: none; /* Permite hacer clic a través de él si es necesario */
     }
 
     #asistente-flotante .flecha {
-        font-size: 16px;
+        font-size: 18px;
         color: #ff007f;
         animation: apuntar 1s ease-in-out infinite alternate;
         display: inline-block;
@@ -83,12 +83,12 @@
 
     @keyframes flotar {
         0%, 100% { transform: translateX(-50%) translateY(0); }
-        50% { transform: translateX(-50%) translateY(-2px); }
+        50% { transform: translateX(-50%) translateY(-4px); }
     }
 
     @keyframes apuntar {
         0% { transform: translateX(0); }
-        100% { transform: translateX(4px); }
+        100% { transform: translateX(5px); }
     }
 
     /* Estilo visual sutil para resaltar el campo que el usuario debe completar */
@@ -99,15 +99,8 @@
     }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 pt-20 pb-12">
-    
-    <!-- Elemento del Asistente Flotante Direccional (Posicionado Arriba para visibilidad inmediata en móviles) -->
-    <div id="asistente-flotante">
-        <span class="flecha">👉</span>
-        <span id="texto-asistente">Cargando guía...</span>
-    </div>
-
-    <div class="w-[98%] md:max-w-md bg-white p-6 md:p-8 rounded-2xl shadow-xl form-container mt-4">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 pb-32">
+    <div class="w-[98%] md:max-w-md bg-white p-6 md:p-8 rounded-2xl shadow-xl form-container">
         <div class="watermark"></div>
         
         <div class="content-layer">
@@ -194,6 +187,12 @@
             <p id="modalTexto" class="text-gray-700 mb-6"></p>
             <button id="modalBtn" onclick="cerrarModal()" class="w-full bg-teal-800 text-white p-3 rounded-xl font-bold">Aceptar</button>
         </div>
+    </div>
+
+    <!-- Elemento del Asistente Flotante Direccional Inferior (Siempre anclado a la vista del usuario en móviles) -->
+    <div id="asistente-flotante">
+        <span class="flecha">👉</span>
+        <span id="texto-asistente">Cargando guía...</span>
     </div>
 
 <script type="module">
