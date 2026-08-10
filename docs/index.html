@@ -12,12 +12,8 @@
         
         /* Animación para el giro 3D sobre el eje vertical */
         @keyframes girar3D {
-            0% {
-                transform: perspective(600px) rotateY(0deg);
-            }
-            100% {
-                transform: perspective(600px) rotateY(360deg);
-            }
+            0% { transform: perspective(600px) rotateY(0deg); }
+            100% { transform: perspective(600px) rotateY(360deg); }
         }
 
         .logo-giratorio {
@@ -26,74 +22,66 @@
         }
 
         /* Mejora responsiva para la tabla en móviles */
-       @media (max-width: 480px) {
-        .tabla-agenda { 
-            font-size: 8px !important; 
-            table-layout: fixed; 
+        @media (max-width: 480px) {
+            .tabla-agenda { 
+                font-size: 8px !important; 
+                table-layout: fixed; 
+            }
+            .tabla-agenda th, .tabla-agenda td { 
+                padding: 2px 1px !important; 
+                overflow: hidden;
+                white-space: nowrap; 
+            }
         }
-        .tabla-agenda th, .tabla-agenda td { 
-            padding: 2px 1px !important; 
-            overflow: hidden;
-            white-space: nowrap; 
+
+        /* Estilos del Asistente Estático Superior (Integrado y visible siempre al tope del formulario) */
+        #asistente-flotante {
+            position: relative !important;
+            width: 100% !important;
+            background: #f0fdf4 !important;
+            color: #0f766e;
+            border: 2px solid #ff007f;
+            padding: 10px 14px;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(255, 0, 127, 0.2);
+            font-size: 12px;
+            font-weight: bold;
+            font-family: sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
         }
-    }
 
-    /* Estilos del Asistente Flotante Global (Fijo a la ventana del navegador) */
-    #asistente-flotante {
-        position: fixed !important;
-        bottom: 15px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: 92% !important;
-        max-width: 380px !important;
-        background: rgba(255, 255, 255, 0.98) !important;
-        background-color: rgba(255, 255, 255, 0.98) !important;
-        backdrop-filter: blur(6px) !important;
-        -webkit-backdrop-filter: blur(6px) !important;
-        color: #0f766e;
-        border: 2px solid #ff007f;
-        padding: 10px 14px;
-        border-radius: 16px;
-        box-shadow: 0 5px 20px rgba(255, 0, 127, 0.4);
-        font-size: 11px;
-        font-weight: bold;
-        font-family: sans-serif;
-        z-index: 99999999 !important;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        pointer-events: none;
-    }
+        #asistente-flotante .flecha {
+            font-size: 16px;
+            color: #ff007f;
+            animation: apuntar 1s ease-in-out infinite alternate;
+            display: inline-block;
+            flex-shrink: 0;
+        }
 
-    #asistente-flotante .flecha {
-        font-size: 18px;
-        color: #ff007f;
-        animation: apuntar 1s ease-in-out infinite alternate;
-        display: inline-block;
-        flex-shrink: 0;
-    }
+        #texto-asistente {
+            background: transparent !important;
+            color: #134e4a;
+            width: 100%;
+            line-height: 1.2;
+        }
 
-    #texto-asistente {
-        background: transparent !important;
-        color: #134e4a;
-        width: 100%;
-        line-height: 1.2;
-    }
+        @keyframes apuntar {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(4px); }
+        }
 
-    @keyframes apuntar {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(5px); }
-    }
-
-    /* Estilo visual sutil para resaltar el campo que el usuario debe completar */
-    .resaltar-pendu {
-        border-color: #ff007f !important;
-        box-shadow: 0 0 10px rgba(255, 0, 127, 0.4) !important;
-        transition: all 0.3s ease;
-    }
+        /* Estilo visual sutil para resaltar el campo que el usuario debe completar */
+        .resaltar-pendu {
+            border-color: #ff007f !important;
+            box-shadow: 0 0 10px rgba(255, 0, 127, 0.4) !important;
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 pb-32">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
     <div class="w-[98%] md:max-w-md bg-white p-6 md:p-8 rounded-2xl shadow-xl form-container">
         <div class="watermark"></div>
         
@@ -103,13 +91,19 @@
             </div>
 
             <!-- Cabecera unificada en una sola línea centrada -->
-            <div class="flex items-center justify-center gap-2 mb-6 mt-2">
+            <div class="flex items-center justify-center gap-2 mb-4 mt-2">
                 <img src="logo_3d.png" alt="Logotipo Empresa" class="w-10 h-10 md:w-12 md:h-12 object-contain logo-giratorio flex-shrink-0">
                 <h2 class="text-lg md:text-xl font-bold text-teal-900 text-center tracking-tight">PROGRAME SU SERVICIO</h2>
                 <div class="cursor-pointer text-xl flex-shrink-0 ml-1" 
-     onclick="mostrarModal('¿Cómo funciona?', '1. Ingrese su Nombre y Celular.\n2. Seleccione el tipo de servicio requerido.\n3. Elija la Fecha y Hora disponible en la agenda.\n4. Presione el botón Solicitar Servicio.\n5. Desplace y marque su ubicación exacta en el mapa satelital.\n6. Presione Confirmar Ubicación.\n7. En la pantalla de espera, presione el botón INICIAR SEGUIMIENTO.\n8. Converse con el técnico en el chat mientras visualiza cómo se aproxima la unidad móvil de apoyo.')">
-    ℹ️
-</div>
+                     onclick="mostrarModal('¿Cómo funciona?', '1. Ingrese su Nombre y Celular.\n2. Seleccione el tipo de servicio requerido.\n3. Elija la Fecha y Hora disponible en la agenda.\n4. Presione el botón Solicitar Servicio.\n5. Desplace y marque su ubicación exacta en el mapa satelital.\n6. Presione Confirmar Ubicación.\n7. En la pantalla de espera, presione el botón INICIAR SEGUIMIENTO.\n8. Converse con el técnico en el chat mientras visualiza cómo se aproxima la unidad móvil de apoyo.')">
+                    ℹ️
+                </div>
+            </div>
+
+            <!-- Asistente Guía Integrado Arriba del Formulario (Visible de inmediato sin problemas de scroll móvil) -->
+            <div id="asistente-flotante">
+                <span class="flecha">👉</span>
+                <span id="texto-asistente">Cargando guía...</span>
             </div>
             
             <form id="solicitudForm" class="space-y-4">
@@ -139,28 +133,27 @@
                 
                 <!-- Contenedor del Calendario -->
                 <div class="mt-4 mb-6">
-    <label class="block text-sm font-bold text-teal-900 mb-2">SELECCIONE FECHA Y HORA:</label>
-    <div class="overflow-x-auto w-full -mx-2 md:mx-0">
-    <table class="w-full text-[8px] md:text-xs text-center border-collapse border border-gray-300 tabla-agenda" id="tablaAgenda">
-            <thead class="bg-teal-100">
-    <tr>
-        <th class="p-1 border">Hora</th>
-        <th class="p-1 border" id="head-0">LUN</th>
-        <th class="p-1 border" id="head-1">MAR</th>
-        <th class="p-1 border" id="head-2">MIÉ</th>
-        <th class="p-1 border" id="head-3">JUE</th>
-        <th class="p-1 border" id="head-4">VIE</th>
-        <th class="p-1 border" id="head-5">SÁB</th>
-        <th class="p-1 border" id="head-6">DOM</th>
-    </tr>
-</thead>
-        <tbody id="cuerpoAgenda">
-            </tbody>
-        </table>
-    </div>
-    <input type="hidden" id="fecha_seleccion" required>
-    <input type="hidden" id="hora_seleccionada" required>
-</div>
+                    <label class="block text-sm font-bold text-teal-900 mb-2">SELECCIONE FECHA Y HORA:</label>
+                    <div class="overflow-x-auto w-full -mx-2 md:mx-0">
+                        <table class="w-full text-[8px] md:text-xs text-center border-collapse border border-gray-300 tabla-agenda" id="tablaAgenda">
+                            <thead class="bg-teal-100">
+                                <tr>
+                                    <th class="p-1 border">Hora</th>
+                                    <th class="p-1 border" id="head-0">LUN</th>
+                                    <th class="p-1 border" id="head-1">MAR</th>
+                                    <th class="p-1 border" id="head-2">MIÉ</th>
+                                    <th class="p-1 border" id="head-3">JUE</th>
+                                    <th class="p-1 border" id="head-4">VIE</th>
+                                    <th class="p-1 border" id="head-5">SÁB</th>
+                                    <th class="p-1 border" id="head-6">DOM</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cuerpoAgenda"></tbody>
+                        </table>
+                    </div>
+                    <input type="hidden" id="fecha_seleccion" required>
+                    <input type="hidden" id="hora_seleccionada" required>
+                </div>
 
                 <button type="submit" id="btnSolicitar" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold">SOLICITAR SERVICIO</button>
             </form>
@@ -186,16 +179,6 @@
     const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
-
-    // Asegurar que el asistente esté adjunto directamente al body para que acompañe el scroll móvil con absolute/fixed global
-    let contenedorAsistente = document.getElementById("asistente-flotante");
-    if (!contenedorAsistente) {
-        contenedorAsistente = document.createElement('div');
-        contenedorAsistente.id = "asistente-flotante";
-        contenedorAsistente.innerHTML = '<span class="flecha">👉</span><span id="texto-asistente">Cargando guía...</span>';
-        document.body.appendChild(contenedorAsistente);
-    }
-    const txtAsistente = document.getElementById("texto-asistente");
 
     // Inicializar agenda
     inicializarAgenda(client, 'tablaAgenda', 'fecha_seleccion', 'hora_seleccionada', 'btnSolicitar');
@@ -225,6 +208,8 @@
         actualizarAsistente();
     };
 
+    const contenedorAsistente = document.getElementById("asistente-flotante");
+    const txtAsistente = document.getElementById("texto-asistente");
     const inputNombre = document.getElementById("nombre");
     const inputCelular = document.getElementById("celular");
     const selectProblema = document.getElementById("opcion_servicio");
