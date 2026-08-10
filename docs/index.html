@@ -2,11 +2,17 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PROGRAME SU SERVICIO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* Evita que los navegadores móviles cambien el tamaño de las fuentes automáticamente */
+        html {
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
         .form-container { position: relative; background-color: rgba(255, 255, 255, 0.95); overflow: hidden; }
         .watermark { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('logo_1.jpeg'); background-repeat: no-repeat; background-position: center; background-size: contain; opacity: 0.1; z-index: 0; pointer-events: none; }
         .content-layer { position: relative; z-index: 10; }
@@ -22,34 +28,34 @@
             transform-style: preserve-3d;
         }
 
-        /* Mejora responsiva para la tabla en móviles */
+        /* Mejora responsiva para la tabla en móviles manteniendo proporciones */
         @media (max-width: 480px) {
             .tabla-agenda { 
-                font-size: 8px !important; 
+                font-size: 9px !important; 
                 table-layout: fixed; 
             }
             .tabla-agenda th, .tabla-agenda td { 
-                padding: 2px 1px !important; 
+                padding: 3px 2px !important; 
                 overflow: hidden;
                 white-space: nowrap; 
             }
         }
 
-        /* Asistente Flotante Fijo y Universal (Móvil y PC) */
+        /* Asistente Flotante Fijo y Universal (Idéntico en Móvil y PC) */
         #asistente-flotante {
             position: fixed;
             bottom: 16px;
             left: 16px;
-            max-width: 250px;
+            max-width: 260px;
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             color: #0f766e;
             border: 2px solid #ff007f;
-            padding: 8px 10px;
+            padding: 8px 12px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(255, 0, 127, 0.4);
-            font-size: 11px;
+            font-size: 12px;
             font-weight: bold;
             font-family: sans-serif;
             z-index: 999999;
@@ -72,7 +78,7 @@
             background: transparent !important;
             color: #134e4a;
             width: 100%;
-            line-height: 1.2;
+            line-height: 1.3;
         }
 
         @keyframes flotar {
@@ -113,9 +119,9 @@
             </div>
             
             <form id="solicitudForm" class="space-y-4">
-                <input type="text" id="nombre" placeholder="Por favor colocar, Nombre del Contacto" class="w-full p-3 border rounded-lg" required>
-                <input type="number" id="celular" placeholder="Escriba el No. Celular del Contacto" class="w-full p-3 border rounded-lg" required>
-                <select id="opcion_servicio" class="w-full p-3 border rounded-lg" required onchange="verificarOtro()">
+                <input type="text" id="nombre" placeholder="Por favor colocar, Nombre del Contacto" class="w-full p-3 border rounded-lg text-sm md:text-base" required>
+                <input type="number" id="celular" placeholder="Escriba el No. Celular del Contacto" class="w-full p-3 border rounded-lg text-sm md:text-base" required>
+                <select id="opcion_servicio" class="w-full p-3 border rounded-lg text-sm md:text-base" required onchange="verificarOtro()">
                     <option value="">SELECCIONE SU PROBLEMA</option>
                     <option value="Otro">Otro, describa su problema</option>
                     <option value="Fumigación contra El dengue y chikungunya">Fumigación contra El dengue y chikungunya</option>
@@ -135,13 +141,13 @@
                     <option value="Remodelación de Vivienda y Oficinas">Remodelación de Vivienda y Oficinas</option>
                     <option value="Ampliación de Vivienda y Oficinas">Ampliación de Vivienda y Oficinas</option>
                 </select>
-                <div id="otroCampo" class="hidden"><textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg"></textarea></div>
+                <div id="otroCampo" class="hidden"><textarea id="descripcion" placeholder="Por favor describa aquí su problema" class="w-full p-3 border rounded-lg text-sm md:text-base"></textarea></div>
                 
                 <!-- Contenedor del Calendario -->
                 <div class="mt-4 mb-6">
                     <label class="block text-sm font-bold text-teal-900 mb-2">SELECCIONE FECHA Y HORA:</label>
                     <div class="overflow-x-auto w-full -mx-2 md:mx-0">
-                        <table class="w-full text-[8px] md:text-xs text-center border-collapse border border-gray-300 tabla-agenda" id="tablaAgenda">
+                        <table class="w-full text-[10px] md:text-xs text-center border-collapse border border-gray-300 tabla-agenda" id="tablaAgenda">
                             <thead class="bg-teal-100">
                                 <tr>
                                     <th class="p-1 border">Hora</th>
@@ -161,12 +167,12 @@
                     <input type="hidden" id="hora_seleccionada" required>
                 </div>
 
-                <button type="submit" id="btnSolicitar" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold">SOLICITAR SERVICIO</button>
+                <button type="submit" id="btnSolicitar" class="w-full bg-teal-800 text-white p-4 rounded-xl font-bold text-sm md:text-base">SOLICITAR SERVICIO</button>
             </form>
 
             <a href="https://wa.me/59173694080?text=Hola,%20deseo%20solicitar%20una%20cotización%20o%20inspección%20para%20un%20servicio%20en%20mi%20hogar." 
                target="_blank" 
-               class="w-full flex items-center justify-center bg-[#25D366] text-white p-4 rounded-xl font-bold shadow-lg mt-4 hover:bg-[#128C7E] transition-colors">
+               class="w-full flex items-center justify-center bg-[#25D366] text-white p-4 rounded-xl font-bold shadow-lg mt-4 hover:bg-[#128C7E] transition-colors text-sm md:text-base">
                <span class="mr-2">💬</span> Contactar por WhatsApp
             </a>
         </div>
@@ -175,12 +181,12 @@
     <div id="modalApp" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[2000]">
         <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm text-center">
             <h3 id="modalTitulo" class="font-bold text-xl mb-2 text-teal-900">Mensaje</h3>
-            <p id="modalTexto" class="text-gray-700 mb-6"></p>
+            <p id="modalTexto" class="text-gray-700 mb-6 text-sm md:text-base"></p>
             <button id="modalBtn" onclick="cerrarModal()" class="w-full bg-teal-800 text-white p-3 rounded-xl font-bold">Aceptar</button>
         </div>
     </div>
 
-    <!-- Asistente Flotante Universal (Esquina Inferior Izquierda) -->
+    <!-- Asistente Flotante Universal -->
     <div id="asistente-flotante">
         <span class="flecha">👉</span>
         <span id="texto-asistente">Cargando guía...</span>
@@ -306,7 +312,7 @@
         
         const btnSubmit = document.getElementById('btnSolicitar');
         btnSubmit.innerText = "SOLICITANDO...";
-        btnSubmit.className = "w-full bg-orange-500 text-white p-4 rounded-xl font-bold";
+        btnSubmit.className = "w-full bg-orange-500 text-white p-4 rounded-xl font-bold text-sm md:text-base";
         btnSubmit.disabled = true;
 
         const { data, error } = await client.from('solicitudes').insert([{ 
@@ -321,7 +327,7 @@
         if (error) { 
             mostrarModal("Error", error.message);
             btnSubmit.innerText = "SOLICITAR SERVICIO";
-            btnSubmit.className = "w-full bg-teal-800 text-white p-4 rounded-xl font-bold";
+            btnSubmit.className = "w-full bg-teal-800 text-white p-4 rounded-xl font-bold text-sm md:text-base";
             btnSubmit.disabled = false;
             if (contenedorAsistente) contenedorAsistente.style.display = 'flex';
         } else {
