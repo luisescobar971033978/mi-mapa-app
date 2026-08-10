@@ -91,6 +91,9 @@
         cargarDatosTrazabilidad(idSolicitud);
         verificarEstadoActual();
 
+        // Verificación periódica interna de respaldo cada 5 segundos
+        setInterval(verificarEstadoActual, 5000);
+
         client.channel('any_channel')
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'solicitudes' }, (payload) => {
             console.log("EVENTO RECIBIDO:", payload.new);
