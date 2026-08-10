@@ -29,23 +29,23 @@
        @media (max-width: 480px) {
         .tabla-agenda { 
             font-size: 8px !important; 
-            table-layout: fixed; /* Fuerza a que las columnas tengan el mismo ancho */
+            table-layout: fixed; 
         }
         .tabla-agenda th, .tabla-agenda td { 
             padding: 2px 1px !important; 
             overflow: hidden;
-            white-space: nowrap; /* Evita que el texto se salte de línea */
+            white-space: nowrap; 
         }
     }
 
-    /* Estilos del Asistente Flotante Inferior optimizado para acompañar la vista en móviles */
+    /* Estilos del Asistente Flotante Global (Fijo a la ventana del navegador) */
     #asistente-flotante {
         position: fixed !important;
-        bottom: 20px !important;
+        bottom: 15px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         width: 92% !important;
-        max-width: 400px !important;
+        max-width: 380px !important;
         background: rgba(255, 255, 255, 0.98) !important;
         background-color: rgba(255, 255, 255, 0.98) !important;
         backdrop-filter: blur(6px) !important;
@@ -54,16 +54,15 @@
         border: 2px solid #ff007f;
         padding: 10px 14px;
         border-radius: 16px;
-        box-shadow: 0 6px 25px rgba(255, 0, 127, 0.35);
+        box-shadow: 0 5px 20px rgba(255, 0, 127, 0.4);
         font-size: 11px;
         font-weight: bold;
         font-family: sans-serif;
-        z-index: 2147483647;
+        z-index: 99999999 !important;
         display: flex;
         align-items: center;
         gap: 8px;
-        animation: flotar 2s ease-in-out infinite;
-        pointer-events: none; /* Permite hacer clic a través de él si es necesario */
+        pointer-events: none;
     }
 
     #asistente-flotante .flecha {
@@ -79,11 +78,6 @@
         color: #134e4a;
         width: 100%;
         line-height: 1.2;
-    }
-
-    @keyframes flotar {
-        0%, 100% { transform: translateX(-50%) translateY(0); }
-        50% { transform: translateX(-50%) translateY(-4px); }
     }
 
     @keyframes apuntar {
@@ -151,7 +145,6 @@
             <thead class="bg-teal-100">
     <tr>
         <th class="p-1 border">Hora</th>
-        <!-- Estas celdas se llenarán dinámicamente con JS -->
         <th class="p-1 border" id="head-0">LUN</th>
         <th class="p-1 border" id="head-1">MAR</th>
         <th class="p-1 border" id="head-2">MIÉ</th>
@@ -162,7 +155,6 @@
     </tr>
 </thead>
         <tbody id="cuerpoAgenda">
-                <!-- Las filas y celdas se generarán o se llenarán aquí -->
             </tbody>
         </table>
     </div>
@@ -189,17 +181,21 @@
         </div>
     </div>
 
-    <!-- Elemento del Asistente Flotante Direccional Inferior (Siempre anclado a la vista del usuario en móviles) -->
-    <div id="asistente-flotante">
-        <span class="flecha">👉</span>
-        <span id="texto-asistente">Cargando guía...</span>
-    </div>
-
 <script type="module">
     import { inicializarAgenda } from './agenda.js';
     const supabaseUrl = 'https://kcxkadqhdojrnfepkgfk.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+    // Asegurar que el asistente esté adjunto directamente al body para que acompañe el scroll móvil con absolute/fixed global
+    let contenedorAsistente = document.getElementById("asistente-flotante");
+    if (!contenedorAsistente) {
+        contenedorAsistente = document.createElement('div');
+        contenedorAsistente.id = "asistente-flotante";
+        contenedorAsistente.innerHTML = '<span class="flecha">👉</span><span id="texto-asistente">Cargando guía...</span>';
+        document.body.appendChild(contenedorAsistente);
+    }
+    const txtAsistente = document.getElementById("texto-asistente");
 
     // Inicializar agenda
     inicializarAgenda(client, 'tablaAgenda', 'fecha_seleccion', 'hora_seleccionada', 'btnSolicitar');
@@ -229,9 +225,6 @@
         actualizarAsistente();
     };
 
-    // Lógica dinámica del Asistente Guía Direccional y enfoque visual
-    const contenedorAsistente = document.getElementById("asistente-flotante");
-    const txtAsistente = document.getElementById("texto-asistente");
     const inputNombre = document.getElementById("nombre");
     const inputCelular = document.getElementById("celular");
     const selectProblema = document.getElementById("opcion_servicio");
