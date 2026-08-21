@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asignación y Ampliación de Servicio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 flex items-center justify-center">
+
+    <div class="bg-white w-full max-w-2xl rounded-lg shadow-xl p-6 space-y-6">
+        <div class="border-b pb-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-teal-900">🛠️ Asignación y Gestión de Solicitud</h1>
+            <span id="labelSolicitudId" class="text-sm bg-teal-100 text-teal-800 font-semibold px-3 py-1 rounded-full">ID: --</span>
+        </div>
+
+        <!-- Formulario de actualización básica -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Técnico Asignado (id_tecnico):</label>
+                <select id="selectTecnico" class="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
+                    <option value="">Cargando técnicos...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Estado del Flujo (respuesta_solicitud):</label>
+                <select id="selectEstado" class="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
+                    <option value="pendiente">Pendiente</option>
+                    <option value="iniciado">Iniciado</option>
+                    <option value="aceptado">Aceptado</option>
+                    <option value="finalizado">Finalizado</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Sección de Ampliación de Fecha y Horario (Orientado a Objetos / Estilo Agenda) -->
+        <div class="border-t pt-4">
+            <h2 class="text-md font-bold text-teal-900 mb-2">📅 Ampliación de Rango de Trabajo (Fecha y Hora)</h2>
+            <p class="text-xs text-gray-500 mb-3">Seleccione o mantenga presionado un bloque horario para extender el tiempo de la actividad:</p>
+            
+            <div class="bg-gray-50 border rounded-lg p-3 overflow-x-auto max-h-60">
+                <div class="text-sm font-semibold mb-2 text-gray-700">Selección Actual en Sistema: 
+                    <span id="infoTiempoActual" class="text-teal-700 font-bold">Cargando...</span>
+                </div>
+                
+                <!-- Matriz interactiva de Agenda -->
+                <div id="matrizAgenda" class="grid grid-cols-3 gap-2 text-center text-xs">
+                    <!-- Generado dinámicamente por JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Campos ocultos de almacenamiento temporal para la selección de agenda -->
+        <div class="hidden">
+            <input type="text" id="inputFechaNueva">
+            <input type="text" id="inputHoraNueva">
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="flex justify-end gap-3 pt-4 border-t">
+            <button onclick="window.close()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition">Cancelar</button>
+            <button onclick="guardarAsignacion()" class="px-6 py-2 bg-teal-800 text-white rounded-lg hover:bg-teal-900 font-medium shadow transition">Guardar Cambios</button>
+        </div>
+    </div>
+
+    <script>
+        const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const solicitudId = urlParams.get('id');
+
+        // Configuración orientada a objetos para manejar la agenda y ampliación de rangos
+        class GestorAgendaServicio {
+            constructor() {
+                this.horasDisponibles = ["08:00", "09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
+                // Días simulados de referencia para la ampliación orientada a objetos
+                this.fechasDisponibles = [
+                    { fechaStr: "2026-08-21", label: "Viernes 21/8" },
+                    { fechaStr: "2026-08-22", label: "Sábado 22/8" }
+                ];
+            }
+
+            renderizarMatriz(contenedorId, fechaSeleccionadaActual, horaSeleccionadaActual) {
+                const contenedor = document.getElementById(contenedorId);
+                let html = '';
+
+                this.horasDisponibles.forEach(hora => {
+                    this.fechasDisponibles.forEach(dia => {
+                        const esSeleccionado = (dia.fechaStr === fechaSeleccionadaActual && hora === horaSeleccionadaActual);
+                        html += `
+                            <div onclick="seleccionarBloqueAgenda('${dia.fechaStr}', '${hora}')" 
+                                 class="p-2 rounded border cursor-pointer transition select-none ${esSeleccionado ? 'bg-teal-700 text-white font-bold ring-2 ring-teal-400' : 'bg-white hover:bg-teal-50 text-gray-700'}">
+                                <div class="text-[10px] uppercase opacity-75">${dia.label}</div>
+                                <div class="font-bold">${hora}</div>
+                            </div>
+                        `;
+                    });
+                });
+                contenedor.innerHTML = html;
+            }
+        }
+
+        const agendaObj = new GestorAgendaServicio();
+        let fechaTemporal = "";
+        let horaTemporal = "";
+
+        async function inicializarModulo() {
+            if (!solicitudId) {
+                alert("No se especificó un ID de solicitud.");
+                window.close();
+                return;
+            }
+            document.getElementById('labelSolicitudId').innerText = `ID: ${solicitudId}`;
+
+            // 1. Cargar lista de técnicos en el scroll (select)
+            const { data: moviles } = await client.from('moviles').select('id_tecnico, movil_id, estado').eq('estado', 'activo');
+            const selectTecnico = document.getElementById('selectTecnico');
+            selectTecnico.innerHTML = '<option value="">-- Sin técnico asignado --</option>';
+            if (moviles) {
+                moviles.forEach(m => {
+                    if (m.id_tecnico) {
+                        selectTecnico.innerHTML += `<option value="${m.id_tecnico}">${m.id_tecnico} (Móvil: ${m.movil_id})</option>`;
+                    }
+                });
+            }
+
+            // 2. Cargar datos actuales de la solicitud seleccionada
+            const { data: sol, error } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
+            if (error || !sol) {
+                alert("No se pudo cargar la información de la solicitud.");
+                return;
+            }
+
+            // Asignar valores actuales a los elementos visuales
+            if (sol.id_tecnico) selectTecnico.value = sol.id_tecnico;
+            if (sol.respuesta_solicitud) document.getElementById('selectEstado').value = sol.respuesta_solicitud.toLowerCase();
+
+            fechaTemporal = sol.fecha_solicitud || "2026-08-21";
+            horaTemporal = sol.horario_solicitud || "08:00";
+
+            document.getElementById('infoTiempoActual').innerText = `${fechaTemporal} a Hrs. ${horaTemporal}`;
+            document.getElementById('inputFechaNueva').value = fechaTemporal;
+            document.getElementById('inputHoraNueva').value = horaTemporal;
+
+            // Renderizar matriz de selección de tiempo
+            agendaObj.renderizarMatriz('matrizAgenda', fechaTemporal, horaTemporal);
+        }
+
+        function seleccionarBloqueAgenda(fecha, hora) {
+            fechaTemporal = fecha;
+            horaTemporal = hora;
+            document.getElementById('inputFechaNueva').value = fecha;
+            document.getElementById('inputHoraNueva').value = hora;
+            document.getElementById('infoTiempoActual').innerText = `${fecha} a Hrs. ${hora} (Modificado)`;
+            agendaObj.renderizarMatriz('matrizAgenda', fecha, hora);
+        }
+
+        async function guardarAsignacion() {
+            const nuevoTecnico = document.getElementById('selectTecnico').value;
+            const nuevoEstado = document.getElementById('selectEstado').value;
+            const nuevaFecha = document.getElementById('inputFechaNueva').value;
+            const nuevoHorario = document.getElementById('inputHoraNueva').value;
+
+            const datosActualizacion = {
+                id_tecnico: nuevoTecnico || null,
+                respuesta_solicitud: nuevoEstado,
+                fecha_solicitud: nuevaFecha,
+                horario_solicitud: nuevoHorario
+            };
+
+            const { error } = await client.from('solicitudes').update(datosActualizacion).eq('solicitud_id', solicitudId);
+
+            if (error) {
+                alert("Error al actualizar la solicitud: " + error.message);
+            } else {
+                alert("¡Solicitud actualizada y rango de trabajo ampliado correctamente!");
+                if (window.opener && !window.opener.closed) {
+                    window.opener.refrescarPanel(); // Refresca automáticamente el panel principal abierto
+                }
+                window.close();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', inicializarModulo);
+    </script>
+</body>
+</html>
