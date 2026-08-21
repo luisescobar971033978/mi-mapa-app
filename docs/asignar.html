@@ -42,10 +42,10 @@
             </select>
         </div>
 
-        <!-- Sección de Selección de Fecha y Hora (Tabla Estilo Matriz) -->
+        <!-- Sección de Selección de Fecha y Hora (Dinámica desde la solicitud) -->
         <div class="border-t pt-4">
-            <h2 class="text-md font-bold text-teal-900 mb-1">📅 SELECCIONE FECHA Y HORA:</h2>
-            <p class="text-xs text-gray-500 mb-3">Los horarios anteriores a la solicitud actual están inhabilitados (X). Seleccione un espacio disponible:</p>
+            <h2 class="text-md font-bold text-teal-900 mb-1">📅 SELECCIONE FECHA Y HORA DISPONIBLE:</h2>
+            <p class="text-xs text-gray-500 mb-3">Mostrando horarios desde la fecha y hora registrada en la solicitud en adelante:</p>
             
             <div class="bg-gray-50 border rounded-lg overflow-hidden max-h-72 overflow-y-auto">
                 <table class="w-full border-collapse text-center text-sm">
@@ -92,31 +92,40 @@
                 this.fechasColumnas = ["2026-08-21", "2026-08-22"];
             }
 
-            renderizarTabla(tbodyId, fechaSeleccionadaActual, horaSeleccionadaActual) {
+            renderizarTabla(tbodyId, fechaMinima, horaMinima, fechaSeleccionadaActual, horaSeleccionadaActual) {
                 const tbody = document.getElementById(tbodyId);
                 let html = '';
 
                 this.horasDisponibles.forEach(hora => {
                     const horaCorta = hora.substring(0, 5);
-                    html += `<tr class="border-b hover:bg-gray-100">`;
-                    html += `<td class="p-2 border-r font-bold text-gray-700 bg-gray-50 text-xs">${horaCorta}</td>`;
+                    let filaHTML = `<tr class="border-b hover:bg-gray-100">`;
+                    filaHTML += `<td class="p-2 border-r font-bold text-gray-700 bg-gray-50 text-xs">${horaCorta}</td>`;
+
+                    let hayCeldaVisible = false;
 
                     this.fechasColumnas.forEach(fechaCol => {
-                        const esSeleccionado = (fechaCol === fechaSeleccionadaActual && hora.substring(0,5) === (horaSeleccionadaActual || "").substring(0,5));
-                        
-                        // Lógica de bloqueo: Deshabilitar si la fecha/hora es anterior a la base o a la solicitud inicial
-                        const esAnterior = fechaCol < fechaSeleccionadaActual || (fechaCol === fechaSeleccionadaActual && hora < horaSeleccionadaActual);
+                        const esAnterior = fechaCol < fechaMinima || (fechaCol === fechaMinima && hora < horaMinima);
 
                         if (esAnterior) {
-                            html += `<td class="p-2 text-gray-300 font-bold bg-gray-100 select-none border-r">X</td>`;
-                        } else if (esSeleccionado) {
-                            html += `<td onclick="seleccionarBloqueAgenda('${fechaCol}', '${hora}')" class="p-2 bg-teal-700 text-white font-bold cursor-pointer select-none border-r ring-2 ring-teal-400">Seleccionado</td>`;
+                            // Celdas vacías o no disponibles para horarios pasados
+                            filaHTML += `<td class="p-2 text-gray-200 bg-gray-50 border-r select-none">-</td>`;
                         } else {
-                            html += `<td onclick="seleccionarBloqueAgenda('${fechaCol}', '${hora}')" class="p-2 text-teal-800 bg-white hover:bg-teal-50 cursor-pointer select-none border-r font-medium">Libre</td>`;
+                            hayCeldaVisible = true;
+                            const esSeleccionado = (fechaCol === fechaSeleccionadaActual && hora.substring(0,5) === (horaSeleccionadaActual || "").substring(0,5));
+
+                            if (esSeleccionado) {
+                                filaHTML += `<td onclick="seleccionarBloqueAgenda('${fechaCol}', '${hora}')" class="p-2 bg-teal-700 text-white font-bold cursor-pointer select-none border-r ring-2 ring-teal-400">Seleccionado</td>`;
+                            } else {
+                                filaHTML += `<td onclick="seleccionarBloqueAgenda('${fechaCol}', '${hora}')" class="p-2 text-teal-800 bg-white hover:bg-teal-50 cursor-pointer select-none border-r font-medium">Libre</td>`;
+                            }
                         }
                     });
 
-                    html += `</tr>`;
+                    filaHTML += `</tr>`;
+                    // Solo renderizamos la fila si al menos una columna tiene un horario válido disponible
+                    if (hayCeldaVisible) {
+                        html += filaHTML;
+                    }
                 });
                 tbody.innerHTML = html;
             }
@@ -176,11 +185,10 @@
             document.getElementById('inputFechaNueva').value = fechaTemporal;
             document.getElementById('inputHoraNueva').value = horaTemporal;
 
-            agendaObj.renderizarTabla('cuerpoTablaAgenda', fechaTemporal, horaTemporal);
+            agendaObj.renderizarTabla('cuerpoTablaAgenda', fechaMinimaBase, horaMinimaBase, fechaTemporal, horaTemporal);
         }
 
         function seleccionarBloqueAgenda(fecha, hora) {
-            // Validar que no se seleccione un horario anterior al mínimo establecido en la solicitud
             if (fecha < fechaMinimaBase || (fecha === fechaMinimaBase && hora < horaMinimaBase)) {
                 alert("No puede seleccionar un horario anterior a la fecha y hora original de la solicitud.");
                 return;
@@ -192,7 +200,7 @@
             document.getElementById('inputHoraNueva').value = hora;
             document.getElementById('infoTiempoActual').innerText = `${fecha} a Hrs. ${hora.substring(0, 5)}`;
             
-            agendaObj.renderizarTabla('cuerpoTablaAgenda', fechaTemporal, horaTemporal);
+            agendaObj.renderizarTabla('cuerpoTablaAgenda', fechaMinimaBase, horaMinimaBase, fechaTemporal, horaTemporal);
         }
 
         async function guardarAsignacion() {
