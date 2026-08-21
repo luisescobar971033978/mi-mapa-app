@@ -34,13 +34,13 @@
             </div>
         </div>
 
-        <!-- Sección de Ampliación de Fecha y Horario (Orientado a Objetos / Estilo Agenda) -->
+        <!-- Sección de Ampliación de Fecha y Hora (Orientado a Objetos / Estilo Agenda) -->
         <div class="border-t pt-4">
             <h2 class="text-md font-bold text-teal-900 mb-2">📅 Ampliación de Rango de Trabajo (Fecha y Hora)</h2>
-            <p class="text-xs text-gray-500 mb-3">Seleccione o mantenga presionado un bloque horario para extender el tiempo de la actividad:</p>
+            <p class="text-xs text-gray-500 mb-3">Seleccione o mantenga presionado un bloque horario para extender o replanificar la actividad:</p>
             
             <div class="bg-gray-50 border rounded-lg p-3 overflow-x-auto max-h-60">
-                <div class="text-sm font-semibold mb-2 text-gray-700">Selección Actual en Sistema: 
+                <div class="text-sm font-semibold mb-2 text-gray-700">Horario Seleccionado Actual: 
                     <span id="infoTiempoActual" class="text-teal-700 font-bold">Cargando...</span>
                 </div>
                 
@@ -51,7 +51,7 @@
             </div>
         </div>
 
-        <!-- Campos ocultos de almacenamiento temporal para la selección de agenda -->
+        <!-- Campos ocultos de almacenamiento temporal -->
         <div class="hidden">
             <input type="text" id="inputFechaNueva">
             <input type="text" id="inputHoraNueva">
@@ -70,11 +70,9 @@
         const urlParams = new URLSearchParams(window.location.search);
         const solicitudId = urlParams.get('id');
 
-        // Configuración orientada a objetos para manejar la agenda y ampliación de rangos
         class GestorAgendaServicio {
             constructor() {
-                this.horasDisponibles = ["08:00", "09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
-                // Días simulados de referencia para la ampliación orientada a objetos
+                this.horasDisponibles = ["08:00:00", "09:00:00", "10:00:00", "11:00:00", "12:00:00", "14:00:00", "15:00:00", "16:00:00", "17:00:00", "18:00:00", "19:00:00", "20:00:00"];
                 this.fechasDisponibles = [
                     { fechaStr: "2026-08-21", label: "Viernes 21/8" },
                     { fechaStr: "2026-08-22", label: "Sábado 22/8" }
@@ -87,12 +85,16 @@
 
                 this.horasDisponibles.forEach(hora => {
                     this.fechasDisponibles.forEach(dia => {
-                        const esSeleccionado = (dia.fechaStr === fechaSeleccionadaActual && hora === horaSeleccionadaActual);
+                        // Comparamos de forma flexible quitando los segundos si la base los trae distintos
+                        const horaCorta = hora.substring(0, 5);
+                        const horaActualCorta = (horaSeleccionadaActual || "").substring(0, 5);
+                        const esSeleccionado = (dia.fechaStr === fechaSeleccionadaActual && horaCorta === horaActualCorta);
+
                         html += `
                             <div onclick="seleccionarBloqueAgenda('${dia.fechaStr}', '${hora}')" 
                                  class="p-2 rounded border cursor-pointer transition select-none ${esSeleccionado ? 'bg-teal-700 text-white font-bold ring-2 ring-teal-400' : 'bg-white hover:bg-teal-50 text-gray-700'}">
                                 <div class="text-[10px] uppercase opacity-75">${dia.label}</div>
-                                <div class="font-bold">${hora}</div>
+                                <div class="font-bold">${horaCorta}</div>
                             </div>
                         `;
                     });
@@ -113,7 +115,7 @@
             }
             document.getElementById('labelSolicitudId').innerText = `ID: ${solicitudId}`;
 
-            // 1. Cargar lista de técnicos en el scroll (select)
+            // 1. Cargar lista de técnicos en el select
             const { data: moviles } = await client.from('moviles').select('id_tecnico, movil_id, estado').eq('estado', 'activo');
             const selectTecnico = document.getElementById('selectTecnico');
             selectTecnico.innerHTML = '<option value="">-- Sin técnico asignado --</option>';
@@ -132,18 +134,16 @@
                 return;
             }
 
-            // Asignar valores actuales a los elementos visuales
             if (sol.id_tecnico) selectTecnico.value = sol.id_tecnico;
             if (sol.respuesta_solicitud) document.getElementById('selectEstado').value = sol.respuesta_solicitud.toLowerCase();
 
             fechaTemporal = sol.fecha_solicitud || "2026-08-21";
-            horaTemporal = sol.horario_solicitud || "08:00";
+            horaTemporal = sol.hora_solicitud || "08:00:00";
 
-            document.getElementById('infoTiempoActual').innerText = `${fechaTemporal} a Hrs. ${horaTemporal}`;
+            document.getElementById('infoTiempoActual').innerText = `${fechaTemporal} a Hrs. ${horaTemporal.substring(0, 5)}`;
             document.getElementById('inputFechaNueva').value = fechaTemporal;
             document.getElementById('inputHoraNueva').value = horaTemporal;
 
-            // Renderizar matriz de selección de tiempo
             agendaObj.renderizarMatriz('matrizAgenda', fechaTemporal, horaTemporal);
         }
 
@@ -152,7 +152,7 @@
             horaTemporal = hora;
             document.getElementById('inputFechaNueva').value = fecha;
             document.getElementById('inputHoraNueva').value = hora;
-            document.getElementById('infoTiempoActual').innerText = `${fecha} a Hrs. ${hora} (Modificado)`;
+            document.getElementById('infoTiempoActual').innerText = `${fecha} a Hrs. ${hora.substring(0, 5)} (Modificado)`;
             agendaObj.renderizarMatriz('matrizAgenda', fecha, hora);
         }
 
@@ -160,13 +160,14 @@
             const nuevoTecnico = document.getElementById('selectTecnico').value;
             const nuevoEstado = document.getElementById('selectEstado').value;
             const nuevaFecha = document.getElementById('inputFechaNueva').value;
-            const nuevoHorario = document.getElementById('inputHoraNueva').value;
+            const nuevaHora = document.getElementById('inputHoraNueva').value;
 
+            // Actualización utilizando los nombres exactos de columnas de Supabase
             const datosActualizacion = {
                 id_tecnico: nuevoTecnico || null,
                 respuesta_solicitud: nuevoEstado,
                 fecha_solicitud: nuevaFecha,
-                horario_solicitud: nuevoHorario
+                hora_solicitud: nuevaHora
             };
 
             const { error } = await client.from('solicitudes').update(datosActualizacion).eq('solicitud_id', solicitudId);
@@ -174,9 +175,9 @@
             if (error) {
                 alert("Error al actualizar la solicitud: " + error.message);
             } else {
-                alert("¡Solicitud actualizada y rango de trabajo ampliado correctamente!");
+                alert("¡Asignación, estado y rango de horario ampliados correctamente!");
                 if (window.opener && !window.opener.closed) {
-                    window.opener.refrescarPanel(); // Refresca automáticamente el panel principal abierto
+                    window.opener.refrescarPanel();
                 }
                 window.close();
             }
