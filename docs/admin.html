@@ -17,7 +17,7 @@
 
     <div id="contenedorPanel" class="sticky top-0 z-50 bg-white shadow-md border-b border-gray-200">
         <div class="px-4 py-2 text-right bg-gray-50 border-b border-gray-200">
-            <button onclick="togglePanel()" class="text-xs bg-teal-800 text-white px-3 py-1 rounded-full shadow hover:bg-teal-900 transition">
+            <button onclick="togglePanel()" class="xs:text-xs bg-teal-800 text-white px-3 py-1 rounded-full shadow hover:bg-teal-900 transition">
                 ↕ Ocultar/Mostrar Barra
             </button>
         </div>
@@ -28,8 +28,7 @@
                 <button id="btnVer" onclick="verServicio()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👁️ Ver</button>
                 <button id="btnEditar" onclick="editarElemento()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✏️ Editar</button>
                 <button id="btnBorrar" onclick="eliminarSolicitud()" class="transition-opacity duration-300 hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>🗑️ Borrar</button>
-                <!-- ÚNICA MODIFICACIÓN EN BOTÓN: Se añadió onclick="abrirModalAsignar()" -->
-                <button id="btnAsignar" onclick="abrirModalAsignar()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👤 Asignar</button>
+                <button id="btnAsignar" onclick="asignarServicio()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>👤 Asignar</button>
                 <button id="btnMensaje" onclick="abrirChat()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>💬 Mensaje</button>
                 <button id="btnFinalizar" onclick="finalizarServicioAdmin()" class="hover:bg-gray-100 p-2 rounded opacity-50 cursor-not-allowed" disabled>✅ Finalizar Servicio</button>
                 <div class="border-l border-gray-300 mx-2"></div>
@@ -83,57 +82,31 @@
             </section>
         </div>
     </div>
-    
     <div id="modalChat" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center">
-        <div class="bg-white w-full max-w-lg p-6 rounded-lg shadow-xl">
-            <h2 class="text-lg font-bold mb-4" id="tituloChat">Chat del Servicio</h2>
-            <div id="contenedorMensajes" class="h-64 overflow-y-auto border p-3 mb-4 space-y-2 bg-gray-50"></div>
-            <div class="flex gap-2">
-                <input type="text" id="inputMensaje" class="flex-1 border p-2 rounded" placeholder="Escribe un mensaje...">
-                <button onclick="enviarMensaje()" class="bg-teal-700 text-white px-4 py-2 rounded">Enviar</button>
-            </div>
-            <button onclick="cerrarChatYVerificar()" class="mt-4 text-sm text-gray-500 underline">Cerrar</button>
+    <div class="bg-white w-full max-w-lg p-6 rounded-lg shadow-xl">
+        <h2 class="text-lg font-bold mb-4" id="tituloChat">Chat del Servicio</h2>
+        <div id="contenedorMensajes" class="h-64 overflow-y-auto border p-3 mb-4 space-y-2 bg-gray-50"></div>
+        <div class="flex gap-2">
+            <input type="text" id="inputMensaje" class="flex-1 border p-2 rounded" placeholder="Escribe un mensaje...">
+            <button onclick="enviarMensaje()" class="bg-teal-700 text-white px-4 py-2 rounded">Enviar</button>
+        </div>
+        <button onclick="cerrarChatYVerificar()" class="mt-4 text-sm text-gray-500 underline">Cerrar</button>
+    </div>
+</div>
+<div id="modalPassword" class="fixed inset-0 bg-black bg-opacity-90 z-[200] flex items-center justify-center">
+    <div class="bg-white w-full max-w-sm p-6 rounded-lg shadow-xl text-center">
+        <h2 class="text-xl font-bold mb-4 text-teal-900">Acceso Restringido</h2>
+        <p class="text-sm text-gray-600 mb-4">Se requiere autenticación para continuar:</p>
+        <input type="password" id="inputPass" class="w-full border p-2 rounded mb-2 focus:ring-2 focus:ring-teal-500 outline-none" placeholder="Ingrese su contraseña">
+        
+        <p id="msgError" class="text-red-500 text-xs mb-4 h-4 opacity-0">Contraseña incorrecta</p>
+        
+        <div class="flex gap-2">
+            <button onclick="cerrarSesionYSalir()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded hover:bg-gray-300">Cancelar</button>
+            <button onclick="verificarPassword()" class="flex-1 bg-teal-700 text-white py-2 rounded hover:bg-teal-800">Ingresar</button>
         </div>
     </div>
-
-    <!-- MODAL DE ASIGNACIÓN Y MODIFICACIÓN DE HORA (NUEVO) -->
-    <div id="modalAsignar" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[150] flex items-center justify-center">
-        <div class="bg-white w-full max-w-md p-6 rounded-lg shadow-xl">
-            <h2 class="text-lg font-bold mb-4 text-teal-900">Gestión de Asignación y Horarios</h2>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Seleccionar Técnico / Móvil:</label>
-                    <select id="selectTecnicoModal" class="w-full border p-2 rounded focus:ring-2 focus:ring-teal-500 outline-none">
-                        <!-- Opciones cargadas dinámicamente -->
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Ampliar / Modificar Hora de Atención (hora_solicitud):</label>
-                    <input type="time" id="inputNuevaHora" class="w-full border p-2 rounded focus:ring-2 focus:ring-teal-500 outline-none">
-                </div>
-            </div>
-            <div class="flex gap-2 mt-6">
-                <button onclick="guardarAsignacion()" class="flex-1 bg-teal-700 text-white py-2 rounded hover:bg-teal-800 font-semibold cursor-pointer">Guardar Cambios</button>
-                <button onclick="cerrarModalAsignar()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded hover:bg-gray-300 cursor-pointer">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="modalPassword" class="fixed inset-0 bg-black bg-opacity-90 z-[200] flex items-center justify-center">
-        <div class="bg-white w-full max-w-sm p-6 rounded-lg shadow-xl text-center">
-            <h2 class="text-xl font-bold mb-4 text-teal-900">Acceso Restringido</h2>
-            <p class="text-sm text-gray-600 mb-4">Se requiere autenticación para continuar:</p>
-            <input type="password" id="inputPass" class="w-full border p-2 rounded mb-2 focus:ring-2 focus:ring-teal-500 outline-none" placeholder="Ingrese su contraseña">
-            
-            <p id="msgError" class="text-red-500 text-xs mb-4 h-4 opacity-0">Contraseña incorrecta</p>
-            
-            <div class="flex gap-2">
-                <button onclick="cerrarSesionYSalir()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded hover:bg-gray-300">Cancelar</button>
-                <button onclick="verificarPassword()" class="flex-1 bg-teal-700 text-white py-2 rounded hover:bg-teal-800">Ingresar</button>
-            </div>
-        </div>
-    </div>
-
+</div>
     <script>
     const client = supabase.createClient('https://kcxkadqhdojrnfepkgfk.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGthZHFoZG9qcm5mZXBrZ2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODkzOTEsImV4cCI6MjA5NTY2NTM5MX0._LyOVhG_bA26r7mO-xWmVfkXTARspop0Fp3trAhrcJg');
     
@@ -225,6 +198,13 @@
         const btnVer = document.getElementById('btnVer');
         if (btnVer.disabled) return;
         window.open(`mapa_admin.html?id=${elementoSeleccionado.id}`, '_blank', 'width=1000,height=700');
+    }
+
+    // Función añadida para la funcionalidad modular de asignar.html
+    function asignarServicio() {
+        const btnAsignar = document.getElementById('btnAsignar');
+        if (btnAsignar.disabled || !elementoSeleccionado.id) return;
+        window.open(`asignar.html?id=${elementoSeleccionado.id}`, '_blank', 'width=1000,height=700');
     }
 
     async function cargarTodo() {
@@ -445,73 +425,6 @@
         localStorage.removeItem('admin_autenticado');
         window.location.href = "https://www.google.com"; 
     }
-
-    // --- FUNCIONES NUEVAS PARA EL MODAL DE ASIGNACIÓN Y HORA ---
-    async function abrirModalAsignar() {
-        const btn = document.getElementById('btnAsignar');
-        if (btn.disabled || elementoSeleccionado.tipo !== 'solicitud') return;
-
-        // 1. Cargar técnicos/móviles disponibles en el selector
-        const { data: moviles } = await client.from('moviles').select('*');
-        const select = document.getElementById('selectTecnicoModal');
-        
-        if (moviles) {
-            select.innerHTML = moviles.map(m => `
-                <option value="${m.id_tecnico || m.movil_id}">
-                    ${m.movil_id} - Técnico: ${m.id_tecnico || 'Sin ID'} (${m.estado})
-                </option>
-            `).join('');
-        }
-
-        // 2. Obtener la hora_solicitud actual de la solicitud seleccionada
-        const { data: solicitud } = await client.from('solicitudes').select('hora_solicitud').eq('solicitud_id', elementoSeleccionado.id).single();
-        if (solicitud && solicitud.hora_solicitud) {
-            document.getElementById('inputNuevaHora').value = solicitud.hora_solicitud;
-        } else {
-            document.getElementById('inputNuevaHora').value = '';
-        }
-
-        // 3. Mostrar el modal
-        document.getElementById('modalAsignar').classList.remove('hidden');
-    }
-
-    function cerrarModalAsignar() {
-        document.getElementById('modalAsignar').classList.add('hidden');
-    }
-
-    async function guardarAsignacion() {
-        const tecnicoSeleccionado = document.getElementById('selectTecnicoModal').value;
-        const nuevaHora = document.getElementById('inputNuevaHora').value;
-        const solicitudId = elementoSeleccionado.id;
-
-        if (!tecnicoSeleccionado) {
-            alert("Por favor selecciona un técnico o móvil.");
-            return;
-        }
-
-        try {
-            const datosActualizacion = {
-                id_tecnico: tecnicoSeleccionado,
-                respuesta_solicitud: 'aceptado'
-            };
-
-            if (nuevaHora) {
-                datosActualizacion.hora_solicitud = nuevaHora;
-            }
-
-            const { error } = await client.from('solicitudes').update(datosActualizacion).eq('solicitud_id', solicitudId);
-
-            if (error) throw error;
-
-            alert("¡Servicio asignado y horario actualizado correctamente!");
-            cerrarModalAsignar();
-            await cargarTodo();
-        } catch (err) {
-            console.error("Error al asignar:", err);
-            alert("Error al actualizar la solicitud: " + err.message);
-        }
-    }
-    // -----------------------------------------------------------
 
     document.addEventListener('DOMContentLoaded', () => {
         const estaAutenticado = localStorage.getItem('admin_autenticado');
