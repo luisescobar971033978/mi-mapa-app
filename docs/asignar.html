@@ -11,7 +11,7 @@
 
     <div class="bg-white w-full max-w-2xl rounded-lg shadow-xl p-6 space-y-6">
         <div class="border-b pb-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold text-teal-900">🛠️ Asignación y Gestión de Solicitud</h1>
+            <h1 class="text-xl font-bold text-teal-900">🛠️ Asignación y Ampliación de Servicio</h1>
             <span id="labelSolicitudId" class="text-sm bg-teal-100 text-teal-800 font-semibold px-3 py-1 rounded-full">ID: --</span>
         </div>
 
@@ -42,10 +42,10 @@
             </select>
         </div>
 
-        <!-- Sección de Selección de Fecha y Hora -->
+        <!-- Sección de Selección Múltiple de Horarios -->
         <div class="border-t pt-4">
-            <h2 id="tituloSeccionAgenda" class="text-md font-bold text-teal-900 mb-1">📅 SELECCIONE FECHA Y HORA DISPONIBLE:</h2>
-            <p class="text-xs text-gray-500 mb-3">Horarios disponibles a partir de la hora de la solicitud en adelante:</p>
+            <h2 class="text-md font-bold text-teal-900 mb-1">📅 SELECCIÓN MÚLTIPLE DE HORARIOS (AMPLIACIÓN):</h2>
+            <p class="text-xs text-gray-500 mb-3">Haga clic en los bloques consecutivos que desea asignar o ampliar:</p>
             
             <div class="bg-gray-50 border rounded-lg overflow-hidden max-h-72 overflow-y-auto">
                 <table class="w-full border-collapse text-center text-sm">
@@ -63,14 +63,8 @@
             </div>
 
             <div class="mt-2 text-xs font-semibold text-gray-700">
-                Horario Seleccionado: <span id="infoTiempoActual" class="text-teal-700 font-bold">Cargando...</span>
+                Horarios Seleccionados: <span id="infoTiempoActual" class="text-teal-700 font-bold">Ninguno</span>
             </div>
-        </div>
-
-        <!-- Campos ocultos de almacenamiento temporal -->
-        <div class="hidden">
-            <input type="text" id="inputFechaNueva">
-            <input type="text" id="inputHoraNueva">
         </div>
 
         <!-- Botones de Acción -->
@@ -86,6 +80,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const solicitudId = urlParams.get('id');
 
+        // CLASE ORIENTADA A OBJETOS PARA LA GESTIÓN DE LA AGENDA Y SELECCIÓN MÚLTIPLE
         class GestorAgendaServicio {
             constructor() {
                 this.horasDisponibles = [
@@ -94,9 +89,41 @@
                     "18:00:00", "19:00:00", "20:00:00", "21:00:00", "22:00:00", 
                     "23:00:00", "24:00:00"
                 ];
+                this.seleccionados = []; // Almacena objetos {fecha, hora}
             }
 
-            renderizarTabla(tbodyId, fechaMinima, horaMinima, fechaSel, horaSel, fechasCols) {
+            inicializarSeleccion(fecha, hora) {
+                // Evitar duplicados al cargar por defecto
+                const existe = this.seleccionados.some(s => s.fecha === fecha && s.hora === hora);
+                if (!existe) {
+                    this.seleccionados.push({ fecha, hora });
+                }
+            }
+
+            toggleSeleccion(fecha, hora, fechaMinima, horaMinima) {
+                if (fecha < fechaMinima || (fecha === fechaMinima && hora < horaMinima)) {
+                    alert("No puede seleccionar un horario anterior al de la solicitud original.");
+                    return;
+                }
+
+                const index = this.seleccionados.findIndex(s => s.fecha === fecha && s.hora === hora);
+                if (index > -1) {
+                    // Si ya está seleccionado, permitir desmarcar solo si hay más de 1 elemento
+                    if (this.seleccionados.length > 1) {
+                        this.seleccionados.splice(index, 1);
+                    } else {
+                        alert("Debe mantener al menos un horario seleccionado.");
+                        return;
+                    }
+                } else {
+                    this.seleccionados.push({ fecha, hora });
+                }
+                // Ordenar cronológicamente
+                this.seleccionados.sort((a, b) => `${a.fecha} ${a.hora}`.localeCompare(`${b.fecha} ${b.hora}`));
+                this.actualizarVista(fechaMinima, horaMinima);
+            }
+
+            renderizarTabla(tbodyId, fechaMinima, horaMinima, fechasCols) {
                 const tbody = document.getElementById(tbodyId);
                 let html = '';
 
@@ -106,18 +133,17 @@
                     filaHTML += `<td class="p-2 border-r font-bold text-gray-700 bg-gray-50 text-xs">${horaCorta}</td>`;
 
                     fechasCols.forEach(fechaCol => {
-                        // Validar si la celda es anterior a la fecha/hora mínima de la solicitud
                         const esAnterior = (fechaCol < fechaMinima) || (fechaCol === fechaMinima && hora < horaMinima);
 
                         if (esAnterior) {
                             filaHTML += `<td class="p-2 text-gray-300 bg-gray-50 border-r select-none">-</td>`;
                         } else {
-                            const esSeleccionado = (fechaCol === fechaSel && hora.substring(0,5) === (horaSel || "").substring(0,5));
+                            const estaSeleccionado = this.seleccionados.some(s => s.fecha === fechaCol && s.hora === hora);
 
-                            if (esSeleccionado) {
-                                filaHTML += `<td onclick="seleccionarBloqueAgenda('${fechaCol}', '${hora}')" class="p-2 bg-teal-700 text-white font-bold cursor-pointer select-none border-r ring-2 ring-teal-400">Seleccionado</td>`;
+                            if (estaSeleccionado) {
+                                filaHTML += `<td onclick="gestorAgenda.toggleSeleccion('${fechaCol}', '${hora}', '${fechaMinima}', '${horaMinima}')" class="p-2 bg-teal-700 text-white font-bold cursor-pointer select-none border-r ring-2 ring-teal-400">Seleccionado</td>`;
                             } else {
-                                filaHTML += `<td onclick="seleccionarBloqueAgenda('${fechaCol}', '${hora}')" class="p-2 text-teal-800 bg-white hover:bg-teal-50 cursor-pointer select-none border-r font-medium">Libre</td>`;
+                                filaHTML += `<td onclick="gestorAgenda.toggleSeleccion('${fechaCol}', '${hora}', '${fechaMinima}', '${horaMinima}')" class="p-2 text-teal-800 bg-white hover:bg-teal-50 cursor-pointer select-none border-r font-medium">Libre</td>`;
                             }
                         }
                     });
@@ -126,15 +152,32 @@
                     html += filaHTML;
                 });
                 tbody.innerHTML = html;
+                this.actualizarResumenTexto();
+            }
+
+            actualizarVista(fechaMinima, horaMinima) {
+                const fechasCols = window.fechasColumnasGlobal || [];
+                this.renderizarTabla('cuerpoTablaAgenda', fechaMinima, horaMinima, fechasCols);
+            }
+
+            actualizarResumenTexto() {
+                const spanInfo = document.getElementById('infoTiempoActual');
+                if (this.seleccionados.length === 0) {
+                    spanInfo.innerText = "Ninguno";
+                    return;
+                }
+                const textos = this.seleccionados.map(s => `${s.fecha} (${s.hora.substring(0,5)})`);
+                spanInfo.innerText = textos.join(" | ");
+            }
+
+            obtenerSeleccionados() {
+                return this.seleccionados;
             }
         }
 
-        const agendaObj = new GestorAgendaServicio();
-        let fechaTemporal = "";
-        let horaTemporal = "";
+        const gestorAgenda = new GestorAgendaServicio();
         let fechaMinimaPermitida = "";
         let horaMinimaPermitida = "";
-        let listaFechasCols = [];
 
         async function inicializarModulo() {
             if (!solicitudId) {
@@ -160,7 +203,7 @@
                 });
             }
 
-            // 2. Cargar datos de la solicitud
+            // 2. Cargar datos de la solicitud actual
             const { data: sol, error } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
             if (error || !sol) {
                 alert("No se pudo cargar la información de la solicitud.");
@@ -171,84 +214,95 @@
             if (sol.movil_id) selectMovil.value = sol.movil_id;
             if (sol.respuesta_solicitud) document.getElementById('selectEstado').value = sol.respuesta_solicitud.toLowerCase();
 
-            fechaTemporal = sol.fecha_solicitud || "2026-08-21";
-            horaTemporal = sol.hora_solicitud || "20:00:00";
+            const fechaSolOriginal = sol.fecha_solicitud || "2026-08-21";
+            const horaSolOriginal = sol.hora_solicitud || "20:00:00";
 
-            fechaMinimaPermitida = fechaTemporal;
-            horaMinimaPermitida = horaTemporal;
+            fechaMinimaPermitida = fechaSolOriginal;
+            horaMinimaPermitida = horaSolOriginal;
 
             // Generar columnas de fecha (Día de la solicitud y el día posterior)
-            const partesFecha = fechaTemporal.split('-');
+            const partesFecha = fechaSolOriginal.split('-');
             const d1 = new Date(partesFecha[0], partesFecha[1] - 1, partesFecha[2]);
             const d2 = new Date(d1);
             d2.setDate(d2.getDate() + 1);
 
-            const f1Str = fechaTemporal;
+            const f1Str = fechaSolOriginal;
             const f2Str = `${d2.getFullYear()}-${String(d2.getMonth() + 1).padStart(2, '0')}-${String(d2.getDate()).padStart(2, '0')}`;
-            listaFechasCols = [f1Str, f2Str];
+            window.fechasColumnasGlobal = [f1Str, f2Str];
 
             // Textos descriptivos de los días de la semana
             const diasSemana = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
-            const nombreDia1 = diasSemana[d1.getDay()];
-            const nombreDia2 = diasSemana[d2.getDay()];
+            document.getElementById('thCol1').innerHTML = `${diasSemana[d1.getDay()]}<br><span class="font-normal">${d1.getDate()}/${d1.getMonth() + 1}</span>`;
+            document.getElementById('thCol2').innerHTML = `${diasSemana[d2.getDay()]}<br><span class="font-normal">${d2.getDate()}/${d2.getMonth() + 1}</span>`;
 
-            document.getElementById('thCol1').innerHTML = `${nombreDia1}<br><span class="font-normal">${d1.getDate()}/${d1.getMonth() + 1}</span>`;
-            document.getElementById('thCol2').innerHTML = `${nombreDia2}<br><span class="font-normal">${d2.getDate()}/${d2.getMonth() + 1}</span>`;
-
-            // Validar selección actual
-            if (fechaTemporal < fechaMinimaPermitida || (fechaTemporal === fechaMinimaPermitida && horaTemporal < horaMinimaPermitida)) {
-                fechaTemporal = fechaMinimaPermitida;
-                horaTemporal = horaMinimaPermitida;
-            }
-
-            document.getElementById('infoTiempoActual').innerText = `${fechaTemporal} a Hrs. ${horaTemporal.substring(0, 5)}`;
-            document.getElementById('inputFechaNueva').value = fechaTemporal;
-            document.getElementById('inputHoraNueva').value = horaTemporal;
-
-            agendaObj.renderizarTabla('cuerpoTablaAgenda', fechaMinimaPermitida, horaMinimaPermitida, fechaTemporal, horaTemporal, listaFechasCols);
-        }
-
-        function seleccionarBloqueAgenda(fecha, hora) {
-            if (fecha < fechaMinimaPermitida || (fecha === fechaMinimaPermitida && hora < horaMinimaPermitida)) {
-                alert("El horario seleccionado no puede ser anterior a la hora de la solicitud.");
-                return;
-            }
-
-            fechaTemporal = fecha;
-            horaTemporal = hora;
-            document.getElementById('inputFechaNueva').value = fecha;
-            document.getElementById('inputHoraNueva').value = hora;
-            document.getElementById('infoTiempoActual').innerText = `${fecha} a Hrs. ${hora.substring(0, 5)}`;
-            
-            agendaObj.renderizarTabla('cuerpoTablaAgenda', fechaMinimaPermitida, horaMinimaPermitida, fechaTemporal, horaTemporal, listaFechasCols);
+            // Inicializar con la fecha y hora original de la solicitud
+            gestorAgenda.inicializarSeleccion(fechaSolOriginal, horaSolOriginal);
+            gestorAgenda.renderizarTabla('cuerpoTablaAgenda', fechaMinimaPermitida, horaMinimaPermitida, window.fechasColumnasGlobal);
         }
 
         async function guardarAsignacion() {
-            const nuevoTecnico = document.getElementById('selectTecnico').value;
-            const nuevoMovil = document.getElementById('selectMovil').value;
+            const nuevoTecnico = document.getElementById('selectTecnico').value || null;
+            const nuevoMovil = document.getElementById('selectMovil').value || null;
             const nuevoEstado = document.getElementById('selectEstado').value;
-            const nuevaFecha = document.getElementById('inputFechaNueva').value;
-            const nuevaHora = document.getElementById('inputHoraNueva').value;
+            
+            const horariosSeleccionados = gestorAgenda.obtenerSeleccionados();
+            if (horariosSeleccionados.length === 0) {
+                alert("Debe seleccionar al menos un horario.");
+                return;
+            }
 
-            const datosActualizacion = {
-                id_tecnico: nuevoTecnico || null,
-                movil_id: nuevoMovil || null,
+            // 1. Actualizar el registro principal con el primer horario seleccionado
+            const primerHorario = horariosSeleccionados[0];
+            const datosActualizacionPrincipal = {
+                id_tecnico: nuevoTecnico,
+                movil_id: nuevoMovil,
                 respuesta_solicitud: nuevoEstado,
-                fecha_solicitud: nuevaFecha,
-                hora_solicitud: nuevaHora
+                fecha_solicitud: primerHorario.fecha,
+                hora_solicitud: primerHorario.hora
             };
 
-            const { error } = await client.from('solicitudes').update(datosActualizacion).eq('solicitud_id', solicitudId);
+            const { error: errorUpdate } = await client.from('solicitudes')
+                .update(datosActualizacionPrincipal)
+                .eq('solicitud_id', solicitudId);
 
-            if (error) {
-                alert("Error al actualizar la solicitud: " + error.message);
-            } else {
-                alert("¡Asignación, móvil, estado y horario actualizados correctamente!");
-                if (window.opener && !window.opener.closed) {
-                    window.opener.refrescarPanel();
-                }
-                window.close();
+            if (errorUpdate) {
+                alert("Error al actualizar la solicitud principal: " + errorUpdate.message);
+                return;
             }
+
+            // 2. Si hay más horarios seleccionados (ampliación consecutiva), duplicar registros con el mismo solicitud_id
+            if (horariosSeleccionados.length > 1) {
+                // Obtenemos la estructura completa del registro original para clonarlo correctamente
+                const { data: solOriginal } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
+
+                if (solOriginal) {
+                    for (let i = 1; i < horariosSeleccionados.length; i++) {
+                        const hSel = horariosSeleccionados[i];
+                        
+                        // Creamos el clon omitiendo el ID autoincremental original para que Supabase genere/duplique manteniendo el vínculo
+                        const clonSolicitud = { ...solOriginal };
+                        delete clonSolicitud.id; // Por si usa id autoincremental interno
+                        // Nota: dejamos el mismo 'solicitud_id' (o si es la PK principal, ajustamos según esquema; aquí duplicamos la fila conservando el valor de la solicitud o clonando)
+                        clonSolicitud.id_tecnico = nuevoTecnico;
+                        clonSolicitud.movil_id = nuevoMovil;
+                        clonSolicitud.respuesta_solicitud = nuevoEstado;
+                        clonSolicitud.fecha_solicitud = hSel.fecha;
+                        clonSolicitud.hora_solicitud = hSel.hora;
+
+                        // Insertar la duplicación en la tabla solicitudes
+                        const { error: errorInsert } = await client.from('solicitudes').insert([clonSolicitud]);
+                        if (errorInsert) {
+                            console.error("Error al duplicar la hora adicional:", errorInsert.message);
+                        }
+                    }
+                }
+            }
+
+            alert("¡Asignación guardada y horarios ampliados/duplicados con éxito!");
+            if (window.opener && !window.opener.closed) {
+                window.opener.refrescarPanel();
+            }
+            window.close();
         }
 
         document.addEventListener('DOMContentLoaded', inicializarModulo);
