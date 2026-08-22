@@ -89,11 +89,10 @@
                     "18:00:00", "19:00:00", "20:00:00", "21:00:00", "22:00:00", 
                     "23:00:00", "24:00:00"
                 ];
-                this.seleccionados = []; // Almacena objetos {fecha, hora}
+                this.seleccionados = [];
             }
 
             inicializarSeleccion(fecha, hora) {
-                // Evitar duplicados al cargar por defecto
                 const existe = this.seleccionados.some(s => s.fecha === fecha && s.hora === hora);
                 if (!existe) {
                     this.seleccionados.push({ fecha, hora });
@@ -108,7 +107,6 @@
 
                 const index = this.seleccionados.findIndex(s => s.fecha === fecha && s.hora === hora);
                 if (index > -1) {
-                    // Si ya está seleccionado, permitir desmarcar solo si hay más de 1 elemento
                     if (this.seleccionados.length > 1) {
                         this.seleccionados.splice(index, 1);
                     } else {
@@ -118,7 +116,6 @@
                 } else {
                     this.seleccionados.push({ fecha, hora });
                 }
-                // Ordenar cronológicamente
                 this.seleccionados.sort((a, b) => `${a.fecha} ${a.hora}`.localeCompare(`${b.fecha} ${b.hora}`));
                 this.actualizarVista(fechaMinima, horaMinima);
             }
@@ -187,7 +184,6 @@
             }
             document.getElementById('labelSolicitudId').innerText = `ID: ${solicitudId}`;
 
-            // 1. Cargar técnicos y móviles
             const { data: moviles } = await client.from('moviles').select('movil_id, id_tecnico, celular, estado').eq('estado', 'activo');
             
             const selectTecnico = document.getElementById('selectTecnico');
@@ -203,7 +199,6 @@
                 });
             }
 
-            // 2. Cargar datos de la solicitud actual
             const { data: sol, error } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
             if (error || !sol) {
                 alert("No se pudo cargar la información de la solicitud.");
@@ -220,7 +215,6 @@
             fechaMinimaPermitida = fechaSolOriginal;
             horaMinimaPermitida = horaSolOriginal;
 
-            // Generar columnas de fecha (Día de la solicitud y el día posterior)
             const partesFecha = fechaSolOriginal.split('-');
             const d1 = new Date(partesFecha[0], partesFecha[1] - 1, partesFecha[2]);
             const d2 = new Date(d1);
@@ -230,12 +224,10 @@
             const f2Str = `${d2.getFullYear()}-${String(d2.getMonth() + 1).padStart(2, '0')}-${String(d2.getDate()).padStart(2, '0')}`;
             window.fechasColumnasGlobal = [f1Str, f2Str];
 
-            // Textos descriptivos de los días de la semana
             const diasSemana = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
             document.getElementById('thCol1').innerHTML = `${diasSemana[d1.getDay()]}<br><span class="font-normal">${d1.getDate()}/${d1.getMonth() + 1}</span>`;
             document.getElementById('thCol2').innerHTML = `${diasSemana[d2.getDay()]}<br><span class="font-normal">${d2.getDate()}/${d2.getMonth() + 1}</span>`;
 
-            // Inicializar con la fecha y hora original de la solicitud
             gestorAgenda.inicializarSeleccion(fechaSolOriginal, horaSolOriginal);
             gestorAgenda.renderizarTabla('cuerpoTablaAgenda', fechaMinimaPermitida, horaMinimaPermitida, window.fechasColumnasGlobal);
         }
@@ -270,35 +262,34 @@
                 return;
             }
 
-            // 2. Si hay más horarios seleccionados (ampliación consecutiva), duplicar registros con el mismo solicitud_id
+            // 2. Duplicar los registros adicionales para las horas consecutivas marcadas
             if (horariosSeleccionados.length > 1) {
-                // Obtenemos la estructura completa del registro original para clonarlo correctamente
-                const { data: solOriginal } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
+                const { data: solOriginal } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).limit(1).single();
 
                 if (solOriginal) {
                     for (let i = 1; i < horariosSeleccionados.length; i++) {
                         const hSel = horariosSeleccionados[i];
                         
-                        // Creamos el clon omitiendo el ID autoincremental original para que Supabase genere/duplique manteniendo el vínculo
+                        // Creamos una copia limpia del registro original eliminando la clave única o 'id' autoincremental
                         const clonSolicitud = { ...solOriginal };
-                        delete clonSolicitud.id; // Por si usa id autoincremental interno
-                        // Nota: dejamos el mismo 'solicitud_id' (o si es la PK principal, ajustamos según esquema; aquí duplicamos la fila conservando el valor de la solicitud o clonando)
+                        delete clonSolicitud.id; // Evita conflictos de primary key en la tabla
+
+                        // Asignamos los valores actualizados manteniendo el mismo solicitud_id
                         clonSolicitud.id_tecnico = nuevoTecnico;
                         clonSolicitud.movil_id = nuevoMovil;
                         clonSolicitud.respuesta_solicitud = nuevoEstado;
                         clonSolicitud.fecha_solicitud = hSel.fecha;
                         clonSolicitud.hora_solicitud = hSel.hora;
 
-                        // Insertar la duplicación en la tabla solicitudes
                         const { error: errorInsert } = await client.from('solicitudes').insert([clonSolicitud]);
                         if (errorInsert) {
-                            console.error("Error al duplicar la hora adicional:", errorInsert.message);
+                            console.error("Error al insertar la ampliación horaria:", errorInsert.message);
                         }
                     }
                 }
             }
 
-            alert("¡Asignación guardada y horarios ampliados/duplicados con éxito!");
+            alert("¡Asignación guardada y horarios ampliados correctamente en Supabase!");
             if (window.opener && !window.opener.closed) {
                 window.opener.refrescarPanel();
             }
