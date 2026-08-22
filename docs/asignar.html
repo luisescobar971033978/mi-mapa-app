@@ -42,18 +42,18 @@
             </select>
         </div>
 
-        <!-- Sección de Selección de Fecha y Hora (Mínimo 5 horas posteriores) -->
+        <!-- Sección de Selección de Fecha y Hora -->
         <div class="border-t pt-4">
-            <h2 class="text-md font-bold text-teal-900 mb-1">📅 SELECCIONE FECHA Y HORA DISPONIBLE (+5 HRS):</h2>
-            <p class="text-xs text-gray-500 mb-3">Mostrando horarios disponibles a partir de 5 horas posteriores a la solicitud original:</p>
+            <h2 class="text-md font-bold text-teal-900 mb-1">📅 SELECCIONE FECHA Y HORA DISPONIBLE:</h2>
+            <p class="text-xs text-gray-500 mb-3">Mostrando horarios disponibles a partir de la hora de la solicitud en adelante:</p>
             
             <div class="bg-gray-50 border rounded-lg overflow-hidden max-h-72 overflow-y-auto">
                 <table class="w-full border-collapse text-center text-sm">
                     <thead>
                         <tr class="bg-teal-100 text-teal-900 font-bold text-xs">
                             <th class="p-2 border-b border-r">Hora</th>
-                            <th class="p-2 border-b border-r">VIERNES<br><span class="font-normal">21/8</span></th>
-                            <th class="p-2 border-b">SÁBADO<br><span class="font-normal">22/8</span></th>
+                            <th class="p-2 border-b border-r">VIERNES<br><span id="headerCol1" class="font-normal">--/--</span></th>
+                            <th class="p-2 border-b">SÁBADO<br><span id="headerCol2" class="font-normal">--/--</span></th>
                         </tr>
                     </thead>
                     <tbody id="cuerpoTablaAgenda">
@@ -88,17 +88,15 @@
 
         class GestorAgendaServicio {
             constructor() {
-                // Rango extendido hasta las 24:00 (00:00) cada hora
                 this.horasDisponibles = [
                     "08:00:00", "09:00:00", "10:00:00", "11:00:00", "12:00:00", 
                     "13:00:00", "14:00:00", "15:00:00", "16:00:00", "17:00:00", 
                     "18:00:00", "19:00:00", "20:00:00", "21:00:00", "22:00:00", 
                     "23:00:00", "24:00:00"
                 ];
-                this.fechasColumnas = ["2026-08-21", "2026-08-22"];
             }
 
-            renderizarTabla(tbodyId, fechaMinimaPlus5, horaMinimaPlus5, fechaSeleccionadaActual, horaSeleccionadaActual) {
+            renderizarTabla(tbodyId, fechaMinima, horaMinima, fechaSeleccionadaActual, horaSeleccionadaActual, fechasCols) {
                 const tbody = document.getElementById(tbodyId);
                 let html = '';
 
@@ -109,9 +107,8 @@
 
                     let hayCeldaVisible = false;
 
-                    this.fechasColumnas.forEach(fechaCol => {
-                        // Comparamos si este bloque es anterior al límite mínimo de +5 horas
-                        const esAnterior = fechaCol < fechaMinimaPlus5 || (fechaCol === fechaMinimaPlus5 && hora < horaMinimaPlus5);
+                    fechasCols.forEach(fechaCol => {
+                        const esAnterior = fechaCol < fechaMinima || (fechaCol === fechaMinima && hora < horaMinima);
 
                         if (esAnterior) {
                             filaHTML += `<td class="p-2 text-gray-200 bg-gray-50 border-r select-none">-</td>`;
@@ -139,8 +136,9 @@
         const agendaObj = new GestorAgendaServicio();
         let fechaTemporal = "";
         let horaTemporal = "";
-        let fechaMinimaPermitida = "2026-08-21";
-        let horaMinimaPermitida = "13:00:00";
+        let fechaMinimaPermitida = "";
+        let horaMinimaPermitida = "";
+        let listaFechasCols = [];
 
         async function inicializarModulo() {
             if (!solicitudId) {
@@ -182,22 +180,26 @@
             if (sol.respuesta_solicitud) document.getElementById('selectEstado').value = sol.respuesta_solicitud.toLowerCase();
 
             fechaTemporal = sol.fecha_solicitud || "2026-08-21";
-            horaTemporal = sol.hora_solicitud || "08:00:00";
+            horaTemporal = sol.hora_solicitud || "20:00:00";
 
-            // CALCULO DE +5 HORAS A PARTIR DE LA HORA DE LA SOLICITUD
-            let [h, m, s] = horaTemporal.split(':').map(Number);
-            h += 5; // Añadir 5 horas mínimas de holgura
+            // El límite mínimo permitido es exactamente la misma fecha y hora de la solicitud
+            fechaMinimaPermitida = fechaTemporal;
+            horaMinimaPermitida = horaTemporal;
 
-            let fechaCalculada = new Date(`${fechaTemporal}T00:00:00`);
-            if (h >= 24) {
-                h -= 24;
-                fechaCalculada.setDate(fechaCalculada.getDate() + 1); // Salta al día siguiente si supera la medianoche
-            }
+            // Generar dos columnas de fechas consecutivas (Día de la solicitud y el día siguiente)
+            let d1 = new Date(`${fechaTemporal}T00:00:00`);
+            let d2 = new Date(d1);
+            d2.setDate(d2.getDate() + 1);
 
-            fechaMinimaPermitida = fechaCalculada.toISOString().split('T')[0];
-            horaMinimaPermitida = `${String(h).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}:${String(s || 0).padStart(2, '0')}`;
+            let f1Str = d1.toISOString().split('T')[0];
+            let f2Str = d2.toISOString().split('T')[0];
+            listaFechasCols = [f1Str, f2Str];
 
-            // Si la fecha/hora seleccionada actual es menor a las +5 horas requeridas, la ajustamos al mínimo permitido por defecto
+            // Formatear cabeceras visuales (DD/MM)
+            document.getElementById('headerCol1').innerText = `${d1.getDate()}/${d1.getMonth() + 1}`;
+            document.getElementById('headerCol2').innerText = `${d2.getDate()}/${d2.getMonth() + 1}`;
+
+            // Si la fecha seleccionada actual es menor a la permitida, la reseteamos al valor base
             if (fechaTemporal < fechaMinimaPermitida || (fechaTemporal === fechaMinimaPermitida && horaTemporal < horaMinimaPermitida)) {
                 fechaTemporal = fechaMinimaPermitida;
                 horaTemporal = horaMinimaPermitida;
@@ -207,12 +209,12 @@
             document.getElementById('inputFechaNueva').value = fechaTemporal;
             document.getElementById('inputHoraNueva').value = horaTemporal;
 
-            agendaObj.renderizarTabla('cuerpoTablaAgenda', fechaMinimaPermitida, horaMinimaPermitida, fechaTemporal, horaTemporal);
+            agendaObj.renderizarTabla('cuerpoTablaAgenda', fechaMinimaPermitida, horaMinimaPermitida, fechaTemporal, horaTemporal, listaFechasCols);
         }
 
         function seleccionarBloqueAgenda(fecha, hora) {
             if (fecha < fechaMinimaPermitida || (fecha === fechaMinimaPermitida && hora < horaMinimaPermitida)) {
-                alert("El horario seleccionado debe ser al menos 5 horas posterior a la solicitud original.");
+                alert("El horario seleccionado no puede ser anterior a la hora de la solicitud.");
                 return;
             }
 
@@ -222,7 +224,7 @@
             document.getElementById('inputHoraNueva').value = hora;
             document.getElementById('infoTiempoActual').innerText = `${fecha} a Hrs. ${hora.substring(0, 5)}`;
             
-            agendaObj.renderizarTabla('cuerpoTablaAgenda', fechaMinimaPermitida, horaMinimaPermitida, fechaTemporal, horaTemporal);
+            agendaObj.renderizarTabla('cuerpoTablaAgenda', fechaMinimaPermitida, horaMinimaPermitida, fechaTemporal, horaTemporal, listaFechasCols);
         }
 
         async function guardarAsignacion() {
