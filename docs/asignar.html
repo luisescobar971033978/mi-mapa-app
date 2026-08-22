@@ -44,16 +44,16 @@
 
         <!-- Sección de Selección de Fecha y Hora -->
         <div class="border-t pt-4">
-            <h2 class="text-md font-bold text-teal-900 mb-1">📅 SELECCIONE FECHA Y HORA DISPONIBLE:</h2>
-            <p class="text-xs text-gray-500 mb-3">Mostrando horarios disponibles a partir de la hora de la solicitud en adelante:</p>
+            <h2 id="tituloSeccionAgenda" class="text-md font-bold text-teal-900 mb-1">📅 SELECCIONE FECHA Y HORA DISPONIBLE:</h2>
+            <p class="text-xs text-gray-500 mb-3">Horarios disponibles a partir de la hora de la solicitud en adelante:</p>
             
             <div class="bg-gray-50 border rounded-lg overflow-hidden max-h-72 overflow-y-auto">
                 <table class="w-full border-collapse text-center text-sm">
                     <thead>
                         <tr class="bg-teal-100 text-teal-900 font-bold text-xs">
                             <th class="p-2 border-b border-r">Hora</th>
-                            <th class="p-2 border-b border-r">VIERNES<br><span id="headerCol1" class="font-normal">--/--</span></th>
-                            <th class="p-2 border-b">SÁBADO<br><span id="headerCol2" class="font-normal">--/--</span></th>
+                            <th id="thCol1" class="p-2 border-b border-r">DÍA 1</th>
+                            <th id="thCol2" class="p-2 border-b">DÍA 2</th>
                         </tr>
                     </thead>
                     <tbody id="cuerpoTablaAgenda">
@@ -96,7 +96,7 @@
                 ];
             }
 
-            renderizarTabla(tbodyId, fechaMinima, horaMinima, fechaSeleccionadaActual, horaSeleccionadaActual, fechasCols) {
+            renderizarTabla(tbodyId, fechaMinima, horaMinima, fechaSel, horaSel, fechasCols) {
                 const tbody = document.getElementById(tbodyId);
                 let html = '';
 
@@ -105,16 +105,14 @@
                     let filaHTML = `<tr class="border-b hover:bg-gray-100">`;
                     filaHTML += `<td class="p-2 border-r font-bold text-gray-700 bg-gray-50 text-xs">${horaCorta}</td>`;
 
-                    let hayCeldaVisible = false;
-
                     fechasCols.forEach(fechaCol => {
-                        const esAnterior = fechaCol < fechaMinima || (fechaCol === fechaMinima && hora < horaMinima);
+                        // Validar si la celda es anterior a la fecha/hora mínima de la solicitud
+                        const esAnterior = (fechaCol < fechaMinima) || (fechaCol === fechaMinima && hora < horaMinima);
 
                         if (esAnterior) {
-                            filaHTML += `<td class="p-2 text-gray-200 bg-gray-50 border-r select-none">-</td>`;
+                            filaHTML += `<td class="p-2 text-gray-300 bg-gray-50 border-r select-none">-</td>`;
                         } else {
-                            hayCeldaVisible = true;
-                            const esSeleccionado = (fechaCol === fechaSeleccionadaActual && hora.substring(0,5) === (horaSeleccionadaActual || "").substring(0,5));
+                            const esSeleccionado = (fechaCol === fechaSel && hora.substring(0,5) === (horaSel || "").substring(0,5));
 
                             if (esSeleccionado) {
                                 filaHTML += `<td onclick="seleccionarBloqueAgenda('${fechaCol}', '${hora}')" class="p-2 bg-teal-700 text-white font-bold cursor-pointer select-none border-r ring-2 ring-teal-400">Seleccionado</td>`;
@@ -125,9 +123,7 @@
                     });
 
                     filaHTML += `</tr>`;
-                    if (hayCeldaVisible) {
-                        html += filaHTML;
-                    }
+                    html += filaHTML;
                 });
                 tbody.innerHTML = html;
             }
@@ -148,7 +144,7 @@
             }
             document.getElementById('labelSolicitudId').innerText = `ID: ${solicitudId}`;
 
-            // 1. Cargar lista de móviles y técnicos desde la tabla 'moviles'
+            // 1. Cargar técnicos y móviles
             const { data: moviles } = await client.from('moviles').select('movil_id, id_tecnico, celular, estado').eq('estado', 'activo');
             
             const selectTecnico = document.getElementById('selectTecnico');
@@ -159,16 +155,12 @@
 
             if (moviles) {
                 moviles.forEach(m => {
-                    if (m.id_tecnico) {
-                        selectTecnico.innerHTML += `<option value="${m.id_tecnico}">Técnico ID: ${m.id_tecnico}</option>`;
-                    }
-                    if (m.movil_id) {
-                        selectMovil.innerHTML += `<option value="${m.movil_id}">${m.movil_id} (Cel: ${m.celular})</option>`;
-                    }
+                    if (m.id_tecnico) selectTecnico.innerHTML += `<option value="${m.id_tecnico}">Técnico ID: ${m.id_tecnico}</option>`;
+                    if (m.movil_id) selectMovil.innerHTML += `<option value="${m.movil_id}">${m.movil_id} (Cel: ${m.celular})</option>`;
                 });
             }
 
-            // 2. Cargar datos actuales de la solicitud
+            // 2. Cargar datos de la solicitud
             const { data: sol, error } = await client.from('solicitudes').select('*').eq('solicitud_id', solicitudId).single();
             if (error || !sol) {
                 alert("No se pudo cargar la información de la solicitud.");
@@ -182,24 +174,28 @@
             fechaTemporal = sol.fecha_solicitud || "2026-08-21";
             horaTemporal = sol.hora_solicitud || "20:00:00";
 
-            // El límite mínimo permitido es exactamente la misma fecha y hora de la solicitud
             fechaMinimaPermitida = fechaTemporal;
             horaMinimaPermitida = horaTemporal;
 
-            // Generar dos columnas de fechas consecutivas (Día de la solicitud y el día siguiente)
-            let d1 = new Date(`${fechaTemporal}T00:00:00`);
-            let d2 = new Date(d1);
+            // Generar columnas de fecha (Día de la solicitud y el día posterior)
+            const partesFecha = fechaTemporal.split('-');
+            const d1 = new Date(partesFecha[0], partesFecha[1] - 1, partesFecha[2]);
+            const d2 = new Date(d1);
             d2.setDate(d2.getDate() + 1);
 
-            let f1Str = d1.toISOString().split('T')[0];
-            let f2Str = d2.toISOString().split('T')[0];
+            const f1Str = fechaTemporal;
+            const f2Str = `${d2.getFullYear()}-${String(d2.getMonth() + 1).padStart(2, '0')}-${String(d2.getDate()).padStart(2, '0')}`;
             listaFechasCols = [f1Str, f2Str];
 
-            // Formatear cabeceras visuales (DD/MM)
-            document.getElementById('headerCol1').innerText = `${d1.getDate()}/${d1.getMonth() + 1}`;
-            document.getElementById('headerCol2').innerText = `${d2.getDate()}/${d2.getMonth() + 1}`;
+            // Textos descriptivos de los días de la semana
+            const diasSemana = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
+            const nombreDia1 = diasSemana[d1.getDay()];
+            const nombreDia2 = diasSemana[d2.getDay()];
 
-            // Si la fecha seleccionada actual es menor a la permitida, la reseteamos al valor base
+            document.getElementById('thCol1').innerHTML = `${nombreDia1}<br><span class="font-normal">${d1.getDate()}/${d1.getMonth() + 1}</span>`;
+            document.getElementById('thCol2').innerHTML = `${nombreDia2}<br><span class="font-normal">${d2.getDate()}/${d2.getMonth() + 1}</span>`;
+
+            // Validar selección actual
             if (fechaTemporal < fechaMinimaPermitida || (fechaTemporal === fechaMinimaPermitida && horaTemporal < horaMinimaPermitida)) {
                 fechaTemporal = fechaMinimaPermitida;
                 horaTemporal = horaMinimaPermitida;
